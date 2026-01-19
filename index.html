@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>思想雷达 | Thought Radar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#08090c;--surface:#0f1115;--card:#12151a;--elevated:#181b22;--green:#00ff88;--green-dim:rgba(0,255,136,0.12);--amber:#f0a500;--amber-dim:rgba(240,165,0,0.12);--blue:#4a9eff;--blue-dim:rgba(74,158,255,0.12);--purple:#a855f7;--pink:#ff6b9d;--teal:#00d4aa;--red:#ff4757;--red-dim:rgba(255,71,87,0.15);--text:#e8eaed;--text2:#9aa0a6;--text3:#5f6368;--border:rgba(255,255,255,0.06)}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Noto Serif SC',Georgia,serif;background:var(--bg);color:var(--text);line-height:1.8;min-height:100vh}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,136,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+    .container{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:40px 24px}
+    header{text-align:center;margin-bottom:40px;padding-bottom:30px;border-bottom:1px solid var(--border)}
+    .logo{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px}
+    .logo-icon{width:52px;height:52px}
+    .logo-icon svg{width:100%;height:100%}
+    .logo-ring{fill:none;stroke:var(--green);stroke-width:1.5;opacity:0.6}
+    .logo-dot{fill:var(--green);filter:drop-shadow(0 0 6px var(--green))}
+    .logo-sweep{fill:url(#sweepGradient);transform-origin:center;animation:sweep 4s linear infinite}
+    @keyframes sweep{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    h1{font-size:2.4rem;font-weight:700;letter-spacing:0.08em}
+    h1 span{color:var(--green)}
+    .tagline{font-size:0.95rem;color:var(--text2);margin-top:12px}
+    .control-bar{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:24px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;align-items:center}
+    .date-selector{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .date-label{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text3);text-transform:uppercase}
+    .date-tabs{display:flex;gap:4px;background:var(--elevated);padding:4px;border-radius:8px;flex-wrap:wrap}
+    .date-tab{padding:8px 12px;background:transparent;border:none;border-radius:6px;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:0.75rem;cursor:pointer;min-width:65px;text-align:center}
+    .date-tab:hover{color:var(--text);background:var(--surface)}
+    .date-tab.active{background:var(--green-dim);color:var(--green)}
+    .date-tab small{display:block;font-size:0.65rem;opacity:0.7;margin-top:2px}
+    .search-box{flex:1;min-width:200px;position:relative}
+    .search-input{width:100%;padding:12px 16px 12px 44px;background:var(--elevated);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.9rem}
+    .search-input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-dim)}
+    .search-input::placeholder{color:var(--text3)}
+    .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3)}
+    .search-info{padding:12px 16px;background:var(--elevated);border-radius:8px;margin-bottom:20px;display:none;justify-content:space-between;align-items:center}
+    .search-info.visible{display:flex}
+    .search-info span{font-size:0.9rem;color:var(--text2)}
+    .search-info strong{color:var(--green)}
+    #clearSearch{background:none;border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:0.75rem;cursor:pointer}
+    .nav-tabs{display:flex;justify-content:center;gap:8px;margin-bottom:30px;flex-wrap:wrap}
+    .nav-tab{padding:10px 20px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:0.8rem;cursor:pointer;text-transform:uppercase}
+    .nav-tab:hover{border-color:var(--text3);color:var(--text)}
+    .nav-tab.active{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+    .filter-bar{display:flex;gap:4px;background:var(--surface);padding:4px;border-radius:8px;margin-bottom:24px;flex-wrap:wrap}
+    .filter-btn{padding:8px 16px;background:transparent;border:none;border-radius:6px;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:0.8rem;cursor:pointer}
+    .filter-btn:hover{color:var(--text)}
+    .filter-btn.active{background:var(--elevated);color:var(--green)}
+    .radar-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:24px;overflow:hidden}
+    .radar-card:hover{border-color:rgba(0,255,136,0.25)}
+    .card-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+    .card-meta{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+    .freq-badge{font-family:'JetBrains Mono',monospace;font-size:0.7rem;padding:4px 8px;border-radius:4px;font-weight:500}
+    .freq-badge.tech{background:rgba(0,255,136,0.15);color:var(--green)}
+    .freq-badge.politics{background:rgba(74,158,255,0.15);color:var(--blue)}
+    .freq-badge.history{background:rgba(240,165,0,0.15);color:var(--amber)}
+    .freq-badge.philosophy{background:rgba(168,85,247,0.15);color:var(--purple)}
+    .freq-badge.religion{background:rgba(255,107,157,0.15);color:var(--pink)}
+    .freq-badge.finance{background:rgba(0,212,170,0.15);color:var(--teal)}
+    .stance-badge{font-family:'JetBrains Mono',monospace;font-size:0.7rem;padding:4px 10px;border-radius:4px;border:1px solid}
+    .stance-badge.stance-a{border-color:var(--blue);color:var(--blue);background:var(--blue-dim)}
+    .stance-badge.stance-b{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+    .card-index{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text3);opacity:0.5}
+    .card-body{padding:24px}
+    .card-title{font-size:1.35rem;font-weight:600;line-height:1.5;margin-bottom:16px}
+    .card-author{display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)}
+    .author-avatar{width:48px;height:48px;background:var(--elevated);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.9rem;border:1px solid var(--border);color:var(--green)}
+    .author-name{font-weight:600;font-size:1rem}
+    .author-bio{font-size:0.85rem;color:var(--text2);margin-top:2px}
+    .source-context{background:var(--elevated);border-left:3px solid var(--green);padding:12px 16px;border-radius:0 8px 8px 0;margin-bottom:24px;font-size:0.9rem;color:var(--text2);line-height:1.6}
+    .card-content{color:var(--text2);font-size:1rem;line-height:2;text-align:justify}
+    .card-content p{margin-bottom:1.2em;text-indent:2em}
+    .card-content p:last-child{margin-bottom:0}
+    .tension-box{background:var(--elevated);border-radius:8px;padding:16px 20px;margin-top:24px}
+    .tension-header{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text3);text-transform:uppercase;margin-bottom:12px}
+    .tension-pair{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}
+    .tension-a{font-size:0.85rem;color:var(--blue);text-align:right}
+    .tension-b{font-size:0.85rem;color:var(--amber);text-align:left}
+    .tension-vs{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text3);padding:4px 8px;background:var(--surface);border-radius:4px}
+    .card-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+    .footer-left{display:flex;align-items:center}
+    .footer-right{display:flex;gap:8px}
+    .like-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:0.75rem;cursor:pointer;transition:all 0.2s}
+    .like-btn:hover{border-color:var(--red);color:var(--red)}
+    .like-btn.liked{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+    .like-btn svg{width:16px;height:16px;fill:currentColor}
+    .stance-btn{padding:8px 14px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:0.75rem;cursor:pointer}
+    .stance-btn.btn-a:hover,.stance-btn.btn-a.active{border-color:var(--blue);color:var(--blue);background:var(--blue-dim)}
+    .stance-btn.btn-b:hover,.stance-btn.btn-b.active{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+    .highlight{background:var(--amber-dim);color:var(--amber);padding:1px 4px;border-radius:3px}
+    .empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
+    .empty-icon{font-size:3rem;margin-bottom:16px;opacity:0.5}
+    .tti-dashboard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px}
+    .tti-title{font-size:1rem;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+    .tti-title::before{content:'';width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 10px var(--green)}
+    .tti-subtitle{font-size:0.85rem;color:var(--text3);margin-bottom:24px}
+    .tti-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+    .tti-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px}
+    .tti-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .tti-trend{font-family:'JetBrains Mono',monospace;font-size:0.7rem;margin-left:auto}
+    .tti-trend.trend-a{color:var(--blue)}
+    .tti-trend.trend-b{color:var(--amber)}
+    .tti-question{font-size:0.95rem;color:var(--text);margin-bottom:16px;font-weight:500}
+    .tti-labels{display:flex;justify-content:space-between;margin-bottom:6px;font-size:0.75rem}
+    .tti-label-a{color:var(--blue)}
+    .tti-label-b{color:var(--amber);text-align:right}
+    .tti-spectrum{display:flex;align-items:center;gap:8px}
+    .spectrum-label{font-family:'JetBrains Mono',monospace;font-size:0.65rem;width:16px}
+    .spectrum-label.label-a{color:var(--blue)}
+    .spectrum-label.label-b{color:var(--amber)}
+    .spectrum-track{flex:1;height:6px;background:var(--elevated);border-radius:3px;position:relative;overflow:hidden}
+    .spectrum-fill{position:absolute;top:0;height:100%}
+    .spectrum-fill.fill-a{left:0;background:linear-gradient(90deg,var(--blue),transparent)}
+    .spectrum-fill.fill-b{right:0;background:linear-gradient(90deg,transparent,var(--amber))}
+    .spectrum-marker{position:absolute;top:-3px;width:12px;height:12px;background:var(--text);border-radius:50%;transform:translateX(-50%);box-shadow:0 0 8px rgba(255,255,255,0.3)}
+    .freq-domain{margin-bottom:32px}
+    .domain-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+    .domain-role{font-size:0.85rem;color:var(--text3)}
+    .domain-bands{display:flex;flex-direction:column;gap:12px}
+    .band-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px}
+    .band-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .band-question{font-weight:600}
+    .band-sides{display:flex;gap:20px;font-size:0.85rem;flex-wrap:wrap}
+    .side-a{color:var(--blue)}
+    .side-b{color:var(--amber)}
+    footer{margin-top:60px;padding-top:30px;border-top:1px solid var(--border);text-align:center}
+    .footer-philosophy{max-width:600px;margin:0 auto 20px;font-size:0.9rem;color:var(--text2);line-height:1.8}
+    .footer-meta{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text3)}
+    .hidden{display:none!important}
+    @media(max-width:768px){.control-bar{flex-direction:column}.tension-pair{grid-template-columns:1fr;gap:8px}.tension-a,.tension-b{text-align:left}.card-footer{flex-direction:column;gap:12px}.footer-left,.footer-right{width:100%}.footer-right{justify-content:flex-end}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 52 52">
+            <defs><linearGradient id="sweepGradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:rgba(0,255,136,0.4)"/><stop offset="100%" style="stop-color:rgba(0,255,136,0)"/></linearGradient></defs>
+            <circle class="logo-ring" cx="26" cy="26" r="24"/>
+            <circle class="logo-ring" cx="26" cy="26" r="16"/>
+            <circle class="logo-ring" cx="26" cy="26" r="8"/>
+            <path class="logo-sweep" d="M26,26 L26,2 A24,24 0 0,1 50,26 Z"/>
+            <circle class="logo-dot" cx="26" cy="26" r="3"/>
+          </svg>
+        </div>
+        <h1>思想<span>雷达</span></h1>
+      </div>
+      <p class="tagline">追踪全球顶级头脑对时代级问题的最新思考</p>
+    </header>
+
+    <div class="control-bar">
+      <div class="date-selector">
+        <span class="date-label">选择日期</span>
+        <div class="date-tabs" id="dateTabs"></div>
+      </div>
+      <div class="search-box">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+        <input type="text" class="search-input" id="searchInput" placeholder="搜索历史雷达...">
+      </div>
+    </div>
+
+    <div class="search-info" id="searchInfo">
+      <span>找到 <strong id="searchCount">0</strong> 条匹配结果</span>
+      <button id="clearSearch">清除</button>
+    </div>
+
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-view="radar">今日雷达</button>
+      <button class="nav-tab" data-view="tti">张力指数</button>
+      <button class="nav-tab" data-view="frequency">频段总览</button>
+    </nav>
+
+    <section id="radarView" class="view-section">
+      <div class="filter-bar" id="domainFilters"></div>
+      <div id="radarList"></div>
+    </section>
+
+    <section id="ttiView" class="view-section hidden">
+      <div class="tti-dashboard">
+        <h2 class="tti-title">思想张力指数 TTI</h2>
+        <p class="tti-subtitle">衡量各频段中 A/B 两侧思想资源的相对强度</p>
+        <div class="tti-grid" id="ttiGrid"></div>
+      </div>
+    </section>
+
+    <section id="frequencyView" class="view-section hidden">
+      <div class="tti-dashboard">
+        <h2 class="tti-title">频段系统</h2>
+        <p class="tti-subtitle">18个时代级问题的张力结构</p>
+        <div id="frequencyOverview"></div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="footer-philosophy">在一个文明不稳定的时代，最危险的不是判断错误，而是没有一套稳定的问题结构。</div>
+      <p class="footer-meta">思想雷达 v1.0</p>
+    </footer>
+  </div>
+
+<script>
+const BANDS = {
+  tech: { name: '技术', code: 'T', color: '#00ff88', role: '社会结构变量',
+    bands: [
+      { id: 'T1', q: 'AI是否正在重写社会分层结构？', a: 'AI普惠化，整体能力上移', b: 'AI精英化，阶层固化', tti: 62 },
+      { id: 'T2', q: '技术是在嵌入制度还是绕开制度？', a: '可被法律与制度吸收', b: '天然反制度、去政治化', tti: 48 },
+      { id: 'T3', q: '技术是否已脱离人类集体意志？', a: '可被政治与伦理引导', b: '已成为竞争宿命', tti: 63 }
+    ]},
+  politics: { name: '政治', code: 'P', color: '#4a9eff', role: '合法性解释',
+    bands: [
+      { id: 'P1', q: '民主是否已不适应高复杂度社会？', a: '低效但不可替代', b: '技术官僚治理更现实', tti: 45 },
+      { id: 'P2', q: '权力是否正在脱离公共可见性？', a: '可被拉回公共领域', b: '已进入后政治治理', tti: 61 }
+    ]},
+  history: { name: '历史', code: 'H', color: '#f0a500', role: '失败模式数据库',
+    bands: [
+      { id: 'H1', q: '文明是否正在进入倒退阶段？', a: '周期性回撤，可复原', b: '长期结构性退化', tti: 48 },
+      { id: 'H2', q: '社会崩溃前的共性征兆是什么？', a: '征兆可识别、可预防', b: '只能事后理解', tti: 52 }
+    ]},
+  philosophy: { name: '哲学', code: 'Φ', color: '#a855f7', role: '价值冲突裁决',
+    bands: [
+      { id: 'Φ1', q: '自由与秩序是否天然冲突？', a: '秩序优先，安全第一', b: '自由不可牺牲', tti: 47 },
+      { id: 'Φ3', q: '自由是否正在被系统性理性替代？', a: '被优化的自由仍是自由', b: '优化即控制', tti: 62 }
+    ]},
+  religion: { name: '宗教', code: 'R', color: '#ff6b9d', role: '意义与边界提供者',
+    bands: [
+      { id: 'R2', q: '技术是否正在形成伪宗教？', a: '技术只是工具', b: '技术正在承担信仰功能', tti: 59 }
+    ]},
+  finance: { name: '金融', code: 'F', color: '#00d4aa', role: '未来信心投票机',
+    bands: [
+      { id: 'F2', q: '金融是否正在放大社会撕裂？', a: '市场可自我修正', b: '金融结构侵蚀社会基础', tti: 64 }
+    ]}
+};
+
+const DATA = [
+  { date: '2025-01-19', id: '001', freq: 'T1', stance: 'B',
+    title: 'AI精英化正在加速：顶级人才争夺战的社会后果',
+    author: { name: 'Daron Acemoglu', avatar: 'DA', bio: 'MIT经济学教授，2024年诺贝尔经济学奖得主' },
+    source: '2025年1月 · 《美国经济评论》特稿 · 获诺奖后首篇系统论述AI社会影响的学术论文',
+    content: 'Acemoglu在这篇万字长文中提出了一个令人不安的判断：AI技术正在创造他所谓的「认知寡头制」。这不是一个修辞，而是基于对过去十年科技行业人才流动数据的系统分析得出的结论。全球顶级AI人才高度集中于不到20家公司，技术能力差距正以指数级速度拉开。更关键的是，这不仅是人才集中，更是数据、算力、以及「AI训练AI」能力的集中。一旦形成正反馈循环，后来者几乎不可能追赶。\n\n论证建立在三个相互强化的机制上。第一是「技能溢价的非线性跃升」：AI带来的不是线性的技能溢价，而是断层式的能力鸿沟，只有极少数能够驾驭AI的人获得巨大回报。第二是「教育系统的结构性滞后」：即使今天立即启动教育改革，培养一代新人也需要15到20年，而技术不会等待。第三是「精英再生产的闭环化」：掌握AI的家庭可以为下一代提供无法复制的教育资源——个性化AI辅导、前沿技术的早期接触、行业内部的社会网络。阶层流动性将在一代人内显著下降。\n\nAcemoglu直接反对「让市场自行调节」的乐观主义。他预测，如果不加干预，社会将在10到15年内形成事实上的「双轨制」——少数AI精英与大多数「被管理者」。他提出的政策建议包括：对AI公司征收「认知租金税」，用于资助全民基本收入和终身教育项目；强制要求AI系统具备「可解释性」，防止算法歧视的固化；建立「AI公共基础设施」，确保关键能力不被少数私人公司垄断。',
+    tension: { q: 'AI是否正在重写社会分层结构？', a: 'AI普惠化，整体能力上移', b: 'AI精英化，阶层固化乃至断裂' },
+    keywords: ['AI', '社会分层', '认知寡头制', '诺贝尔经济学奖']
+  },
+  { date: '2025-01-19', id: '002', freq: 'P2', stance: 'B',
+    title: '算法治理的民主赤字：当决策权从议会转移到服务器',
+    author: { name: 'Shoshana Zuboff', avatar: 'SZ', bio: '哈佛商学院荣休教授，《监控资本主义时代》作者' },
+    source: '2025年1月15日 · 达沃斯世界经济论坛主旨演讲 · 首次达沃斯演讲，多位科技CEO当场质疑',
+    content: 'Zuboff在达沃斯的演讲开场就抛出了她的核心判断：我们正在进入「后政治治理」时代。真正影响普通人日常生活的决策——谁能获得贷款、看到什么信息、被推荐什么工作、甚至在相亲软件上遇见谁——越来越多地由算法做出，而这些算法既不透明，也不对任何公共机构负责。表面上我们仍然有选举、有议会、有法院，但实际上，那些真正塑造生活机会的关键决定，已经转移到了私人公司的服务器上。\n\n她用三个案例来支撑这个论证。第一个是信用评估系统：一位女性申请房贷被拒，算法判定她「风险过高」，但没有任何人能解释这个判断的依据，也没有任何申诉渠道。第二个是内容推荐：在2024年美国大选中，社交媒体算法决定了数亿人看到什么政治信息，其影响力远远超过传统媒体，但平台公司声称自己只是「中立的技术提供者」。第三个是招聘筛选：越来越多公司使用AI进行简历初筛，而这些系统已经被证明会复制甚至放大历史上的偏见。\n\nZuboff认为，传统的「数据隐私」框架已经不足以应对这个问题——问题不仅仅是「谁拥有我的数据」，更是「谁有权对我做出判断」。她呼吁建立「算法问责制」：任何对个人权利有重大影响的算法决策，必须是可解释的、可申诉的、可以被人类覆盖的。演讲结束后，多位科技公司高管表示反对，认为这会「扼杀创新」。Zuboff的回应是：「创新不是借口。我们不会允许制药公司说监管会扼杀创新就跳过临床试验。」',
+    tension: { q: '权力是否正在脱离公共可见性？', a: '权力仍可被拉回公共领域', b: '我们已进入后政治治理' },
+    keywords: ['算法治理', '民主赤字', '监控资本主义', '达沃斯']
+  },
+  { date: '2025-01-19', id: '003', freq: 'Φ3', stance: 'B',
+    title: '数字时代的自由悖论：当「选择」本身被设计',
+    author: { name: '韩炳哲', avatar: '韩', bio: '柏林艺术大学哲学教授，《倦怠社会》《透明社会》作者' },
+    source: '2025年1月 · 新书《透明的牢笼》德文首版 · 数字批判三部曲收官之作',
+    content: '韩炳哲在他「数字批判三部曲」的收官之作中，提出了一个看似悖论的命题：数字技术以「自由」和「便利」的名义，实施着人类历史上最精密的控制。这种控制不以「禁止」的形式出现——它不说「你不能」，而是说「你会喜欢这个」。旧式权力通过惩罚来运作，人们知道自己被控制，因此可能反抗；新式权力通过奖励和引导来运作，人们以为自己在自由选择，实际上选择的空间早已被精心设计。\n\n韩炳哲从哲学史的角度追溯了「自由」概念的演变。启蒙时代的自由预设了一个「自主的理性主体」，能够独立地形成判断和欲望。但神经科学和行为经济学已经证明，人类的决策在很大程度上是非理性的、可预测的、可操控的。以「无限滚动」为例——这个看似简单的界面设计，利用了人类大脑对「闭合」的深层心理需求，让用户无法停止。这不是偶然，而是数百名工程师和心理学家刻意优化的结果。更深层的问题是「欲望的殖民」：传统权力控制的是你能做什么；数字权力控制的是你想要什么。\n\n韩炳哲的结论是哲学性的：「数字自由」是一个矛盾修辞。真正的自由需要「无效率」的空间——不被追踪、不被优化、不被推荐的领域。最终，如果「我想要什么」已经被外部力量塑造，那么这种「自由」是空洞的。真正的自由可能需要「否定的能力」——拒绝诱惑、抵抗便利、选择困难路径的能力。这是数字时代的斯多葛主义。',
+    tension: { q: '自由是否正在被系统性理性替代？', a: '被优化的自由仍是自由', b: '优化即控制' },
+    keywords: ['数字自由', '诱导性控制', '韩炳哲', '选择架构']
+  },
+  { date: '2025-01-19', id: '004', freq: 'H1', stance: 'A',
+    title: '历史的钟摆：为什么当前的动荡是周期性的而非末日',
+    author: { name: 'Niall Ferguson', avatar: 'NF', bio: '斯坦福大学胡佛研究所高级研究员，历史学家' },
+    source: '2025年1月12日 · 《旁观者》杂志封面长文 · 新书《厄运》核心论点的普及版本',
+    content: 'Ferguson在这篇文章中直接挑战了当下流行的「文明衰落」叙事。他的核心论点是：我们正在经历的动荡——地缘政治紧张、民族主义回潮、国际秩序松动——在历史的尺度上并非罕见，而是全球化周期的正常回调。他以1880-1914年的「第一次全球化」为类比：那个时代同样见证了技术革命、资本的全球流动、自由主义思想的高歌猛进，然后以第一次世界大战的灾难告终。但关键是：灾难之后世界重新组织起来，建立了比之前更稳定的国际秩序。\n\nFerguson用数据来支撑他的观点。关于暴力：尽管媒体上充斥着冲突的报道，战争造成的死亡率在过去七十年持续下降，即使把乌克兰战争计算在内，仍然远低于二十世纪的大部分时期。关于制度韧性：1930年代的法西斯浪潮曾经让很多人相信民主制度即将消亡，但民主最终不仅存活下来，还在战后实现了扩展。关于技术：历史上每一次重大技术变革——印刷术、工业革命、核能——最初都被认为会「改变一切」，最终都被社会消化和调适。\n\nFerguson认为，最大的风险不是任何特定的危机，而是「末日心态」本身导致的自我实现预言。如果精英们真的相信文明即将崩溃，他们就会采取短期行为，放弃长期投资和制度建设，从而真的导致崩溃。他呼吁的是「悲观主义的乐观行动」：承认风险的真实存在，但拒绝宿命论的诱惑。',
+    tension: { q: '文明是否正在进入倒退阶段？', a: '周期性回撤', b: '长期文明退化' },
+    keywords: ['文明周期', '历史钟摆', 'Ferguson', '末日心态']
+  },
+  { date: '2025-01-19', id: '005', freq: 'F2', stance: 'B',
+    title: '金融化的社会成本：当房屋变成资产类别',
+    author: { name: 'Rana Foroohar', avatar: 'RF', bio: 'Financial Times副主编，CNN全球经济分析师' },
+    source: '2025年1月16日 · 《金融时报》专栏 · 新书《万物金融化》核心章节',
+    content: 'Foroohar在这篇专栏中聚焦于金融化最具破坏性的一个面向：住房。过去四十年，金融部门占经济的比重从4%增长到超过20%，但这种膨胀并没有带来相应的生产力提升。相反，它创造了一个日益庞大的「食利者阶层」——不是通过创造价值，而是通过操纵资产价格来获取财富。越来越多原本不属于市场逻辑的领域——住房、教育、医疗、甚至碳排放权——被改造成可交易的金融产品。\n\n住房是最典型的案例。在金融化之前，房屋首先是「家」——一个生活的场所、社区的锚点、代际传承的载体。在金融化之后，房屋首先是「投资品」——一个资产类别、一个抵押品、一个套利工具。这种转变的后果是系统性的：房价与当地居民的收入脱钩，年轻人被挤出购房市场，城市变成全球资本的竞技场而不是居民的家园。她援引数据显示，在主要城市，住房成本占中位数收入的比例在过去二十年翻了一倍。\n\nForoohar认为，当前的民粹主义浪潮——无论是左翼的桑德斯和沃伦，还是右翼的特朗普——在很大程度上是对金融化社会成本的反弹。不同政治派别对「谁是敌人」有不同的叙事，但底层的不满是相似的：一种系统被操纵、普通人被抛弃的感觉。如果改革只停留在政治修辞而不触及金融结构本身，这种反弹只会以更极端的形式重复出现。',
+    tension: { q: '金融是否正在放大社会撕裂？', a: '市场可自我修正', b: '金融结构侵蚀社会基础' },
+    keywords: ['金融化', '住房危机', '食利者阶层', '民粹主义']
+  },
+  { date: '2025-01-19', id: '006', freq: 'T2', stance: 'A',
+    title: '欧盟AI法案一周年：制度如何驯服技术',
+    author: { name: 'Margrethe Vestager', avatar: 'MV', bio: '欧盟委员会执行副主席，竞争事务专员' },
+    source: '2025年1月17日 · 布鲁塞尔欧盟AI法案实施一周年新闻发布会',
+    content: '在欧盟AI法案正式实施一周年之际，Vestager在新闻发布会上对法案效果进行了系统性回顾。她的核心论点是：技术监管不是创新的敌人，而是创新健康发展的前提条件。过去一年的数据表明，受监管的AI系统并没有如批评者预测的那样逃离欧洲市场，相反，合规成本迫使企业更加认真地对待安全性和透明度，最终提升了产品质量。她将此称为「布鲁塞尔效应2.0」——就像GDPR曾经成为全球隐私保护的事实标准一样，欧盟AI法案正在塑造全球AI治理的基准。\n\nVestager承认法案执行过程中遇到了挑战。最大的问题是「高风险系统」的界定边界：一些企业通过巧妙的产品设计规避分类，另一些则陷入过度合规的困境。但她强调，这些问题是可以通过实践迭代解决的，关键是建立了「技术必须对社会负责」的基本原则。她特别提到了几个成功案例：一家招聘AI公司在合规压力下重新设计了算法，消除了此前被发现的性别偏见；一家医疗诊断公司被要求提供决策解释后，反而发现并修复了模型中的几个关键错误。\n\n对于「监管扼杀创新」的批评，Vestager的回应是历史性的：每一次重大技术变革——从铁路到电力到互联网——最初都被认为「太重要、太复杂、不能被监管」，但最终都被制度框架所吸收。真正的问题不是要不要监管，而是如何设计聪明的监管。她宣布欧盟将在下半年启动AI法案的首次修订程序，重点解决生成式AI和通用人工智能带来的新问题。',
+    tension: { q: '技术是在嵌入制度还是绕开制度？', a: '可被法律与制度吸收', b: '天然反制度、去政治化' },
+    keywords: ['欧盟AI法案', 'Vestager', '技术监管', '布鲁塞尔效应']
+  },
+  { date: '2025-01-18', id: '007', freq: 'R2', stance: 'B',
+    title: '硅谷的新宗教：技术乌托邦主义的信仰结构分析',
+    author: { name: "Meghan O'Gieblyn", avatar: 'MO', bio: '作家，《上帝、人类、动物、机器》作者' },
+    source: '2025年1月 · 《大西洋月刊》封面文章 · 基于对硅谷技术精英两年田野调查',
+    content: "O'Gieblyn曾在福音派神学院学习，后来失去信仰成为作家。这段独特的背景让她能够识别出一个被广泛忽视的现象：硅谷的技术乌托邦主义在结构上与宗教信仰高度相似——它就是一种新型宗教，只是披着世俗科学的外衣。长寿主义、意识上传、人工通用智能崇拜——这些信念体系充满了「末世论」的色彩：对某个终极突破的期待、对超越人类有限性的渴望、对「得救」与「灭亡」的二元想象。\n\nO'Gieblyn详细分析了「奇点」概念的宗教结构。奇点被定义为人工智能超越人类智能的那个时刻，之后一切都将改变，人类将进入一个全新的存在状态。这完美对应了基督教的「末日」概念——历史的终结点，救赎或毁灭的分界线。「意识上传」则是灵魂不朽教义的技术版本：它预设了一种身心二元论，认为「意识」可以脱离肉体存在，只要找到合适的载体就能永生。更微妙的是AI安全运动中的「先知」角色：那些声称能够预见生存风险的研究者，呼吁人类「悔改」，否则将面临毁灭。\n\nO'Gieblyn的结论不是简单的批判，而是一种理解的尝试：人类可能天然需要某种超越性的叙事来赋予生活意义。当传统宗教衰落时，技术信仰自然地填补了这个真空。但关键的差异在于：传统宗教通常包含对人类有限性的承认和接受，这种承认可以约束傲慢；而技术宗教的核心恰恰是「超越有限性」，它可能导致更大的傲慢和更危险的行为。",
+    tension: { q: '技术是否正在形成伪宗教？', a: '技术只是工具', b: '技术正在承担信仰功能' },
+    keywords: ['技术宗教', '硅谷', '奇点', '有效利他主义']
+  },
+  { date: '2025-01-18', id: '008', freq: 'T3', stance: 'B',
+    title: '技术竞赛的囚徒困境：为什么没有人能按下暂停键',
+    author: { name: 'Stuart Russell', avatar: 'SR', bio: 'UC Berkeley教授，《人工智能：现代方法》作者，2024年图灵奖得主' },
+    source: '2025年1月10日 · 图灵奖演讲，伦敦皇家学会 · 获2024年图灵奖后首次正式演讲',
+    content: 'Russell在图灵奖演讲中提出了一个令人沮丧的分析：即使AI研究者普遍认识到当前发展路径的潜在风险，竞争压力也使得任何个体、公司或国家几乎不可能主动减速。技术发展的方向已经不再是人类集体意志的产物，而是竞争动力学的结果。他指出，这比冷战时期的核军备竞赛更加危险：核武器的危险是显而易见的，所以国际社会最终建立了控制机制；而AI的风险是渐进的、弥散的、难以界定的。\n\nRussell详细分析了囚徒困境在不同层面的运作方式。在国家层面：美国和中国都知道不受控的AI发展对所有人都有风险，但任何一方单方面减速都会将技术优势让给对方，所以「加速」成为了主导策略。在企业层面：OpenAI、Google、Meta等公司都声称关心AI安全，但市场压力迫使它们不断推出更强大的模型。内部安全团队的建议推迟发布的声音，常常被商业部门否决。在学术层面：研究者的职业激励是发表能力更强的系统，「如何让AI更强大」是课堂上教授的内容，「AI是否应该更强大」则几乎从不讨论。\n\nRussell的结论是悲观的，但他没有完全放弃希望。核武器的经验表明，即使在激烈的竞争中，国际协调仍然是可能的——但这需要足够强烈的危机感。他提出了「最小可行协调」的框架：禁止将AI用于核武器发射决策、禁止AI自主进行网络攻击、建立前沿模型的国际登记制度。',
+    tension: { q: '技术是否已脱离人类集体意志？', a: '可被政治与伦理引导', b: '已成为竞争宿命' },
+    keywords: ['AI安全', '囚徒困境', '技术竞赛', '图灵奖']
+  },
+  { date: '2025-01-18', id: '009', freq: 'H2', stance: 'A',
+    title: '崩溃的前兆：历史模式能告诉我们什么',
+    author: { name: 'Peter Turchin', avatar: 'PT', bio: '康涅狄格大学教授，历史动力学创始人' },
+    source: '2025年1月 · 《大西洋月刊》专访 · 其2010年预测「2020年代社会动荡」被验证后的系统访谈',
+    content: 'Turchin在2010年发表的一篇论文中预测，美国将在2020年代经历严重的社会动荡。这个预测在当时被很多人视为危言耸听，但随后发生的事件——2020年的选举争议、国会山冲击、持续的政治极化——让这个预测获得了新的关注度。在这篇深度访谈中，Turchin解释了他的核心发现：社会崩溃前的共性征兆是可以识别的。通过对数百个历史社会的定量分析，他提出了「结构性人口学理论」：社会危机遵循可预测的周期，由三个相互强化的因素驱动——精英过剩生产、大众贫困化、国家财政危机。\n\nTurchin详细解释了这三个机制如何运作。「精英过剩生产」是指社会产生的精英候选人数量超过了精英位置的数量。当大学培养出太多律师、MBA、博士，而顶层位置的数量是有限的，就会出现大量「失意精英」——他们有教育、有期望、但没有相应的地位和收入。这些失意精英往往成为激进运动的领导者，无论是左翼还是右翼。「大众贫困化」体现在实际工资增长停滞、债务上升、预期寿命下降等指标上。「国家财政危机」是指政府收入无法满足支出需求。\n\nTurchin强调，预测不是宿命。识别出征兆的目的恰恰是为了采取行动避免最坏结果。历史上有成功的案例：美国的罗斯福新政通过大规模再分配缓解了精英过剩和大众贫困化，避免了可能的革命或法西斯转向。他认为当前美国面临的最大风险是否认问题的存在——「这次不一样」的心态在每次崩溃前都出现过。',
+    tension: { q: '社会崩溃前的共性征兆是什么？', a: '征兆可识别', b: '只能事后理解' },
+    keywords: ['历史动力学', '社会崩溃', '精英过剩', 'Turchin']
+  },
+  { date: '2025-01-18', id: '010', freq: 'P1', stance: 'A',
+    title: '公民大会的复兴：复杂时代的民主创新',
+    author: { name: 'Helene Landemore', avatar: 'HL', bio: '耶鲁大学政治学教授，审议民主理论家' },
+    source: '2025年1月 · 《民主理论》期刊特稿 · 对技术专家治理优于民主论点的系统反驳',
+    content: 'Landemore这篇文章是对一个日益流行的观点的系统性反驳：现代社会的问题太复杂了，普通公民无法理解，应该交给专家来决定。她的核心论点是，这种观点混淆了「信息」与「判断」，高估了专家的可靠性，低估了集体智慧的力量。她提出了「民主的认知论」：面对复杂问题时，一群多元化的普通人的集体判断，往往比一群同质化的专家更可靠。这不是因为普通公民比专家更聪明，而是因为多样性本身就是认知资源。\n\n在理论层面，Landemore援引了「多样性胜过能力」定理：在解决复杂问题时，一群认知多样化的人通常比一群最聪明的人组成的同质化群体表现更好。专家之所以是专家，恰恰是因为他们接受了相似的训练、持有相似的假设、使用相似的方法——这让他们容易陷入集体盲点。在实证层面，她详细分析了近年公民大会的成功案例：爱尔兰通过公民大会推动了堕胎合法化和同性婚姻的公投；法国的气候公民大会提出了149项政策建议，其中许多比政府原方案更大胆，也更具可行性。\n\nLandemore并不简单地反对专家参与政策制定，而是要重新定位专家与公民的关系。在她提出的「开放的民主」模型中，专家的角色是「信息提供者」和「选项设计者」，而不是「决策者」；最终的价值判断和权衡应该由公民通过审议程序做出。她承认，民主的核心价值不仅仅是「做出正确的决定」，更是「自治」本身——即使专家有时能做出更好的决定，一个由专家统治的社会也不是一个民主社会。',
+    tension: { q: '民主是否已不适应高复杂度社会？', a: '低效但不可替代', b: '技术官僚治理更现实' },
+    keywords: ['审议民主', '公民大会', '集体智慧', '民主创新']
+  },
+  { date: '2025-01-18', id: '011', freq: 'Φ1', stance: 'B',
+    title: '例外状态的日常化：安全话语如何一步步侵蚀自由',
+    author: { name: 'Giorgio Agamben', avatar: 'GA', bio: '意大利哲学家，《牲人》《例外状态》作者' },
+    source: '2025年1月 · Quodlibet在线首发 · 例外状态理论在AI时代的最新应用',
+    content: 'Agamben在这篇文章中延续了他几十年来的核心关切：「例外状态」——政府以紧急情况为由暂停正常法律秩序的权力——正在成为现代治理的常态形式，而不是真正的例外。每一次「紧急状态」都会留下永久性的权力扩张：911之后的大规模监控从未完全撤销；新冠期间建立的健康追踪系统在很多地方延续至今；以「AI安全」为名的内容审查正在成为新的常态。Agamben追溯了「例外状态」的谱系：在20世纪初，它确实是罕见的、暂时的、受限制的。但从「反恐战争」开始，「潜在的威胁」成为启用例外措施的理由。\n\nAgamben特别关注安全话语如何进行层层递进的扩展。第一层是物理安全：在公共场所安装监控摄像头、要求出示身份证件、建立禁飞名单。第二层是信息安全：监控通讯、过滤内容、要求平台审核。第三层是认知安全：预测「危险思想」、标记「可疑行为」、对言论进行预防性干预。每一层都以上一层的存在为前提，每一层都以「保护」为名行使控制。他指出，「安全」是一个本质上无限扩张的概念：人永远不会感到足够安全，所以总是可以要求更多的保护措施。\n\nAgamben在自由与安全的张力中坚定地站在自由这一边。他的论点是：任何以「保护自由」为名而限制自由的做法，最终都是自由的敌人。一个真正自由的社会必须容忍风险——完全消除风险的代价就是完全消除自由。他特别警告AI治理中的例外状态倾向：「生存风险」的叙事可以正当化任何程度的控制，「对齐问题」可以成为建立认知监控系统的理由。',
+    tension: { q: '自由与秩序是否天然冲突？', a: '秩序优先', b: '自由不可牺牲' },
+    keywords: ['例外状态', 'Agamben', '安全话语', '自由']
+  }
+];
+
+// 状态变量
+let selectedDate = '2025-01-19';
+let currentFilter = 'all';
+let searchQuery = '';
+let likes = {};
+let stances = {};
+
+// 初始化
+try { likes = JSON.parse(localStorage.getItem('radar-likes') || '{}'); } catch(e) { likes = {}; }
+try { stances = JSON.parse(localStorage.getItem('radar-stances') || '{}'); } catch(e) { stances = {}; }
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderDateTabs();
+  renderFilters();
+  renderRadarList();
+  renderTTI();
+  renderFreqOverview();
+  bindEvents();
+});
+
+function renderDateTabs() {
+  const dates = [...new Set(DATA.map(d => d.date))].sort().reverse();
+  const el = document.getElementById('dateTabs');
+  const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+  el.innerHTML = dates.map((d, i) => {
+    const dt = new Date(d);
+    const label = i === 0 ? '今天' : i === 1 ? '昨天' : '周' + dayNames[dt.getDay()];
+    return '<button class="date-tab ' + (d === selectedDate ? 'active' : '') + '" data-date="' + d + '">' + (dt.getMonth()+1) + '/' + dt.getDate() + '<small>' + label + '</small></button>';
+  }).join('');
+}
+
+function renderFilters() {
+  const filters = [
+    { k: 'all', l: '全部' }, { k: 'tech', l: '技术' }, { k: 'politics', l: '政治' },
+    { k: 'history', l: '历史' }, { k: 'philosophy', l: '哲学' }, { k: 'religion', l: '宗教' }, { k: 'finance', l: '金融' }
+  ];
+  document.getElementById('domainFilters').innerHTML = filters.map(function(f) {
+    return '<button class="filter-btn ' + (f.k === currentFilter ? 'active' : '') + '" data-filter="' + f.k + '">' + f.l + '</button>';
+  }).join('');
+}
+
+function getDomain(freq) {
+  var m = { T: 'tech', P: 'politics', H: 'history', Φ: 'philosophy', R: 'religion', F: 'finance' };
+  return m[freq.charAt(0)] || 'tech';
+}
+
+function renderRadarList() {
+  var el = document.getElementById('radarList');
+  var items = searchQuery 
+    ? DATA.filter(function(d) { return (d.title + ' ' + d.author.name + ' ' + d.content + ' ' + d.keywords.join(' ')).toLowerCase().indexOf(searchQuery.toLowerCase()) >= 0; })
+    : DATA.filter(function(d) { return d.date === selectedDate; });
+  
+  if (currentFilter !== 'all') items = items.filter(function(d) { return getDomain(d.freq) === currentFilter; });
+  
+  document.getElementById('searchInfo').classList.toggle('visible', !!searchQuery);
+  document.getElementById('searchCount').textContent = items.length;
+
+  if (!items.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📡</div><div>暂无数据</div></div>';
+    return;
+  }
+
+  el.innerHTML = items.map(function(d, i) {
+    var isLiked = likes[d.id];
+    var userStance = stances[d.id];
+    var paragraphs = d.content.split('\n\n').filter(function(p) { return p.trim(); });
+    return '<article class="radar-card">' +
+      '<div class="card-header">' +
+        '<div class="card-meta">' +
+          '<span class="freq-badge ' + getDomain(d.freq) + '">' + d.freq + '</span>' +
+          '<span class="stance-badge stance-' + d.stance.toLowerCase() + '">' + (d.stance === 'A' ? '← 倾向A' : '倾向B →') + '</span>' +
+        '</div>' +
+        '<span class="card-index">#' + String(i+1).padStart(2,'0') + '</span>' +
+      '</div>' +
+      '<div class="card-body">' +
+        '<h3 class="card-title">' + hl(d.title) + '</h3>' +
+        '<div class="card-author">' +
+          '<div class="author-avatar">' + d.author.avatar + '</div>' +
+          '<div><div class="author-name">' + hl(d.author.name) + '</div><div class="author-bio">' + d.author.bio + '</div></div>' +
+        '</div>' +
+        '<div class="source-context">' + d.source + '</div>' +
+        '<div class="card-content">' + paragraphs.map(function(p) { return '<p>' + hl(p) + '</p>'; }).join('') + '</div>' +
+        '<div class="tension-box">' +
+          '<div class="tension-header">命中频段 · ' + d.freq + ' · ' + d.tension.q + '</div>' +
+          '<div class="tension-pair">' +
+            '<div class="tension-a">A: ' + d.tension.a + '</div>' +
+            '<div class="tension-vs">VS</div>' +
+            '<div class="tension-b">B: ' + d.tension.b + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card-footer">' +
+        '<div class="footer-left">' +
+          '<button class="like-btn ' + (isLiked ? 'liked' : '') + '" data-id="' + d.id + '">' +
+            '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>' +
+            '收藏' +
+          '</button>' +
+        '</div>' +
+        '<div class="footer-right">' +
+          '<button class="stance-btn btn-a ' + (userStance === 'A' ? 'active' : '') + '" data-id="' + d.id + '" data-stance="A">← 我倾向A</button>' +
+          '<button class="stance-btn btn-b ' + (userStance === 'B' ? 'active' : '') + '" data-id="' + d.id + '" data-stance="B">我倾向B →</button>' +
+        '</div>' +
+      '</div>' +
+    '</article>';
+  }).join('');
+}
+
+function hl(text) {
+  if (!searchQuery || !text) return text;
+  var escaped = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp('(' + escaped + ')', 'gi'), '<mark class="highlight">$1</mark>');
+}
+
+function renderTTI() {
+  var html = '';
+  Object.keys(BANDS).forEach(function(domain) {
+    var data = BANDS[domain];
+    data.bands.forEach(function(b) {
+      var trend = b.tti > 55 ? 'trend-b' : b.tti < 45 ? 'trend-a' : '';
+      var trendText = b.tti > 55 ? '→ B' : b.tti < 45 ? 'A ←' : '平衡';
+      html += '<div class="tti-item">' +
+        '<div class="tti-header"><span class="freq-badge ' + domain + '">' + b.id + '</span><span class="tti-question" style="margin:0 0 0 8px;font-size:0.9rem">' + b.q + '</span><span class="tti-trend ' + trend + '">' + trendText + '</span></div>' +
+        '<div class="tti-labels"><span class="tti-label-a">A: ' + b.a + '</span><span class="tti-label-b">B: ' + b.b + '</span></div>' +
+        '<div class="tti-spectrum">' +
+          '<span class="spectrum-label label-a">A</span>' +
+          '<div class="spectrum-track"><div class="spectrum-fill fill-a" style="width:' + (100-b.tti) + '%"></div><div class="spectrum-fill fill-b" style="width:' + b.tti + '%"></div><div class="spectrum-marker" style="left:' + b.tti + '%"></div></div>' +
+          '<span class="spectrum-label label-b">B</span>' +
+        '</div>' +
+      '</div>';
+    });
+  });
+  document.getElementById('ttiGrid').innerHTML = html;
+}
+
+function renderFreqOverview() {
+  var html = '';
+  Object.keys(BANDS).forEach(function(domain) {
+    var data = BANDS[domain];
+    html += '<div class="freq-domain">' +
+      '<div class="domain-header"><span class="freq-badge ' + domain + '">' + data.code + ' · ' + data.name + '</span><span class="domain-role">' + data.role + '</span></div>' +
+      '<div class="domain-bands">' + data.bands.map(function(b) {
+        return '<div class="band-card">' +
+          '<div class="band-header"><span class="freq-badge ' + domain + '">' + b.id + '</span><span class="band-question">' + b.q + '</span></div>' +
+          '<div class="band-sides"><span class="side-a">A: ' + b.a + '</span><span class="side-b">B: ' + b.b + '</span></div>' +
+        '</div>';
+      }).join('') + '</div>' +
+    '</div>';
+  });
+  document.getElementById('frequencyOverview').innerHTML = html;
+}
+
+function bindEvents() {
+  document.querySelectorAll('.nav-tab').forEach(function(tab) {
+    tab.onclick = function() {
+      document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      document.querySelectorAll('.view-section').forEach(function(s) { s.classList.add('hidden'); });
+      document.getElementById(tab.dataset.view + 'View').classList.remove('hidden');
+    };
+  });
+
+  document.getElementById('dateTabs').onclick = function(e) {
+    var tab = e.target.closest('.date-tab');
+    if (!tab) return;
+    document.querySelectorAll('.date-tab').forEach(function(t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    selectedDate = tab.dataset.date;
+    searchQuery = '';
+    document.getElementById('searchInput').value = '';
+    renderRadarList();
+  };
+
+  document.getElementById('domainFilters').onclick = function(e) {
+    var btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderRadarList();
+  };
+
+  var timeout;
+  document.getElementById('searchInput').oninput = function(e) {
+    clearTimeout(timeout);
+    timeout = setTimeout(function() { searchQuery = e.target.value.trim(); renderRadarList(); }, 300);
+  };
+
+  document.getElementById('clearSearch').onclick = function() {
+    document.getElementById('searchInput').value = '';
+    searchQuery = '';
+    renderRadarList();
+  };
+
+  document.getElementById('radarList').onclick = function(e) {
+    var likeBtn = e.target.closest('.like-btn');
+    if (likeBtn) {
+      var id = likeBtn.dataset.id;
+      likes[id] = !likes[id];
+      try { localStorage.setItem('radar-likes', JSON.stringify(likes)); } catch(err) {}
+      likeBtn.classList.toggle('liked', likes[id]);
+      return;
+    }
+    var stanceBtn = e.target.closest('.stance-btn');
+    if (stanceBtn) {
+      var id = stanceBtn.dataset.id;
+      var stance = stanceBtn.dataset.stance;
+      stances[id] = stances[id] === stance ? null : stance;
+      try { localStorage.setItem('radar-stances', JSON.stringify(stances)); } catch(err) {}
+      renderRadarList();
+    }
+  };
+}
+</script>
+</body>
+</html>
