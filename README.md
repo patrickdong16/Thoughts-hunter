@@ -1,183 +1,523 @@
-# 思想雷达 | Thought Radar
+# 思想雷达项目 - 完整系统
 
-追踪全球顶级头脑对时代级问题的最新思考
+一个用于追踪全球顶级思想者对时代级问题最新观点的完整系统。
 
-## 产品简介
+## 🚀 快速开始
 
-思想雷达是一款**每日思想追踪APP**，通过「频段」系统捕捉全球顶级思想者对时代级问题的最新观点。每个频段代表一个根本性的问题张力，帮助用户在纷繁的信息中建立稳定的思考框架。
+**新手？从这里开始：**
+- 📖 [本地启动完全指南](LOCAL_SETUP.md) ⭐ 最重要
+- ⚡ [快速命令表](QUICK_COMMANDS.md) ⭐ 常用
+- 📋 [启动检查清单](START_CHECKLIST.md)
 
-### 产品形态
+**要部署？看这里：**
+- 🚀 [部署指南](DEPLOY.md)
+- ✅ [测试检查清单](CHECKLIST.md)
 
-- **平台**: 移动端APP（iOS / Android）
-- **使用方式**: 每天打开APP，自动获取当日更新内容
-- **更新频率**: 每日更新一次，同一天内不会重复更新
-- **内容特点**: 深度思想追踪，非即时新闻
+**所有文档：**
+- 📚 [文档索引](DOCUMENTATION_INDEX.md) - 21个文档导航
 
-### 核心体验
+---
+
+## 📁 项目结构
 
 ```
-早晨打开 → 获取今日6-8条精选思想 → 阅读/收藏/表态 → 明日再见
+Thoughts-hunter/
+├── backend/                    # 后端API服务
+│   ├── config/                 # 数据库配置
+│   ├── database/               # 数据库schema和种子数据
+│   ├── routes/                 # API路由
+│   ├── scripts/                # 实用脚本
+│   ├── public/                 # API测试工具
+│   └── server.js              # Express服务器
+│
+├── cms/                        # 内容管理系统
+│   ├── src/
+│   │   ├── components/        # React组件
+│   │   ├── services/          # API服务层
+│   │   └── App.jsx            # 主应用
+│   └── package.json
+│
+├── mobile/                     # React Native移动端APP ⭐ 新建
+│   ├── screens/               # 页面
+│   ├── components/            # 组件
+│   ├── services/              # API服务
+│   ├── constants/             # 主题配置
+│   └── App.js                 # 应用入口
+│
+├── index.html                  # Web前端（原型）
+└── README.md                   # 本文件
+```
+
+## 🎯 系统组成
+
+### 1. 后端API（Backend）✅ 完成
+
+**技术栈**：Node.js + Express + PostgreSQL
+
+**功能**：
+- 17个RESTful API端点
+- 3个数据表（频段、雷达条目、用户行为）
+- 完整的CRUD操作
+- 数据验证和错误处理
+- 连接池管理
+
+**启动**：
+```bash
+cd backend
+npm run dev
+```
+
+访问：http://localhost:3000
+
+**文档**：
+- `backend/README.md` - 完整API文档
+- `backend/FEATURES.md` - 功能清单
+- `backend/QUICKSTART.md` - 快速开始
+
+### 2. 内容管理系统（CMS）✅ 完成
+
+**技术栈**：React + Vite
+
+**功能**：
+- 内容管理（查看、添加、编辑、删除）
+- 频段管理（查看、编辑TTI）
+- 实时验证（字数统计、数量检查）
+- 暗色主题UI
+
+**启动**：
+```bash
+cd cms
+npm run dev
+```
+
+访问：http://localhost:5173
+
+**文档**：
+- `cms/README.md` - 完整文档
+- `cms/QUICKSTART.md` - 快速启动
+- `cms/PROJECT_COMPLETE.md` - 项目总结
+
+### 3. 移动端APP（Mobile）✅ 完成 ⭐
+
+**技术栈**：React Native + Expo
+
+**功能**：
+- 今日雷达（领域筛选、下拉刷新）
+- 张力指数（TTI光谱图）
+- 历史记录（日期浏览）
+- 个人中心（收藏和立场）
+- 离线缓存（AsyncStorage）
+- 实时同步（收藏和表态）
+
+**启动**：
+```bash
+cd mobile
+npx expo start
+```
+
+按 `i` (iOS) 或 `a` (Android) 启动模拟器
+
+**文档**：
+- `mobile/README.md` - 完整文档
+- `mobile/PROJECT_COMPLETE.md` - 项目总结
+
+---
+
+## 🚀 快速开始
+
+### 前置要求
+
+- Node.js 16+
+- PostgreSQL 12+
+
+### 完整启动流程
+
+#### 1. 安装PostgreSQL
+
+```bash
+# macOS - Homebrew
+brew install postgresql@15
+brew services start postgresql@15
+createdb thoughts_radar
+
+# 或使用Docker
+docker run --name thoughts-radar-db \
+  -e POSTGRES_PASSWORD=mypassword \
+  -e POSTGRES_DB=thoughts_radar \
+  -p 5432:5432 -d postgres:15
+```
+
+#### 2. 启动后端
+
+```bash
+# 终端1
+cd backend
+
+# 首次运行：初始化数据库
+npm run init-db
+
+# 启动服务器
+npm run dev
+```
+
+应该看到：
+```
+Server running on: http://localhost:3000
+```
+
+#### 3. 启动CMS
+
+```bash
+# 终端2（新终端窗口）
+cd cms
+
+# 启动开发服务器
+npm run dev
+```
+
+应该看到：
+```
+Local: http://localhost:5173/
+```
+
+#### 4. 启动移动端（可选）⭐
+
+```bash
+# 终端3（新终端窗口）
+cd mobile
+
+# 启动Expo
+npx expo start
+```
+
+按 `i` (iOS) 或 `a` (Android) 启动模拟器
+
+#### 5. 访问系统
+
+- **CMS管理后台**：http://localhost:5173
+- **API测试工具**：http://localhost:3000/tools/api-tester.html
+- **健康检查**：http://localhost:3000/health
+
+---
+
+## 📊 数据模型
+
+### 频段(Bands) - 18个
+
+| 领域 | 频段 | 核心问题 |
+|------|------|----------|
+| 科技 | T1-T3 | AI、开源、科技巨头 |
+| 政治 | P1-P3 | 全球化、民主、气候 |
+| 历史 | H1-H3 | 历史重演、文明冲突、帝国兴衰 |
+| 哲学 | Φ1-Φ3 | 自由意志、意识、道德 |
+| 宗教 | R1-R2 | 宗教角色、科学信仰 |
+| 金融 | F1-F2 | 加密货币、UBI |
+
+### 雷达条目(Radar Items)
+
+每条包含：
+- 发布日期、频段、立场（A/B）
+- 标题、作者信息、出处
+- 正文内容（500字+）
+- 张力问题和AB两极
+- 关键词标签
+
+### 用户行为(User Actions)
+
+- 收藏功能
+- 立场表态（A/B）
+
+---
+
+## 🔧 开发工具
+
+### 后端工具
+
+```bash
+cd backend
+
+npm start          # 生产模式启动
+npm run dev        # 开发模式（自动重载）
+npm run init-db    # 初始化数据库
+npm run check      # 环境检查
+npm run stats      # 查看统计
+npm run add-item   # 添加内容（交互式）
+```
+
+### CMS工具
+
+```bash
+cd cms
+
+npm run dev        # 开发模式
+npm run build      # 构建生产版本
+npm run preview    # 预览生产构建
 ```
 
 ---
 
-## 内容规则
+## 📡 API端点
 
-### 每日更新要求
+### 雷达数据（7个）
+- `GET /api/radar/today` - 今日雷达
+- `GET /api/radar/:date` - 指定日期
+- `GET /api/radar/item/:id` - 单条详情
+- `GET /api/radar/all/grouped` - 所有内容（分组）
+- `POST /api/radar` - 创建
+- `PUT /api/radar/:id` - 更新
+- `DELETE /api/radar/:id` - 删除
 
-| 规则 | 要求 |
-|------|------|
-| **每日最少条数** | **6条**（硬性要求） |
-| **每日最多条数** | 8条（视当日热点而定） |
-| **更新时间** | 每日一次，凌晨更新 |
-| **同日更新** | 不会在同一天内更新两次 |
-| **每周频段覆盖** | 所有频段必须有分布 |
-| **单条内容长度** | 不少于500字 |
+### 频段（3个）
+- `GET /api/bands` - 所有频段
+- `GET /api/bands/:id` - 单个频段
+- `PUT /api/bands/:id/tti` - 更新TTI
 
-### 内容结构
+### 用户行为（4个）
+- `POST /api/user/like` - 收藏
+- `POST /api/user/stance` - 立场
+- `GET /api/user/:user_id/likes` - 收藏列表
+- `GET /api/user/:user_id/stances` - 立场列表
 
-每条雷达信息包含：
-
-1. **标题** - 简明扼要，体现核心观点
-2. **作者信息** - 姓名、头像缩写、身份简介
-3. **出处** - 时间 · 场合/出版物 · 背景说明
-4. **正文** - 自然流畅的论述，包含：
-   - 首段摘要（核心观点）
-   - 主要论据与案例
-   - 影响与意义
-5. **命中频段** - 对应的频段编号及A/B张力
-
-### 内容标准
-
-- ✅ 追踪最有价值和最有热度的思想
-- ✅ 优先选择有影响力的思想者
-- ✅ 关注新书、重要演讲、学术论文、深度访谈
-- ✅ 内容表达详细自然，避免生硬的子标题
-- ❌ 不追踪日常新闻或短期热点
-- ❌ 不收录立场模糊或论证薄弱的观点
+### 系统（2个）
+- `GET /health` - 健康检查
+- `GET /` - API文档
 
 ---
 
-## 频段系统
+## 🎨 技术栈
 
-### T · 技术（社会结构变量）
+### 后端
+- **框架**：Express.js 4.18
+- **数据库**：PostgreSQL 15
+- **ORM**：node-postgres (pg)
+- **其他**：cors, dotenv, body-parser
 
-| 频段 | 核心问题 | A极 | B极 |
-|------|----------|-----|-----|
-| T1 | AI是否正在重写社会分层结构？ | AI普惠化，整体能力上移 | AI精英化，阶层固化 |
-| T2 | 技术是在嵌入制度还是绕开制度？ | 可被法律与制度吸收 | 天然反制度、去政治化 |
-| T3 | 技术是否已脱离人类集体意志？ | 可被政治与伦理引导 | 已成为竞争宿命 |
+### CMS前端
+- **框架**：React 18
+- **构建**：Vite 7
+- **样式**：Vanilla CSS
+- **HTTP**：Fetch API
 
-### P · 政治（合法性解释）
-
-| 频段 | 核心问题 | A极 | B极 |
-|------|----------|-----|-----|
-| P1 | 民主是否已不适应高复杂度社会？ | 低效但不可替代 | 技术官僚治理更现实 |
-| P2 | 权力是否正在脱离公共可见性？ | 可被拉回公共领域 | 已进入后政治治理 |
-| P3 | 自由社会能否对抗反自由力量？ | 必须容忍一切 | 不设防必自毁 |
-
-### H · 历史（失败模式数据库）
-
-| 频段 | 核心问题 | A极 | B极 |
-|------|----------|-----|-----|
-| H1 | 文明是否正在进入倒退阶段？ | 周期性回撤，可复原 | 长期结构性退化 |
-| H2 | 社会崩溃前的共性征兆是什么？ | 征兆可识别、可预防 | 只能事后理解 |
-| H3 | 这是文明衰亡还是文明替代？ | 衰落后可复兴 | 旧文明不再适配 |
-
-### Φ · 哲学（价值冲突裁决）
-
-| 频段 | 核心问题 | A极 | B极 |
-|------|----------|-----|-----|
-| Φ1 | 自由与秩序是否天然冲突？ | 秩序优先，安全第一 | 自由不可牺牲 |
-| Φ2 | 平等与自由是否进入零和？ | 没有平等自由是特权 | 平等侵蚀自由 |
-| Φ3 | 自由是否正在被系统性理性替代？ | 被优化的自由仍是自由 | 优化即控制 |
-
-### R · 宗教（意义与边界提供者）
-
-| 频段 | 核心问题 | A极 | B极 |
-|------|----------|-----|-----|
-| R1 | 没有超越性，社会还能自我约束吗？ | 世俗制度足够 | 必须有不可协商的价值源 |
-| R2 | 技术是否正在形成伪宗教？ | 技术只是工具 | 技术正在承担信仰功能 |
-
-### F · 金融（未来信心投票机）
-
-| 频段 | 核心问题 | A极 | B极 |
-|------|----------|-----|-----|
-| F1 | 资本是否仍然相信长期未来？ | 技术打开长期增长 | 晚期金融化透支未来 |
-| F2 | 金融是否正在放大社会撕裂？ | 市场可自我修正 | 金融结构侵蚀社会基础 |
+### 移动端 ⭐
+- **框架**：React Native + Expo
+- **导航**：React Navigation v6
+- **存储**：AsyncStorage
+- **样式**：StyleSheet + LinearGradient
 
 ---
 
-## 张力指数 TTI
+## 📝 核心功能
 
-思想张力指数（Thought Tension Index）衡量各频段中 A/B 两侧思想资源的相对强度。
+### ✅ 已完成
 
-- **TTI < 45**: 当前思想资源倾向 A 极
-- **TTI 45-55**: 相对平衡
-- **TTI > 55**: 当前思想资源倾向 B 极
+#### 后端
+- [x] 完整的数据模型
+- [x] 18个频段配置
+- [x] 6条示例数据
+- [x] 完整的CRUD API
+- [x] 数据验证
+- [x] 错误处理
+- [x] 数据库初始化脚本
+- [x] 环境检查工具
+- [x] API测试页面
 
-TTI 基于近期收录的观点动态计算，反映思想界对特定问题的整体倾向。
+#### CMS
+- [x] 内容列表（按日期分组）
+- [x] 添加新内容
+- [x] 编辑内容
+- [x] 删除内容
+- [x] 字数验证（500字+）
+- [x] 每日数量提示（6-8条）
+- [x] 频段覆盖检查
+- [x] 频段TTI管理
+- [x] 暗色主题UI
+- [x] 响应式设计
+
+#### 移动端 ⭐
+- [x] 今日雷达查看（4个页面）
+- [x] 历史内容浏览
+- [x] 收藏功能
+- [x] 立场表态
+- [x] 离线缓存
+- [x] 实时同步
+- [x] 暗色主题UI
+- [x] 下拉刷新
+
+### ⏳ 待开发
+
+#### 增强功能
+- [ ] 推送通知
+- [ ] 分享功能
+- [ ] 搜索功能
+- [ ] 评论系统
 
 ---
 
-## 技术架构
+## 🎯 使用场景
 
-### 当前阶段：Web原型
+### 内容管理员
 
-- 纯静态HTML/CSS/JavaScript
-- GitHub Pages托管
-- 响应式设计，支持移动端预览
-- 本地存储用户收藏和立场选择
+1. 登录CMS：http://localhost:5173
+2. 查看今日已有内容数量
+3. 添加6-8条新内容
+4. 确保覆盖不同频段
+5. 调整频段TTI值
 
-**预览地址**: https://你的用户名.github.io/thought-radar/
+### API开发者
 
-### 未来阶段：原生APP
+1. 访问API文档：http://localhost:3000
+2. 使用测试工具：http://localhost:3000/tools/api-tester.html
+3. 集成推自己的应用
 
-| 组件 | 技术方案 |
-|------|----------|
-| 客户端 | React Native / Flutter |
-| 后端 | 内容API + 用户系统 |
-| 数据库 | 内容库 + 用户偏好 |
-| 推送 | 每日定时推送新内容通知 |
-| 缓存 | 本地缓存当日内容，离线可读 |
+### 最终用户（待开发）
 
-### 更新机制
+1. 每天打开APP
+2. 查看今日6-8条精选内容
+3. 对感兴趣的内容表态（A/B）
+4. 收藏喜欢的内容
 
+---
+
+## 📚 文档索引
+
+### 后端文档
+- `backend/README.md` - API完整文档
+- `backend/FEATURES.md` - 功能清单和命令
+- `backend/QUICKSTART.md` - 快速启动指南
+- `backend/PROJECT_SUMMARY.md` - 项目总结
+- `backend/NEXT_STEPS.md` - 下一步操作
+
+### CMS文档
+- `cms/README.md` - CMS使用文档
+- `cms/QUICKSTART.md` - 快速启动
+- `cms/PROJECT_COMPLETE.md` - 完整功能清单
+
+### 移动端文档 ⭐
+- `mobile/README.md` - 移动端使用文档
+- `mobile/PROJECT_COMPLETE.md` - 项目总结
+
+---
+
+## 🐛 故障排查
+
+### 后端无法启动
+
+**问题**：数据库连接失败
+
+**解决**：
+```bash
+# 检查PostgreSQL服务
+brew services list
+
+# 确保数据库存在
+psql -U postgres -c "\l" | grep thoughts_radar
+
+# 检查配置
+cat backend/.env
 ```
-[内容生产] → [审核发布] → [CDN分发] → [APP拉取] → [本地缓存]
-     ↓              ↓            ↓           ↓
-  每日凌晨      质量把关      全球加速     打开即得
+
+### CMS无法连接后端
+
+**问题**：显示"加载失败"
+
+**解决**：
+```bash
+# 确认后端运行
+curl http://localhost:3000/health
+
+# 检查CMS配置
+cat cms/.env
+```
+
+### 端口冲突
+
+**解决**：
+```bash
+# 修改后端端口
+# backend/.env: PORT=3001
+
+# Vite会自动使用下一个可用端口（5174, 5175...）
 ```
 
 ---
 
-## 文件结构（当前原型）
+## 🎁 额外功能
 
+### 数据库脚本
+
+```bash
+cd backend
+
+# 查看统计
+npm run stats
+
+# 导出数据
+pg_dump thoughts_radar > backup.sql
+
+# 导入数据
+psql thoughts_radar < backup.sql
 ```
-thought-radar/
-├── index.html      # 主页面（包含所有代码和数据）
-└── README.md       # 本文档
+
+### API测试
+
+- **Web界面**：http://localhost:3000/tools/api-tester.html
+- **命令行**：
+  ```bash
+  curl http://localhost:3000/api/radar/today
+  curl http://localhost:3000/api/bands
+  ```
+
+---
+
+## 🚀 部署建议
+
+### 后端
+- Railway / Render / Heroku
+- 配置环境变量
+- 使用生产数据库（Supabase/Neon）
+
+### CMS
+- Vercel / Netlify
+- 构建：`npm run build`
+- 配置后端API URL
+
+---
+
+## 📄 许可证
+
+MIT
+
+---
+
+## 🎉 总结
+
+**思想雷达**是一个完整的内容管理和分发系统：
+
+- ✅ **后端API** - 稳定、完整、文档齐全（17个端点）
+- ✅ **CMS系统** - 专业、易用、功能丰富
+- ✅ **移动端APP** - React Native，支持iOS和Android ⭐
+
+**现在可以做什么？**
+
+1. ✅ 使用CMS添加和管理每日内容
+2. ✅ 调整18个频段的TTI值
+3. ✅ 在移动端查看今日雷达
+4. ✅ 收藏和表达立场
+5. ✅ 浏览历史内容和个人记录
+
+**准备好了吗？**
+
+```bash
+# 启动后端
+cd backend && npm run dev
+
+# 启动CMS
+cd cms && npm run dev
+
+# 启动移动端（可选）⭐
+cd mobile && npx expo start
 ```
 
----
-
-## 更新日志
-
-### 2025-01-19
-- 初始版本发布
-- 包含2天示例数据（1月18-19日）
-- 实现三个视图：今日雷达、张力指数、频段总览
-
----
-
-## 设计理念
-
-> 在一个文明不稳定的时代，最危险的不是判断错误，而是没有一套稳定的问题结构。
-
-思想雷达不提供答案，而是提供问题框架。每个频段的A/B两极都有其合理性，重要的是理解张力本身，而非急于选边。
-
----
-
-## License
-
-MIT License
+然后访问：
+- CMS: http://localhost:5173
+- 移动端: 按 i (iOS) 或 a (Android) 🎯📱

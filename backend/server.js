@@ -1,0 +1,107 @@
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+require('dotenv').config();
+
+const radarRoutes = require('./routes/radar');
+const bandsRoutes = require('./routes/bands');
+const userRoutes = require('./routes/user');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// 中间件
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// 静态文件服务（API测试工具）
+app.use('/tools', express.static('public'));
+
+// 请求日志
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    next();
+});
+
+// 路由
+app.use('/api/radar', radarRoutes);
+app.use('/api/bands', bandsRoutes);
+app.use('/api/user', userRoutes);
+
+// 健康检查
+app.get('/health', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Thoughts Radar API is running',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// 根路径
+app.get('/', (req, res) => {
+    res.json({
+        success: true,
+        message: '思想雷达 API',
+        version: '1.0.0',
+        endpoints: {
+            health: 'GET /health',
+            radar_today: 'GET /api/radar/today',
+            radar_by_date: 'GET /api/radar/:date',
+            radar_item: 'GET /api/radar/item/:id',
+            bands: 'GET /api/bands',
+            band_detail: 'GET /api/bands/:id',
+            user_like: 'POST /api/user/like',
+            user_stance: 'POST /api/user/stance',
+            user_likes_list: 'GET /api/user/:user_id/likes',
+            user_stances_list: 'GET /api/user/:user_id/stances'
+        }
+    });
+});
+
+// 404处理
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        error: 'Endpoint not found'
+    });
+});
+
+// 错误处理
+app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+    });
+});
+
+// 启动服务器
+app.listen(PORT, () => {
+    console.log(`
+╔═══════════════════════════════════════╗
+║      思想雷达 API Server              ║
+║      Thoughts Radar API               ║
+╚═══════════════════════════════════════╝
+
+Server running on: http://localhost:${PORT}
+Environment: ${process.env.NODE_ENV || 'development'}
+Database: ${process.env.DB_NAME || 'thoughts_radar'}
+
+API Documentation:
+→ GET  /health                     - Health check
+→ GET  /api/radar/today            - Today's radar
+→ GET  /api/radar/:date            - Radar by date
+→ GET  /api/radar/item/:id         - Single item
+→ GET  /api/bands                  - All bands
+→ GET  /api/bands/:id              - Single band
+→ POST /api/user/like              - Like/Unlike
+→ POST /api/user/stance            - Set stance
+→ GET  /api/user/:user_id/likes    - User's likes
+→ GET  /api/user/:user_id/stances  - User's stances
+
+Press Ctrl+C to stop
+  `);
+});
+
+module.exports = app;

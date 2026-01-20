@@ -1,0 +1,35 @@
+{
+    "name": "thoughts-radar",
+    "version": "1.0.0",
+    "description": "思想雷达 - 完整系统（后端+CMS+移动端）",
+    "private": true,
+    "workspaces": [
+        "backend",
+        "cms",
+        "mobile"
+    ],
+    "scripts": {
+        "server": "cd backend && npm run dev",
+        "cms": "cd cms && npm run dev",
+        "app": "cd mobile && npx expo start",
+        "dev": "concurrently \"npm run server\" \"npm run cms\"",
+        "dev:all": "concurrently \"npm run server\" \"npm run cms\" \"npm run app\"",
+        "install:all": "npm install && cd backend && npm install && cd ../cms && npm install && cd ../mobile && npm install",
+        "build:cms": "cd cms && npm run build",
+        "check": "cd backend && npm run check",
+        "stats": "cd backend && npm run stats",
+        "init-db": "cd backend && npm run init-db"
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.0"
+    },
+    "keywords": [
+        "radar",
+        "thoughts",
+        "react-native",
+        "react",
+        "express"
+    ],
+    "author": "",
+    "license": "MIT"
+}

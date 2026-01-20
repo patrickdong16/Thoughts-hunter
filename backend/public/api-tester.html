@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>思想雷达 API 测试工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .api-section {
+            margin-bottom: 15px;
+        }
+        
+        .api-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .api-item h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .method {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.85em;
+            margin-right: 10px;
+        }
+        
+        .method.get {
+            background: #28a745;
+            color: white;
+        }
+        
+        .method.post {
+            background: #007bff;
+            color: white;
+        }
+        
+        .endpoint {
+            font-family: 'Courier New', monospace;
+            color: #495057;
+            font-size: 0.95em;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .response {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .response.show {
+            display: block;
+        }
+        
+        .response pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .input-group {
+            margin: 10px 0;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #495057;
+            font-weight: 500;
+        }
+        
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 思想雷达 API 测试工具</h1>
+            <p>Thoughts Radar API Tester</p>
+        </div>
+        
+        <div class="card">
+            <h2>⚙️ 配置</h2>
+            <div class="input-group">
+                <label>API Base URL</label>
+                <input type="text" id="baseUrl" value="http://localhost:3000">
+            </div>
+            <div class="input-group">
+                <label>User ID（用于测试用户行为）</label>
+                <input type="text" id="userId" value="test_user_001">
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📡 雷达数据 API</h2>
+            
+            <div class="api-item">
+                <h3>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/radar/today</span>
+                </h3>
+                <p>获取今日雷达内容（应返回6-8条）</p>
+                <button onclick="testAPI('GET', '/api/radar/today?user_id=' + getUserId(), 'today')">测试</button>
+                <div id="response-today" class="response"></div>
+            </div>
+            
+            <div class="api-item">
+                <h3>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/radar/:date</span>
+                </h3>
+                <p>获取指定日期的雷达内容</p>
+                <div class="input-group">
+                    <label>日期 (YYYY-MM-DD)</label>
+                    <input type="date" id="searchDate" value="2026-01-19">
+                </div>
+                <button onclick="testAPI('GET', '/api/radar/' + document.getElementById('searchDate').value + '?user_id=' + getUserId(), 'bydate')">测试</button>
+                <div id="response-bydate" class="response"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📊 频段 API</h2>
+            
+            <div class="api-item">
+                <h3>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/bands</span>
+                </h3>
+                <p>获取所有频段及TTI值（应返回16个频段）</p>
+                <button onclick="testAPI('GET', '/api/bands', 'bands')">测试</button>
+                <div id="response-bands" class="response"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>👤 用户行为 API</h2>
+            
+            <div class="api-item">
+                <h3>
+                    <span class="method post">POST</span>
+                    <span class="endpoint">/api/user/like</span>
+                </h3>
+                <p>收藏或取消收藏</p>
+                <div class="input-group">
+                    <label>Item ID</label>
+                    <input type="number" id="likeItemId" value="1">
+                </div>
+                <div class="input-group">
+                    <label>是否收藏</label>
+                    <select id="likeStatus">
+                        <option value="true">收藏 (true)</option>
+                        <option value="false">取消收藏 (false)</option>
+                    </select>
+                </div>
+                <button onclick="testLike()">测试</button>
+                <div id="response-like" class="response"></div>
+            </div>
+            
+            <div class="api-item">
+                <h3>
+                    <span class="method post">POST</span>
+                    <span class="endpoint">/api/user/stance</span>
+                </h3>
+                <p>记录用户立场</p>
+                <div class="input-group">
+                    <label>Item ID</label>
+                    <input type="number" id="stanceItemId" value="1">
+                </div>
+                <div class="input-group">
+                    <label>立场</label>
+                    <select id="stanceValue">
+                        <option value="A">A极</option>
+                        <option value="B">B极</option>
+                    </select>
+                </div>
+                <button onclick="testStance()">测试</button>
+                <div id="response-stance" class="response"></div>
+            </div>
+            
+            <div class="api-item">
+                <h3>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/user/:user_id/likes</span>
+                </h3>
+                <p>获取用户的收藏列表</p>
+                <button onclick="testAPI('GET', '/api/user/' + getUserId() + '/likes', 'userlikes')">测试</button>
+                <div id="response-userlikes" class="response"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>🏥 系统 API</h2>
+            
+            <div class="api-item">
+                <h3>
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/health</span>
+                </h3>
+                <p>健康检查</p>
+                <button onclick="testAPI('GET', '/health', 'health')">测试</button>
+                <div id="response-health" class="response"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function getBaseUrl() {
+            return document.getElementById('baseUrl').value.trim();
+        }
+        
+        function getUserId() {
+            return document.getElementById('userId').value.trim();
+        }
+        
+        async function testAPI(method, endpoint, responseId) {
+            const responseDiv = document.getElementById('response-' + responseId);
+            responseDiv.innerHTML = '<div class="loader"></div> Loading...';
+            responseDiv.classList.add('show');
+            
+            try {
+                const url = getBaseUrl() + endpoint;
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                const statusClass = response.ok ? 'success' : 'error';
+                const statusText = response.ok ? 'Success' : 'Error';
+                
+                responseDiv.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <span class="status ${statusClass}">${response.status} ${statusText}</span>
+                    </div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <span class="status error">Network Error</span>
+                    </div>
+                    <pre>错误: ${error.message}\n\n请确保后端服务正在运行: npm run dev</pre>
+                `;
+            }
+        }
+        
+        async function testLike() {
+            const itemId = document.getElementById('likeItemId').value;
+            const liked = document.getElementById('likeStatus').value === 'true';
+            const responseDiv = document.getElementById('response-like');
+            
+            responseDiv.innerHTML = '<div class="loader"></div> Loading...';
+            responseDiv.classList.add('show');
+            
+            try {
+                const url = getBaseUrl() + '/api/user/like';
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: getUserId(),
+                        item_id: parseInt(itemId),
+                        liked: liked
+                    })
+                });
+                
+                const data = await response.json();
+                const statusClass = response.ok ? 'success' : 'error';
+                const statusText = response.ok ? 'Success' : 'Error';
+                
+                responseDiv.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <span class="status ${statusClass}">${response.status} ${statusText}</span>
+                    </div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <span class="status error">Network Error</span>
+                    </div>
+                    <pre>错误: ${error.message}\n\n请确保后端服务正在运行: npm run dev</pre>
+                `;
+            }
+        }
+        
+        async function testStance() {
+            const itemId = document.getElementById('stanceItemId').value;
+            const stance = document.getElementById('stanceValue').value;
+            const responseDiv = document.getElementById('response-stance');
+            
+            responseDiv.innerHTML = '<div class="loader"></div> Loading...';
+            responseDiv.classList.add('show');
+            
+            try {
+                const url = getBaseUrl() + '/api/user/stance';
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: getUserId(),
+                        item_id: parseInt(itemId),
+                        stance: stance
+                    })
+                });
+                
+                const data = await response.json();
+                const statusClass = response.ok ? 'success' : 'error';
+                const statusText = response.ok ? 'Success' : 'Error';
+                
+                responseDiv.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <span class="status ${statusClass}">${response.status} ${statusText}</span>
+                    </div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <span class="status error">Network Error</span>
+                    </div>
+                    <pre>错误: ${error.message}\n\n请确保后端服务正在运行: npm run dev</pre>
+                `;
+            }
+        }
+        
+        // 页面加载时自动测试健康检查
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testAPI('GET', '/health', 'health');
+            }, 500);
+        });
+    </script>
+</body>
+</html>
