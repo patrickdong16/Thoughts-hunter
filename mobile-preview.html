@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+  <title>思想雷达 - Thoughts Radar</title>
+  <style>
+    :root {
+      /* 主题色 - 完全匹配移动端设计 */
+      --primary: #00ff88;
+      --background: #08090c;
+      --card: #12151a;
+      --card-hover: #1a1d24;
+      --card-border: rgba(0, 255, 136, 0.1);
+
+      /* 文本 */
+      --text: #ffffff;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+
+      /* 边框 */
+      --border: #1f2937;
+      --border-light: #374151;
+
+      /* 立场颜色 */
+      --side-a: #4a9eff;
+      --side-b: #f0a500;
+
+      /* 状态 */
+      --success: #00ff88;
+      --warning: #f59e0b;
+      --error: #ef4444;
+
+      /* 领域颜色 */
+      --domain-tech: #4a9eff;
+      --domain-politics: #ef4444;
+      --domain-history: #8b5cf6;
+      --domain-philosophy: #ec4899;
+      --domain-religion: #f59e0b;
+      --domain-finance: #10b981;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      background: var(--background);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* === 头部 === */
+    header {
+      background: var(--background);
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      font-size: 32px;
+    }
+
+    .title-group h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.2;
+    }
+
+    .title-group .subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .date {
+      font-size: 15px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* === 过滤器 === */
+    .filters-container {
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .filters-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      min-width: max-content;
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .filter-btn:hover {
+      border-color: var(--border-light);
+    }
+
+    .filter-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: var(--background);
+      font-weight: 700;
+    }
+
+    /* === 主内容区 === */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 80px;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* === 雷达卡片 === */
+    .radar-list {
+      padding: 16px;
+    }
+
+    .radar-card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid var(--card-border);
+    }
+
+    /* 标签区 */
+    .card-tags {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .tag {
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid;
+    }
+
+    /* 标题 */
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    /* 作者信息 */
+    .author-info {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .author-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(0, 255, 136, 0.1);
+      border: 2px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .author-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .author-bio {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* 来源 */
+    .source-line {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .source-bar {
+      width: 3px;
+      height: 100%;
+      min-height: 16px;
+      background: var(--primary);
+      margin-right: 8px;
+      border-radius: 2px;
+    }
+
+    .source-text {
+      font-size: 13px;
+      color: var(--primary);
+    }
+
+    /* 正文内容 */
+    .card-content {
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.8;
+      margin-bottom: 16px;
+    }
+
+    .card-content.collapsed {
+      display: -webkit-box;
+      -webkit-line-clamp: 6;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .expand-btn {
+      font-size: 13px;
+      color: var(--primary);
+      cursor: pointer;
+      font-weight: 500;
+      margin-top: 8px;
+      display: inline-block;
+    }
+
+    /* 张力信息区 */
+    .tension-box {
+      background: var(--background);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .tension-question {
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .tension-poles {
+      display: flex;
+      gap: 12px;
+    }
+
+    .pole {
+      flex: 1;
+    }
+
+    .pole-label {
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .pole-label.side-a {
+      color: var(--side-a);
+    }
+
+    .pole-label.side-b {
+      color: var(--side-b);
+    }
+
+    .pole-text {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .pole-divider {
+      width: 1px;
+      background: var(--border);
+    }
+
+    /* 关键词 */
+    .keywords {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .keyword-tag {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      background: rgba(0, 255, 136, 0.1);
+      color: var(--primary);
+      border: 1px solid rgba(0, 255, 136, 0.2);
+    }
+
+    /* 底部操作栏 */
+    .card-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .like-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      margin: -8px;
+    }
+
+    .like-icon {
+      font-size: 20px;
+    }
+
+    .like-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .like-btn.active .like-text {
+      color: var(--error);
+      font-weight: 500;
+    }
+
+    .stance-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .stance-btn {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .stance-btn.side-a:hover {
+      border-color: var(--side-a);
+      color: var(--side-a);
+    }
+
+    .stance-btn.side-b:hover {
+      border-color: var(--side-b);
+      color: var(--side-b);
+    }
+
+    .stance-btn.side-a.active {
+      background: var(--side-a);
+      border-color: var(--side-a);
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .stance-btn.side-b.active {
+      background: var(--side-b);
+      border-color: var(--side-b);
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* === TTI 页面 === */
+    .tti-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .tti-card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid var(--card-border);
+    }
+
+    .tti-emoji {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .tti-name {
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .tti-value {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--side-a), var(--side-b));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .spectrum-bar {
+      height: 6px;
+      background: linear-gradient(90deg, var(--side-a), var(--side-b));
+      border-radius: 3px;
+      margin-top: 12px;
+      position: relative;
+    }
+
+    .spectrum-indicator {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: white;
+      border-radius: 50%;
+      top: -4px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      transition: left 0.3s;
+    }
+
+    /* === 我的页面 === */
+    .profile-section {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 16px;
+      margin-bottom: 0;
+      border: 1px solid var(--card-border);
+    }
+
+    .profile-section h3 {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+    }
+
+    .profile-item {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .profile-item:last-child {
+      border-bottom: none;
+    }
+
+    /* === 统计栏 === */
+    .stats-bar {
+      position: fixed;
+      bottom: 60px;
+      left: 0;
+      right: 0;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      padding: 8px 16px;
+      text-align: center;
+      z-index: 50;
+    }
+
+    .stats-text {
+      font-size: 13px;
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    /* === Tab Bar === */
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card);
+      display: flex;
+      border-top: 1px solid var(--border);
+      z-index: 100;
+    }
+
+    .tab-item {
+      flex: 1;
+      text-align: center;
+      padding: 10px 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .tab-item.active {
+      color: var(--primary);
+    }
+
+    .tab-item .icon {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .tab-item .label {
+      font-size: 12px;
+    }
+
+    /* === 加载状态 === */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      color: var(--text-secondary);
+    }
+
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 12px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* === 历史页面 === */
+    .date-picker {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .date-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .date-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: var(--background);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 头部 -->
+  <header>
+    <div class="header-left">
+      <span class="logo">📡</span>
+      <div class="title-group">
+        <h1>思想雷达</h1>
+        <div class="subtitle">Thoughts Radar</div>
+      </div>
+    </div>
+    <div class="date" id="current-date"></div>
+  </header>
+
+  <!-- 过滤器（仅今日页面显示） -->
+  <div class="filters-container" id="filters-container">
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">全部</button>
+      <button class="filter-btn" data-filter="tech">🔬 科技</button>
+      <button class="filter-btn" data-filter="politics">🏛️ 政治</button>
+      <button class="filter-btn" data-filter="history">📚 历史</button>
+      <button class="filter-btn" data-filter="philosophy">🤔 哲学</button>
+      <button class="filter-btn" data-filter="religion">⛪ 宗教</button>
+      <button class="filter-btn" data-filter="finance">💰 金融</button>
+    </div>
+  </div>
+
+  <main>
+    <!-- 今日雷达 -->
+    <div id="today" class="tab-content active">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <div>加载中...</div>
+      </div>
+    </div>
+
+    <!-- 张力指数 -->
+    <div id="tti" class="tab-content">
+      <div class="tti-grid" id="tti-grid"></div>
+    </div>
+
+    <!-- 历史 -->
+    <div id="history" class="tab-content">
+      <div class="date-picker" id="date-picker"></div>
+      <div id="history-content" class="radar-list"></div>
+    </div>
+
+    <!-- 我的 -->
+    <div id="profile" class="tab-content">
+      <div class="profile-section">
+        <h3>❤️ 我的收藏</h3>
+        <div id="my-likes" class="empty-state">暂无收藏</div>
+      </div>
+      <div class="profile-section">
+        <h3>🎯 我的立场</h3>
+        <div id="my-stances" class="empty-state">暂无立场</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 统计栏 -->
+  <div class="stats-bar" id="stats-bar" style="display:none;">
+    <span class="stats-text" id="stats-text"></span>
+  </div>
+
+  <!-- Tab Bar -->
+  <nav class="tab-bar">
+    <div class="tab-item active" data-tab="today">
+      <div class="icon">📡</div>
+      <div class="label">今日</div>
+    </div>
+    <div class="tab-item" data-tab="tti">
+      <div class="icon">📊</div>
+      <div class="label">张力</div>
+    </div>
+    <div class="tab-item" data-tab="history">
+      <div class="icon">📅</div>
+      <div class="label">历史</div>
+    </div>
+    <div class="tab-item" data-tab="profile">
+      <div class="icon">👤</div>
+      <div class="label">我的</div>
+    </div>
+  </nav>
+
+  <script>
+    const API_BASE = 'http://localhost:3000';
+    const USER_ID = 'web-preview-user-' + Date.now();
+    const userLikes = new Set();
+    const userStances = {};
+    let allItems = [];
+    let currentFilter = 'all';
+
+    // 领域配置
+    const DOMAIN_CONFIG = {
+      tech: { label: '科技', color: '#4a9eff', icon: '🔬' },
+      politics: { label: '政治', color: '#ef4444', icon: '🏛️' },
+      history: { label: '历史', color: '#8b5cf6', icon: '📚' },
+      philosophy: { label: '哲学', color: '#ec4899', icon: '🤔' },
+      religion: { label: '宗教', color: '#f59e0b', icon: '⛪' },
+      finance: { label: '金融', color: '#10b981', icon: '💰' }
+    };
+
+    // 设置当前日期
+    function setCurrentDate() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      document.getElementById('current-date').textContent = `${y}.${m}.${d}`;
+    }
+
+    // Tab 切换
+    document.querySelectorAll('.tab-item').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+
+        // 更新 tab 状态
+        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tabName).classList.add('active');
+
+        // 显示/隐藏过滤器
+        document.getElementById('filters-container').style.display =
+          tabName === 'today' ? 'block' : 'none';
+
+        // 显示/隐藏统计栏
+        document.getElementById('stats-bar').style.display =
+          tabName === 'today' && allItems.length > 0 ? 'block' : 'none';
+
+        // 加载相应内容
+        if (tabName === 'tti') loadTTI();
+        if (tabName === 'profile') loadProfile();
+        if (tabName === 'history') loadHistory();
+      });
+    });
+
+    // 过滤器切换
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderItems();
+      });
+    });
+
+    // 渲染雷达卡片
+    function renderRadarCard(item) {
+      const domain = DOMAIN_CONFIG[item.domain] || { label: item.domain, color: '#6b7280', icon: '📍' };
+      const stanceColor = item.stance === 'A' ? 'var(--side-a)' : 'var(--side-b)';
+      const isLiked = userLikes.has(item.id);
+      const userStance = userStances[item.id];
+      const isLong = item.content && item.content.length > 200;
+
+      return `
+        <div class="radar-card" data-id="${item.id}">
+          <!-- 标签 -->
+          <div class="card-tags">
+            <span class="tag" style="background:${domain.color}20; border-color:${domain.color}; color:${domain.color}">
+              ${item.freq || domain.label}
+            </span>
+            <span class="tag" style="background:${stanceColor}20; border-color:${stanceColor}; color:${stanceColor}">
+              倾向${item.stance || 'A'}
+            </span>
+          </div>
+          
+          <!-- 标题 -->
+          <div class="card-title">${item.title}</div>
+          
+          <!-- 作者信息 -->
+          ${item.author_name ? `
+          <div class="author-info">
+            <div class="author-avatar">${item.author_avatar || item.author_name.substring(0, 2)}</div>
+            <div>
+              <div class="author-name">${item.author_name}</div>
+              ${item.author_bio ? `<div class="author-bio">${item.author_bio}</div>` : ''}
+            </div>
+          </div>
+          ` : ''}
+          
+          <!-- 来源 -->
+          ${item.source ? `
+          <div class="source-line">
+            <div class="source-bar"></div>
+            <span class="source-text">${item.source}</span>
+          </div>
+          ` : ''}
+          
+          <!-- 正文 -->
+          <div class="card-content ${isLong ? 'collapsed' : ''}" id="content-${item.id}">
+            ${item.content}
+          </div>
+          ${isLong ? `
+          <span class="expand-btn" onclick="toggleExpand(${item.id})">展开全文</span>
+          ` : ''}
+          
+          <!-- 张力信息 -->
+          <div class="tension-box">
+            <div class="tension-question">${item.tension_q || item.band_question || '核心张力'}</div>
+            <div class="tension-poles">
+              <div class="pole">
+                <div class="pole-label side-a">A极</div>
+                <div class="pole-text">${item.tension_a || item.band_side_a || '观点A'}</div>
+              </div>
+              <div class="pole-divider"></div>
+              <div class="pole">
+                <div class="pole-label side-b">B极</div>
+                <div class="pole-text">${item.tension_b || item.band_side_b || '观点B'}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 关键词 -->
+          ${(item.keywords && item.keywords.length > 0) ? `
+          <div class="keywords">
+            ${item.keywords.map(kw => `<span class="keyword-tag">${kw}</span>`).join('')}
+          </div>
+          ` : ''}
+          
+          <!-- 操作栏 -->
+          <div class="card-actions">
+            <button class="like-btn ${isLiked ? 'active' : ''}" onclick="toggleLike(${item.id}, this)">
+              <span class="like-icon">${isLiked ? '❤️' : '🤍'}</span>
+              <span class="like-text">收藏</span>
+            </button>
+            <div class="stance-buttons">
+              <button class="stance-btn side-a ${userStance === 'A' ? 'active' : ''}" 
+                      onclick="setStance(${item.id}, 'A', this)">
+                我倾向A
+              </button>
+              <button class="stance-btn side-b ${userStance === 'B' ? 'active' : ''}"
+                      onclick="setStance(${item.id}, 'B', this)">
+                我倾向B
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 渲染列表
+    function renderItems() {
+      const container = document.getElementById('today');
+      let filtered = allItems;
+
+      if (currentFilter !== 'all') {
+        filtered = allItems.filter(item => item.domain === currentFilter);
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="loading">
+            <span style="font-size:64px;margin-bottom:16px">📭</span>
+            <div style="font-size:17px;font-weight:600;margin-bottom:8px">
+              ${allItems.length === 0 ? '今日暂无内容' : '该领域暂无内容'}
+            </div>
+            <div style="font-size:13px;color:#6b7280">下拉刷新查看最新内容</div>
+          </div>
+        `;
+        document.getElementById('stats-bar').style.display = 'none';
+      } else {
+        container.innerHTML = `<div class="radar-list">${filtered.map(renderRadarCard).join('')}</div>`;
+        document.getElementById('stats-bar').style.display = 'block';
+        const domainLabel = currentFilter !== 'all' ? DOMAIN_CONFIG[currentFilter]?.label : '';
+        document.getElementById('stats-text').textContent = `今日${domainLabel}共${filtered.length}条`;
+      }
+    }
+
+    // 展开/收起
+    window.toggleExpand = function (itemId) {
+      const content = document.getElementById(`content-${itemId}`);
+      const btn = content.nextElementSibling;
+      if (content.classList.contains('collapsed')) {
+        content.classList.remove('collapsed');
+        btn.textContent = '收起';
+      } else {
+        content.classList.add('collapsed');
+        btn.textContent = '展开全文';
+      }
+    };
+
+    // 收藏
+    window.toggleLike = async function (itemId, btn) {
+      const isLiked = userLikes.has(itemId);
+      try {
+        await fetch(`${API_BASE}/api/user/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: USER_ID, item_id: itemId, liked: !isLiked })
+        });
+
+        if (isLiked) {
+          userLikes.delete(itemId);
+          btn.classList.remove('active');
+          btn.querySelector('.like-icon').textContent = '🤍';
+        } else {
+          userLikes.add(itemId);
+          btn.classList.add('active');
+          btn.querySelector('.like-icon').textContent = '❤️';
+        }
+      } catch (e) {
+        console.error('Like error:', e);
+      }
+    };
+
+    // 立场
+    window.setStance = async function (itemId, stance, btn) {
+      const currentStance = userStances[itemId];
+      const newStance = currentStance === stance ? null : stance;
+
+      try {
+        await fetch(`${API_BASE}/api/user/stance`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: USER_ID, item_id: itemId, stance: newStance })
+        });
+
+        userStances[itemId] = newStance;
+        const container = btn.parentElement;
+        container.querySelectorAll('.stance-btn').forEach(b => b.classList.remove('active'));
+        if (newStance) btn.classList.add('active');
+      } catch (e) {
+        console.error('Stance error:', e);
+      }
+    };
+
+    // 加载今日数据
+    async function loadToday() {
+      try {
+        const res = await fetch(`${API_BASE}/api/radar/today`);
+        const data = await res.json();
+        allItems = data.success ? (data.items || []) : [];
+        renderItems();
+      } catch (e) {
+        console.error('Load error:', e);
+        document.getElementById('today').innerHTML = `
+          <div class="loading">
+            <span style="font-size:64px;margin-bottom:16px">⚠️</span>
+            <div style="font-size:17px;font-weight:600;margin-bottom:8px">加载失败</div>
+            <div style="font-size:13px;color:#6b7280">${e.message}</div>
+            <button onclick="loadToday()" style="margin-top:16px;padding:8px 24px;background:#00ff88;border:none;border-radius:20px;font-weight:700;cursor:pointer">重试</button>
+          </div>
+        `;
+      }
+    }
+
+    // 加载 TTI
+    async function loadTTI() {
+      try {
+        const res = await fetch(`${API_BASE}/api/bands`);
+        const data = await res.json();
+        const bands = data.success ? (data.bands || []) : [];
+
+        document.getElementById('tti-grid').innerHTML = bands.map(band => {
+          const tti = band.tti || band.tti_index || 50;
+          return `
+            <div class="tti-card">
+              <div class="tti-emoji">${band.emoji || '📊'}</div>
+              <div class="tti-name">${band.question || band.name}</div>
+              <div class="tti-value">${tti}</div>
+              <div class="spectrum-bar">
+                <div class="spectrum-indicator" style="left:calc(${tti}% - 7px)"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.error('Load TTI error:', e);
+      }
+    }
+
+    // 加载历史
+    async function loadHistory() {
+      const picker = document.getElementById('date-picker');
+      const dates = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        dates.push(d.toISOString().split('T')[0]);
+      }
+
+      picker.innerHTML = dates.map((date, i) => {
+        const d = new Date(date);
+        const label = i === 0 ? '今天' : i === 1 ? '昨天' : `${d.getMonth() + 1}/${d.getDate()}`;
+        return `<button class="date-btn ${i === 0 ? 'active' : ''}" data-date="${date}">${label}</button>`;
+      }).join('');
+
+      picker.querySelectorAll('.date-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          picker.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          loadHistoryDate(btn.dataset.date);
+        });
+      });
+
+      loadHistoryDate(dates[0]);
+    }
+
+    async function loadHistoryDate(date) {
+      try {
+        const res = await fetch(`${API_BASE}/api/radar/${date}`);
+        const data = await res.json();
+        const items = data.success ? (data.items || []) : [];
+
+        document.getElementById('history-content').innerHTML = items.length > 0
+          ? items.map(renderRadarCard).join('')
+          : '<div class="empty-state">该日期暂无内容</div>';
+      } catch (e) {
+        console.error('Load history error:', e);
+      }
+    }
+
+    // 加载个人信息
+    async function loadProfile() {
+      try {
+        const [likesRes, stancesRes] = await Promise.all([
+          fetch(`${API_BASE}/api/user/${USER_ID}/likes`),
+          fetch(`${API_BASE}/api/user/${USER_ID}/stances`)
+        ]);
+
+        const likes = await likesRes.json();
+        const stances = await stancesRes.json();
+
+        const likesDiv = document.getElementById('my-likes');
+        const stancesDiv = document.getElementById('my-stances');
+
+        const likeItems = likes.success ? (likes.items || []) : [];
+        const stanceItems = stances.success ? (stances.items || []) : [];
+
+        likesDiv.innerHTML = likeItems.length > 0
+          ? likeItems.map(l => `<div class="profile-item">${l.title || '内容 #' + l.item_id}</div>`).join('')
+          : '<div class="empty-state">暂无收藏</div>';
+
+        stancesDiv.innerHTML = stanceItems.length > 0
+          ? stanceItems.map(s => `
+              <div class="profile-item">
+                ${s.title || '内容 #' + s.item_id}：
+                <span style="color:${s.stance === 'A' ? 'var(--side-a)' : 'var(--side-b)'}">
+                  倾向${s.stance}
+                </span>
+              </div>
+            `).join('')
+          : '<div class="empty-state">暂无立场</div>';
+      } catch (e) {
+        console.error('Profile error:', e);
+      }
+    }
+
+    // 初始化
+    setCurrentDate();
+    loadToday();
+  </script>
+</body>
+
+</html>

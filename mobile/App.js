@@ -15,7 +15,8 @@ const Tab = createBottomTabNavigator();
 
 // 自定义Tab图标
 const TabIcon = ({ icon, color }) => {
-  return <span style={{ fontSize: 24 }}>{icon}</span>;
+  const { Text } = require('react-native');
+  return <Text style={{ fontSize: 24 }}>{icon}</Text>;
 };
 
 export default function App() {

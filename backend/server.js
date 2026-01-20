@@ -6,6 +6,9 @@ require('dotenv').config();
 const radarRoutes = require('./routes/radar');
 const bandsRoutes = require('./routes/bands');
 const userRoutes = require('./routes/user');
+const sourcesRoutes = require('./routes/sources');
+const draftsRoutes = require('./routes/drafts');
+const collectionRoutes = require('./routes/collection');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,6 +31,9 @@ app.use((req, res, next) => {
 app.use('/api/radar', radarRoutes);
 app.use('/api/bands', bandsRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/sources', sourcesRoutes);
+app.use('/api/drafts', draftsRoutes);
+app.use('/api/collection', collectionRoutes);
 
 // 健康检查
 app.get('/health', (req, res) => {
@@ -54,7 +60,15 @@ app.get('/', (req, res) => {
             user_like: 'POST /api/user/like',
             user_stance: 'POST /api/user/stance',
             user_likes_list: 'GET /api/user/:user_id/likes',
-            user_stances_list: 'GET /api/user/:user_id/stances'
+            user_stances_list: 'GET /api/user/:user_id/stances',
+            sources_list: 'GET /api/sources',
+            sources_detail: 'GET /api/sources/:id',
+            sources_create: 'POST /api/sources',
+            sources_update: 'PUT /api/sources/:id',
+            sources_metrics: 'GET /api/sources/:id/metrics',
+            sources_rankings: 'GET /api/sources/rankings/all',
+            sources_trending: 'GET /api/sources/people/trending',
+            sources_recommendations: 'GET /api/sources/recommendations/pending'
         }
     });
 });

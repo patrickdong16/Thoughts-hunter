@@ -120,8 +120,82 @@ export const statsAPI = {
     },
 };
 
+// 内容源 API
+export const sourcesAPI = {
+    // 获取所有内容源
+    getAll: (filters = {}) => {
+        const params = new URLSearchParams(filters).toString();
+        return request(`/api/sources${params ? '?' + params : ''}`);
+    },
+    // 获取单个内容源
+    getById: (id) => request(`/api/sources/${id}`),
+    // 创建内容源
+    create: (data) => request('/api/sources', { method: 'POST', body: JSON.stringify(data) }),
+    // 更新内容源
+    update: (id, data) => request(`/api/sources/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    // 归档内容源
+    archive: (id) => request(`/api/sources/${id}`, { method: 'DELETE' }),
+    // 获取排名
+    getRankings: () => request('/api/sources/rankings/all'),
+    // 获取热门人物
+    getTrending: (days = 30) => request(`/api/sources/people/trending?days=${days}`),
+    // 获取待审核推荐
+    getRecommendations: () => request('/api/sources/recommendations/pending'),
+    // 批准推荐
+    approveRecommendation: (id, data) =>
+        request(`/api/sources/recommendations/${id}/approve`, { method: 'POST', body: JSON.stringify(data) }),
+    // 拒绝推荐
+    rejectRecommendation: (id) =>
+        request(`/api/sources/recommendations/${id}/reject`, { method: 'POST' }),
+};
+
+// 草稿 API
+export const draftsAPI = {
+    // 获取所有草稿
+    getAll: (status = 'pending', limit = 50) =>
+        request(`/api/drafts?status=${status}&limit=${limit}`),
+    // 获取草稿统计
+    getStats: () => request('/api/drafts/stats'),
+    // 获取单个草稿
+    getById: (id) => request(`/api/drafts/${id}`),
+    // 更新草稿
+    update: (id, data) => request(`/api/drafts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    // 批准草稿
+    approve: (id, selectedIndices = null, reviewedBy = 'cms_user') =>
+        request(`/api/drafts/${id}/approve`, {
+            method: 'POST',
+            body: JSON.stringify({ selectedIndices, reviewedBy })
+        }),
+    // 拒绝草稿
+    reject: (id, reason = '') =>
+        request(`/api/drafts/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
+    // 删除草稿
+    delete: (id) => request(`/api/drafts/${id}`, { method: 'DELETE' }),
+    // 分析视频
+    analyzeVideo: (url, sourceId = null) =>
+        request('/api/drafts/analyze-video', { method: 'POST', body: JSON.stringify({ url, sourceId }) })
+};
+
+// 内容采集 API
+export const collectionAPI = {
+    // 获取内容源最新视频
+    getRecentVideos: (sourceId, limit = 10) =>
+        request(`/api/collection/recent-videos/${sourceId}?limit=${limit}`),
+    // 检查单个内容源
+    checkSource: (sourceId) =>
+        request(`/api/collection/check-source/${sourceId}`, { method: 'POST' }),
+    // 检查所有内容源
+    checkAll: () => request('/api/collection/check-all', { method: 'POST' }),
+    // 分析指定视频
+    analyzeVideo: (sourceId, videoId) =>
+        request(`/api/collection/analyze/${sourceId}/${videoId}`, { method: 'POST' }),
+};
+
 export default {
     radar: radarAPI,
     bands: bandsAPI,
     stats: statsAPI,
+    sources: sourcesAPI,
+    drafts: draftsAPI,
+    collection: collectionAPI,
 };
