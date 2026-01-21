@@ -685,6 +685,86 @@
       border-bottom: none;
     }
 
+    /* === 滑动删除 === */
+    .swipe-item {
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 8px;
+      background: var(--surface);
+      border-radius: 8px;
+    }
+
+    .swipe-content {
+      position: relative;
+      padding: 12px;
+      background: var(--surface);
+      transition: transform 0.3s;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .swipe-delete {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 80px;
+      background: #ef4444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    .profile-item-title {
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    /* === 立场选项显示 === */
+    .stance-options {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .stance-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 13px;
+      opacity: 0.6;
+    }
+
+    .stance-option.selected {
+      opacity: 1;
+    }
+
+    .stance-radio {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .stance-option.selected .stance-radio {
+      color: var(--primary);
+    }
+
+    .stance-text {
+      color: var(--text-secondary);
+      flex: 1;
+    }
+
+    .stance-option.selected .stance-text {
+      color: var(--text);
+      font-weight: 500;
+    }
+
     /* === 统计栏 === */
     .stats-bar {
       position: fixed;
@@ -1423,45 +1503,62 @@
     // 加载个人信息
     async function loadProfile() {
       try {
-        // 直接从localStorage读取最新数据（最可靠）
         const likesDiv = document.getElementById('my-likes');
         const stancesDiv = document.getElementById('my-stances');
 
-        // 显示收藏（带删除按钮）
+        // 显示收藏（准备滑动删除）
         const likesList = Array.from(userLikes);
         if (likesList.length > 0) {
           likesDiv.innerHTML = likesList.map(itemId => {
             const item = allItems.find(i => i.id === itemId);
             const title = item ? item.title : '内容 #' + itemId;
             return `
-              <div class="profile-item" onclick="scrollToItem(${itemId})">
-                <div class="profile-item-content">${title}</div>
-                <button class="delete-btn" onclick="event.stopPropagation(); removeLike(${itemId})">🗑️</button>
+              <div class="swipe-item" data-id="${itemId}" data-type="like">
+                <div class="swipe-content" onclick="scrollToItem(${itemId})">
+                  <div class="profile-item-title">${title}</div>
+                </div>
+                <div class="swipe-delete" onclick="removeLike(${itemId})">
+                  <span>🗑️</span>
+                </div>
               </div>
             `;
           }).join('');
+          initSwipeDelete();
         } else {
           likesDiv.innerHTML = '<div class="empty-state">暂无收藏</div>';
         }
 
-        // 显示立场（带删除按钮）
+        // 显示立场（显示AB选项）
         const stancesList = Object.entries(userStances).filter(([_, stance]) => stance !== null);
         if (stancesList.length > 0) {
           stancesDiv.innerHTML = stancesList.map(([itemId, stance]) => {
             const item = allItems.find(i => i.id == itemId);
             const title = item ? item.title : '内容 #' + itemId;
+            const optionA = item ? (item.tension_a || item.band_side_a || '观点A').substring(0, 20) : '观点A';
+            const optionB = item ? (item.tension_b || item.band_side_b || '观点B').substring(0, 20) : '观点B';
+
             return `
-              <div class="profile-item" onclick="scrollToItem(${itemId})">
-                <div class="profile-item-content">
-                  ${title}：
-                  <span style="color:${stance === 'A' ? 'var(--side-a)' : 'var(--side-b)'}">
-                    倾向${stance}
-                  </span>
+              <div class="swipe-item" data-id="${itemId}" data-type="stance">
+                <div class="swipe-content" onclick="scrollToItem(${itemId})">
+                  <div class="profile-item-title">${title}</div>
+                  <div class="stance-options">
+                    <div class="stance-option ${stance === 'A' ? 'selected' : ''}">
+                      <span class="stance-radio">${stance === 'A' ? '●' : '○'}</span>
+                      <span class="stance-text">A: ${optionA}</span>
+                    </div>
+                    <div class="stance-option ${stance === 'B' ? 'selected' : ''}">
+                      <span class="stance-radio">${stance === 'B' ? '●' : '○'}</span>
+                      <span class="stance-text">B: ${optionB}</span>
+                    </div>
+                  </div>
                 </div>
-                <button class="delete-btn" onclick="event.stopPropagation(); removeStance(${itemId})">🗑️</button>
+                <div class="swipe-delete" onclick="removeStance(${itemId})">
+                  <span>🗑️</span>
+                </div>
               </div>
             `;
           }).join('');
+          initSwipeDelete();
         } else {
           stancesDiv.innerHTML = '<div class="empty-state">暂无立场</div>';
         }
@@ -1575,6 +1672,49 @@
         const newTab = document.querySelector(`[data-tab="${tabs[newIndex]}"]`);
         if (newTab) newTab.click();
       }
+    }
+
+    // 滑动删除初始化
+    function initSwipeDelete() {
+      document.querySelectorAll('.swipe-item').forEach(item => {
+        let startX = 0;
+        let currentX = 0;
+        let isSwiping = false;
+        const content = item.querySelector('.swipe-content');
+
+        item.addEventListener('touchstart', (e) => {
+          startX = e.touches[0].clientX;
+          isSwiping = true;
+          content.style.transition = 'none';
+        });
+
+        item.addEventListener('touchmove', (e) => {
+          if (!isSwiping) return;
+          currentX = e.touches[0].clientX;
+          const diff = startX - currentX;
+
+          // 只允许向左滑
+          if (diff > 0 && diff <= 80) {
+            content.style.transform = `translateX(-${diff}px)`;
+          }
+        });
+
+        item.addEventListener('touchend', (e) => {
+          if (!isSwiping) return;
+          isSwiping = false;
+          const diff = startX - currentX;
+
+          content.style.transition = 'transform 0.3s';
+
+          if (diff > 40) {
+            // 滑动超过阈值，显示删除按钮
+            content.style.transform = 'translateX(-80px)';
+          } else {
+            // 复位
+            content.style.transform = 'translateX(0)';
+          }
+        });
+      });
     }
 
     // Profile子标签切换
