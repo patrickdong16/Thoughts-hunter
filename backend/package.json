@@ -4,7 +4,7 @@
     "description": "思想雷达后端API",
     "main": "server.js",
     "scripts": {
-        "start": "node server.js",
+        "start": "node start-with-init.js",
         "dev": "nodemon server.js",
         "init-db": "node scripts/init-db.js",
         "check": "node scripts/check-env.js",
