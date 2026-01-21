@@ -93,6 +93,13 @@
       margin-top: 2px;
     }
 
+    .title-group .slogan {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
     .date {
       font-size: 15px;
       color: var(--text-secondary);
@@ -256,6 +263,14 @@
       margin-bottom: 16px;
     }
 
+    .card-content p {
+      margin-bottom: 12px;
+    }
+
+    .card-content p:last-child {
+      margin-bottom: 0;
+    }
+
     .card-content.collapsed {
       display: -webkit-box;
       -webkit-line-clamp: 6;
@@ -269,7 +284,9 @@
       cursor: pointer;
       font-weight: 500;
       margin-top: 8px;
+      margin-bottom: 20px;
       display: inline-block;
+      padding: 8px 0;
     }
 
     /* 张力信息区 */
@@ -277,6 +294,7 @@
       background: var(--background);
       border-radius: 8px;
       padding: 12px;
+      margin-top: 16px;
       margin-bottom: 12px;
     }
 
@@ -524,15 +542,40 @@
       display: flex;
       border-top: 1px solid var(--border);
       z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom);
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
     }
 
     .tab-item {
       flex: 1;
       text-align: center;
-      padding: 10px 8px;
+      padding: 12px 8px 8px;
       color: var(--text-muted);
       cursor: pointer;
-      transition: color 0.2s;
+      transition: all 0.3s ease;
+      position: relative;
+      min-height: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tab-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%) scaleX(0);
+      width: 40px;
+      height: 3px;
+      background: var(--primary);
+      border-radius: 0 0 3px 3px;
+      transition: transform 0.3s ease;
+    }
+
+    .tab-item.active::before {
+      transform: translateX(-50%) scaleX(1);
     }
 
     .tab-item.active {
@@ -540,12 +583,22 @@
     }
 
     .tab-item .icon {
-      font-size: 20px;
+      font-size: 22px;
       margin-bottom: 4px;
+      transition: transform 0.2s ease;
+    }
+
+    .tab-item.active .icon {
+      transform: scale(1.1);
     }
 
     .tab-item .label {
-      font-size: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .tab-item.active .label {
+      font-weight: 600;
     }
 
     /* === 加载状态 === */
@@ -610,6 +663,7 @@
       <div class="title-group">
         <h1>思想雷达</h1>
         <div class="subtitle">Thoughts Radar</div>
+        <div class="slogan">追踪观点冲突，把握思想动态</div>
       </div>
     </div>
     <div class="date" id="current-date"></div>
@@ -639,6 +693,17 @@
 
     <!-- 张力指数 -->
     <div id="tti" class="tab-content">
+      <div
+        style="padding: 16px; background: var(--background); margin: 16px; border-radius: 12px; border: 1px solid var(--border);">
+        <h3 style="font-size: 14px; color: var(--primary); margin-bottom: 8px; font-weight: 600;">📊 什么是思想张力指数 (TTI)?
+        </h3>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 8px;">
+          TTI 衡量某个议题两极观点的对立程度。数值 0-100，50 表示均衡，越接近两端表示某一方观点越占主导。
+        </p>
+        <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+          数据来源：基于用户立场选择和内容倾向的综合计算，实时更新。
+        </p>
+      </div>
       <div class="tti-grid" id="tti-grid"></div>
     </div>
 
@@ -752,6 +817,39 @@
       });
     });
 
+    // 格式化正文内容 - 智能分段
+    function formatContent(content) {
+      if (!content) return '';
+
+      // 按句号分段，保留原有的换行
+      const paragraphs = content.split('\n').filter(p => p.trim());
+
+      if (paragraphs.length > 1) {
+        // 已有段落，直接用 <p> 包装
+        return paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
+      }
+
+      // 单段文本，按句号智能分段
+      const sentences = content.split(/([。！？])/);
+      let formatted = '';
+      let current = '';
+
+      for (let i = 0; i < sentences.length; i += 2) {
+        const sentence = sentences[i] + (sentences[i + 1] || '');
+        current += sentence;
+
+        // 每2-3句一段
+        if ((i / 2 + 1) % 2 === 0 || i >= sentences.length - 2) {
+          if (current.trim()) {
+            formatted += `<p>${current.trim()}</p>`;
+            current = '';
+          }
+        }
+      }
+
+      return formatted || `<p>${content}</p>`;
+    }
+
     // 渲染雷达卡片
     function renderRadarCard(item) {
       const domain = DOMAIN_CONFIG[item.domain] || { label: item.domain, color: '#6b7280', icon: '📍' };
@@ -765,10 +863,7 @@
           <!-- 标签 -->
           <div class="card-tags">
             <span class="tag" style="background:${domain.color}20; border-color:${domain.color}; color:${domain.color}">
-              ${item.freq || domain.label}
-            </span>
-            <span class="tag" style="background:${stanceColor}20; border-color:${stanceColor}; color:${stanceColor}">
-              倾向${item.stance || 'A'}
+              ${domain.icon} ${domain.label}
             </span>
           </div>
           
@@ -796,7 +891,7 @@
           
           <!-- 正文 -->
           <div class="card-content ${isLong ? 'collapsed' : ''}" id="content-${item.id}">
-            ${item.content}
+            ${formatContent(item.content)}
           </div>
           ${isLong ? `
           <span class="expand-btn" onclick="toggleExpand(${item.id})">展开全文</span>
