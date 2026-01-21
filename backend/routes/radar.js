@@ -171,10 +171,10 @@ router.post('/', async (req, res) => {
         }
 
         // 验证内容长度
-        if (content.length < 500) {
+        if (content.length < 400) {
             return res.status(400).json({
                 success: false,
-                error: `Content must be at least 500 characters (current: ${content.length})`
+                error: `Content must be at least 400 characters (current: ${content.length})`
             });
         }
 
