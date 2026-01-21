@@ -1307,34 +1307,44 @@
     // 加载个人信息
     async function loadProfile() {
       try {
-        const [likesRes, stancesRes] = await Promise.all([
-          fetch(`${API_BASE}/api/user/${USER_ID}/likes`),
-          fetch(`${API_BASE}/api/user/${USER_ID}/stances`)
-        ]);
-
-        const likes = await likesRes.json();
-        const stances = await stancesRes.json();
-
+        // 直接从localStorage读取最新数据（最可靠）
         const likesDiv = document.getElementById('my-likes');
         const stancesDiv = document.getElementById('my-stances');
 
-        const likeItems = likes.success ? (likes.items || []) : [];
-        const stanceItems = stances.success ? (stances.items || []) : [];
+        // 显示收藏
+        const likesList = Array.from(userLikes);
+        if (likesList.length > 0) {
+          // 从allItems中查找对应的内容标题
+          likesDiv.innerHTML = likesList.map(itemId => {
+            const item = allItems.find(i => i.id === itemId);
+            return `<div class="profile-item">${item ? item.title : '内容 #' + itemId}</div>`;
+          }).join('');
+        } else {
+          likesDiv.innerHTML = '<div class="empty-state">暂无收藏</div>';
+        }
 
-        likesDiv.innerHTML = likeItems.length > 0
-          ? likeItems.map(l => `<div class="profile-item">${l.title || '内容 #' + l.item_id}</div>`).join('')
-          : '<div class="empty-state">暂无收藏</div>';
-
-        stancesDiv.innerHTML = stanceItems.length > 0
-          ? stanceItems.map(s => `
+        // 显示立场
+        const stancesList = Object.entries(userStances).filter(([_, stance]) => stance !== null);
+        if (stancesList.length > 0) {
+          stancesDiv.innerHTML = stancesList.map(([itemId, stance]) => {
+            const item = allItems.find(i => i.id == itemId);
+            return `
               <div class="profile-item">
-                ${s.title || '内容 #' + s.item_id}：
-                <span style="color:${s.stance === 'A' ? 'var(--side-a)' : 'var(--side-b)'}">
-                  倾向${s.stance}
+                ${item ? item.title : '内容 #' + itemId}：
+                <span style="color:${stance === 'A' ? 'var(--side-a)' : 'var(--side-b)'}">
+                  倾向${stance}
                 </span>
               </div>
-            `).join('')
-          : '<div class="empty-state">暂无立场</div>';
+            `;
+          }).join('');
+        } else {
+          stancesDiv.innerHTML = '<div class="empty-state">暂无立场</div>';
+        }
+
+        console.log('Profile loaded from localStorage:', {
+          likes: likesList.length,
+          stances: stancesList.length
+        });
       } catch (e) {
         console.error('Profile error:', e);
       }
