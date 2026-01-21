@@ -921,6 +921,7 @@
     const userStances = JSON.parse(localStorage.getItem('userStances') || '{}');
     let allItems = [];
     let currentFilter = 'all';
+    const scrollPositions = {}; // 记录每个标签页的滚动位置
 
     // 领域配置
     const DOMAIN_CONFIG = {
@@ -944,7 +945,13 @@
     // Tab 切换
     document.querySelectorAll('.tab-item').forEach(tab => {
       tab.addEventListener('click', () => {
+        const currentTab = document.querySelector('.tab-item.active')?.dataset.tab;
         const tabName = tab.dataset.tab;
+
+        // 保存当前标签页的滚动位置
+        if (currentTab) {
+          scrollPositions[currentTab] = window.scrollY;
+        }
 
         // 更新 tab 状态
         document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
@@ -964,6 +971,11 @@
         if (tabName === 'tti') loadTTI();
         if (tabName === 'profile') loadProfile();
         if (tabName === 'history') loadHistory();
+
+        // 恢复该标签页的滚动位置
+        setTimeout(() => {
+          window.scrollTo(0, scrollPositions[tabName] || 0);
+        }, 100);
       });
     });
 
@@ -1432,6 +1444,16 @@
       userLikes.delete(itemId);
       localStorage.setItem('userLikes', JSON.stringify([...userLikes]));
       loadProfile();
+
+      // 同步更新卡片红心
+      const card = document.querySelector(`.radar-card[data-id="${itemId}"]`);
+      if (card) {
+        const likeBtn = card.querySelector('.like-btn');
+        if (likeBtn) {
+          likeBtn.classList.remove('active');
+          likeBtn.querySelector('.like-icon').textContent = '🤍';
+        }
+      }
     };
 
     // 删除立场
