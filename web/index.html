@@ -63,7 +63,7 @@
       padding: 16px;
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
@@ -104,6 +104,7 @@
       font-size: 15px;
       color: var(--text-secondary);
       font-weight: 500;
+      margin-top: 18px;
     }
 
     /* === 过滤器 === */
@@ -747,7 +748,7 @@
       <div class="title-group">
         <h1>思想雷达</h1>
         <div class="subtitle">Thoughts Radar</div>
-        <div class="slogan">连接深刻思想，跟踪时代问题</div>
+        <div class="slogan">连接深邂思想，关注时代问题</div>
       </div>
     </div>
     <div class="date" id="current-date"></div>
@@ -821,10 +822,12 @@
       <div class="icon">📡</div>
       <div class="label">今日</div>
     </div>
+    <!-- TTI 暂时隐藏，等待数据积累
     <div class="tab-item" data-tab="tti">
       <div class="icon">📊</div>
       <div class="label">张力</div>
     </div>
+    -->
     <div class="tab-item" data-tab="history">
       <div class="icon">📅</div>
       <div class="label">历史</div>
@@ -840,9 +843,13 @@
     const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3000'
       : (window.API_URL || 'https://thoughts-radar-backend-production.up.railway.app');
-    const USER_ID = 'web-preview-user-' + Date.now();
-    const userLikes = new Set();
-    const userStances = {};
+    const USER_ID = localStorage.getItem('user_id') || 'web-user-' + Date.now();
+    if (!localStorage.getItem('user_id')) {
+      localStorage.setItem('user_id', USER_ID);
+    }
+
+    const userLikes = new Set(JSON.parse(localStorage.getItem('userLikes') || '[]'));
+    const userStances = JSON.parse(localStorage.getItem('userStances') || '{}');
     let allItems = [];
     let currentFilter = 'all';
 
@@ -1138,6 +1145,7 @@
           btn.classList.add('active');
           btn.querySelector('.like-icon').textContent = '❤️';
         }
+        localStorage.setItem('userLikes', JSON.stringify([...userLikes]));
       } catch (e) {
         console.error('Like error:', e);
       }
@@ -1156,6 +1164,7 @@
         });
 
         userStances[itemId] = newStance;
+        localStorage.setItem('userStances', JSON.stringify(userStances));
         const container = btn.parentElement;
         container.querySelectorAll('.stance-btn').forEach(b => b.classList.remove('active'));
         if (newStance) btn.classList.add('active');
@@ -1213,7 +1222,8 @@
     async function loadHistory() {
       const picker = document.getElementById('date-picker');
       const dates = [];
-      for (let i = 0; i < 7; i++) {
+      // 从昨天开始，不包括今天
+      for (let i = 1; i <= 7; i++) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         dates.push(d.toISOString().split('T')[0]);
@@ -1221,7 +1231,7 @@
 
       picker.innerHTML = dates.map((date, i) => {
         const d = new Date(date);
-        const label = i === 0 ? '今天' : i === 1 ? '昨天' : `${d.getMonth() + 1}/${d.getDate()}`;
+        const label = i === 0 ? '昨天' : i === 1 ? '前天' : `${d.getMonth() + 1}/${d.getDate()}`;
         return `<button class="date-btn ${i === 0 ? 'active' : ''}" data-date="${date}">${label}</button>`;
       }).join('');
 
@@ -1285,6 +1295,44 @@
         console.error('Profile error:', e);
       }
     }
+
+    // 下拉刷新功能
+    let startY = 0;
+    let pulling = false;
+    const pullThreshold = 80;
+
+    document.addEventListener('touchstart', (e) => {
+      if (window.scrollY === 0) {
+        startY = e.touches[0].pageY;
+        pulling = true;
+      }
+    });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!pulling) return;
+      const currentY = e.touches[0].pageY;
+      const diff = currentY - startY;
+
+      if (diff > 10 && window.scrollY === 0) {
+        // 可以添加视觉指示器
+        if (diff > pullThreshold) {
+          // 达到阈值
+        }
+      }
+    });
+
+    document.addEventListener('touchend', async (e) => {
+      if (!pulling) return;
+      pulling = false;
+
+      const endY = e.changedTouches[0].pageY;
+      const diff = endY - startY;
+
+      if (diff > pullThreshold && window.scrollY === 0) {
+        // 执行刷新
+        await loadToday();
+      }
+    });
 
     // 初始化
     setCurrentDate();
