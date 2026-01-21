@@ -2,8 +2,8 @@ name: Daily Content Update
 
 on:
   schedule:
-    # 每天北京时间早上4点运行 (UTC 20:00前一天)
-    - cron: '0 20 * * *'
+    # 每天北京时间早上6点运行 (UTC 22:00前一天)
+    - cron: '0 22 * * *'
   workflow_dispatch:  # 允许手动触发
 
 jobs:
@@ -22,3 +22,16 @@ jobs:
           
           echo "📥 API Response: $response"
           echo "✅ Daily update completed successfully"
+
+      - name: Send push notifications
+        run: |
+          echo "📲 Sending push notifications..."
+          
+          # 调用后端API发送每日推送
+          push_response=$(curl -s -X POST https://thoughts-radar-backend-production.up.railway.app/api/push/send-daily \
+            -H "Content-Type: application/json" \
+            --max-time 60)
+          
+          echo "📤 Push Response: $push_response"
+          echo "✅ Push notifications sent"
+

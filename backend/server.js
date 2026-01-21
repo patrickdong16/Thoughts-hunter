@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth');
 const sourcesRoutes = require('./routes/sources');
 const draftsRoutes = require('./routes/drafts');
 const collectionRoutes = require('./routes/collection');
+const pushRoutes = require('./routes/push');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,6 +37,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/sources', sourcesRoutes);
 app.use('/api/drafts', draftsRoutes);
 app.use('/api/collection', collectionRoutes);
+app.use('/api/push', pushRoutes);
 
 // 健康检查
 app.get('/health', (req, res) => {
@@ -73,7 +75,10 @@ app.get('/', (req, res) => {
             sources_metrics: 'GET /api/sources/:id/metrics',
             sources_rankings: 'GET /api/sources/rankings/all',
             sources_trending: 'GET /api/sources/people/trending',
-            sources_recommendations: 'GET /api/sources/recommendations/pending'
+            sources_recommendations: 'GET /api/sources/recommendations/pending',
+            push_register: 'POST /api/push/register',
+            push_send_daily: 'POST /api/push/send-daily',
+            push_stats: 'GET /api/push/stats'
         }
     });
 });

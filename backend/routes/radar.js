@@ -10,6 +10,9 @@ router.get('/today', async (req, res) => {
     try {
         const userId = req.query.user_id || null;
 
+        // 使用北京时区计算"今天"的日期
+        const beijingDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
+
         const query = `
       SELECT 
         ri.*,
@@ -23,15 +26,15 @@ router.get('/today', async (req, res) => {
       FROM radar_items ri
       JOIN bands b ON ri.freq = b.id
       LEFT JOIN user_actions ua ON ri.id = ua.item_id AND ua.user_id = $1
-      WHERE ri.date = CURRENT_DATE
+      WHERE ri.date = $2
       ORDER BY ri.freq
     `;
 
-        const result = await pool.query(query, [userId]);
+        const result = await pool.query(query, [userId, beijingDate]);
 
         res.json({
             success: true,
-            date: new Date().toISOString().split('T')[0],
+            date: beijingDate,
             count: result.rows.length,
             items: result.rows
         });
