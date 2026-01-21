@@ -1,0 +1,24 @@
+name: Daily Content Update
+
+on:
+  schedule:
+    # 每天北京时间早上8点运行 (UTC 0:00)
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  update-content:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger daily content fetch
+        run: |
+          echo "🚀 Triggering content update at $(date)"
+          
+          # 调用后端API检查所有活跃来源的新内容
+          response=$(curl -s -X POST https://thoughts-radar-backend-production.up.railway.app/api/collection/check-all \
+            -H "Content-Type: application/json" \
+            --max-time 300)
+          
+          echo "📥 API Response: $response"
+          echo "✅ Daily update completed successfully"
