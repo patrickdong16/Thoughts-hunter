@@ -21,6 +21,7 @@
         "init-db": "cd backend && npm run init-db"
     },
     "devDependencies": {
+        "@cloudbase/cli": "^2.12.1",
         "concurrently": "^8.2.0"
     },
     "keywords": [
