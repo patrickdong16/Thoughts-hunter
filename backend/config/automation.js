@@ -14,8 +14,11 @@ module.exports = {
         // 最大时长（分钟，可选）
         maxDuration: null,
 
-        // 视频发布时间窗口（天）
-        maxAgeInDays: 7
+        // 视频发布时间窗口（天）- 1年内
+        maxAgeInDays: 365,
+
+        // 必须在目标频道或访谈人范围内
+        requireTargetMatch: true
     },
 
     // 每日内容配额
@@ -33,7 +36,7 @@ module.exports = {
         maxTotal: 8,
 
         // 每日最多分析视频数量（成本控制）
-        maxVideosToAnalyze: 5
+        maxVideosToAnalyze: 20
     },
 
     // =====================================================

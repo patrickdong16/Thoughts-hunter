@@ -33,7 +33,8 @@ function parseDuration(duration) {
  * @returns {Object} { eligible: boolean, reason: string }
  */
 function checkVideoEligibility(video) {
-    const { videoFilters, targetChannels, topicKeywords } = automationConfig;
+    const { videoFilters, targetChannels, targetSpeakers, topicKeywords } = automationConfig;
+    const textToCheck = `${video.title || ''} ${video.description || ''} ${video.channelTitle || ''}`.toLowerCase();
 
     // 1. 检查时长
     const durationMinutes = parseDuration(video.duration);
@@ -50,8 +51,23 @@ function checkVideoEligibility(video) {
         }
     }
 
-    // 3. 检查议题关键词（标题或描述至少包含一个）
-    const textToCheck = `${video.title || ''} ${video.description || ''}`.toLowerCase();
+    // 3. 强制要求：必须匹配目标频道或目标访谈人
+    if (videoFilters.requireTargetMatch) {
+        const matchesChannel = targetChannels.some(c =>
+            textToCheck.includes(c.name.toLowerCase()) ||
+            (video.channelTitle && video.channelTitle.toLowerCase().includes(c.name.toLowerCase()))
+        );
+
+        const matchesSpeaker = targetSpeakers.some(s =>
+            textToCheck.includes(s.name.toLowerCase())
+        );
+
+        if (!matchesChannel && !matchesSpeaker) {
+            return { eligible: false, reason: '不在目标频道或访谈人范围内' };
+        }
+    }
+
+    // 4. 检查议题关键词（标题或描述至少包含一个）
     const allKeywords = Object.values(topicKeywords).flat();
     const hasRelevantTopic = allKeywords.some(keyword =>
         textToCheck.includes(keyword.toLowerCase())
