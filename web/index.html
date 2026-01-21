@@ -663,7 +663,7 @@
       <div class="title-group">
         <h1>思想雷达</h1>
         <div class="subtitle">Thoughts Radar</div>
-        <div class="slogan">追踪观点冲突，把握思想动态</div>
+        <div class="slogan">连接深刻思想，跟踪时代问题</div>
       </div>
     </div>
     <div class="date" id="current-date"></div>
@@ -701,7 +701,7 @@
           TTI 衡量某个议题两极观点的对立程度。数值 0-100，50 表示均衡，越接近两端表示某一方观点越占主导。
         </p>
         <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
-          数据来源：基于用户立场选择和内容倾向的综合计算，实时更新。
+          数据来源：基于本 APP 用户的立场选择统计，每次用户表达倾向后实时更新。反映的是使用本应用的用户群体的观点分布。
         </p>
       </div>
       <div class="tti-grid" id="tti-grid"></div>
@@ -848,6 +848,44 @@
       }
 
       return formatted || `<p>${content}</p>`;
+    }
+
+    // 格式化内容并分离第一段
+    function formatContentWithFirstPara(content) {
+      if (!content) return { first: '', rest: '' };
+
+      const paragraphs = content.split('\n').filter(p => p.trim());
+
+      if (paragraphs.length > 1) {
+        const first = `<p>${paragraphs[0].trim()}</p>`;
+        const rest = paragraphs.slice(1).map(p => `<p>${p.trim()}</p>`).join('');
+        return { first, rest, hasMore: rest.length > 0 };
+      }
+
+      // 单段文本，按句号分段
+      const sentences = content.split(/([。！？])/);
+      const allParas = [];
+      let current = '';
+
+      for (let i = 0; i < sentences.length; i += 2) {
+        const sentence = sentences[i] + (sentences[i + 1] || '');
+        current += sentence;
+
+        if ((i / 2 + 1) % 2 === 0 || i >= sentences.length - 2) {
+          if (current.trim()) {
+            allParas.push(`<p>${current.trim()}</p>`);
+            current = '';
+          }
+        }
+      }
+
+      if (allParas.length === 0) {
+        return { first: `<p>${content}</p>`, rest: '', hasMore: false };
+      }
+
+      const first = allParas[0];
+      const rest = allParas.slice(1).join('');
+      return { first, rest, hasMore: rest.length > 0 };
     }
 
     // 渲染雷达卡片
