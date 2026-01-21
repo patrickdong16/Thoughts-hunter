@@ -997,6 +997,12 @@
         document.getElementById('stats-bar').style.display =
           tabName === 'today' && allItems.length > 0 ? 'block' : 'none';
 
+        // 显示/隐藏刷新按钮（只在今日和往期显示）
+        const refreshBtn = document.getElementById('refresh-btn');
+        if (refreshBtn) {
+          refreshBtn.style.display = (tabName === 'today' || tabName === 'history') ? 'block' : 'none';
+        }
+
         // 加载相应内容
         if (tabName === 'tti') loadTTI();
         if (tabName === 'profile') loadProfile();
