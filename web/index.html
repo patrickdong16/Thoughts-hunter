@@ -1854,7 +1854,7 @@
 
       // 检测是否在滑动区域内（筛选标签、日期导航、详情页等）
       const target = e.target;
-      const blockedAreas = ['.filter-bar', '.date-nav', '.profile-tabs', '.detail-overlay', '.swipe-content'];
+      const blockedAreas = ['.filters-container', '.filters', '.date-picker', '.profile-tabs', '.detail-overlay', '.swipe-content', '.swipe-item', '.filter-btn'];
       swipeBlocked = blockedAreas.some(selector => target.closest(selector));
     });
 
