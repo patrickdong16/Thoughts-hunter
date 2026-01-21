@@ -754,6 +754,11 @@
       color: var(--text-secondary);
     }
 
+    .stance-text-wrap {
+      width: 100%;
+      text-align: left;
+    }
+
     /* === 立场选项显示 === */
     .stance-options {
       margin-top: 8px;
@@ -1010,7 +1015,7 @@
       <div class="title-group">
         <h1>思想雷达</h1>
         <div class="subtitle">Thoughts Radar</div>
-        <div class="slogan">连接深邂思想，关注时代问题</div>
+        <div class="slogan">连接伟大头脑，跟踪时代问题</div>
       </div>
     </div>
     <div class="header-right">
@@ -1806,15 +1811,20 @@
 
       detailOverlay.style.display = 'block';
 
-      // 左滑退出功能
+      // 左滑退出功能（向右滑动关闭）
       let detailStartX = 0;
       detailOverlay.ontouchstart = (e) => {
         detailStartX = e.touches[0].clientX;
       };
+      detailOverlay.ontouchmove = (e) => {
+        // 阻止滑动事件传播到底层页面
+        e.stopPropagation();
+      };
       detailOverlay.ontouchend = (e) => {
         const endX = e.changedTouches[0].clientX;
         if (endX - detailStartX > 100) {
-          // 向右滑动超过100px，关闭详情页
+          // 向右滑动超过100px，关闭详情页（只关闭覆盖层，不切换页面）
+          e.stopPropagation();
           closeDetailPage();
         }
       };
