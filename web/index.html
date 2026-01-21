@@ -1845,14 +1845,21 @@
     // 左右滑动换页
     let touchStartX = 0;
     let touchEndX = 0;
+    let swipeBlocked = false;  // 是否阻止换页
     const swipeThreshold = 100;
     const tabs = ['today', 'history', 'profile'];
 
     document.addEventListener('touchstart', (e) => {
       touchStartX = e.touches[0].clientX;
+
+      // 检测是否在滑动区域内（筛选标签、日期导航、详情页等）
+      const target = e.target;
+      const blockedAreas = ['.filter-bar', '.date-nav', '.profile-tabs', '.detail-overlay', '.swipe-content'];
+      swipeBlocked = blockedAreas.some(selector => target.closest(selector));
     });
 
     document.addEventListener('touchend', (e) => {
+      if (swipeBlocked) return;  // 在阻止区域内，不换页
       touchEndX = e.changedTouches[0].clientX;
       handleSwipe();
     });
