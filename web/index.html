@@ -256,26 +256,36 @@
     }
 
     /* 正文内容 */
-    .card-content {
+    .card-content-first {
       font-size: 15px;
       color: var(--text);
       line-height: 1.8;
-      margin-bottom: 16px;
-    }
-
-    .card-content p {
       margin-bottom: 12px;
     }
 
-    .card-content p:last-child {
+    .card-content-first p {
+      margin-bottom: 12px;
+    }
+
+    .card-content-rest {
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.8;
+      margin-bottom: 12px;
+      max-height: none;
+      opacity: 1;
+      transition: all 0.3s ease;
+    }
+
+    .card-content-rest.collapsed {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
       margin-bottom: 0;
     }
 
-    .card-content.collapsed {
-      display: -webkit-box;
-      -webkit-line-clamp: 6;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+    .card-content-rest p {
+      margin-bottom: 12px;
     }
 
     .expand-btn {
@@ -356,10 +366,18 @@
     }
 
     /* 底部操作栏 */
-    .card-actions {
+    .card-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .card-tags-bottom {
+      display: flex;
+      gap: 6px;
     }
 
     .like-btn {
@@ -425,6 +443,72 @@
       border-color: var(--side-b);
       color: var(--text);
       font-weight: 600;
+    }
+
+    /* === 投票区 - 极简设计 === */
+    .vote-section {
+      background: var(--background);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 20px;
+      margin-bottom: 16px;
+    }
+
+    .vote-question {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .vote-options {
+      display: flex;
+      gap: 12px;
+    }
+
+    .vote-option {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .vote-option:hover {
+      border-color: var(--primary);
+      background: rgba(0, 255, 136, 0.05);
+    }
+
+    .vote-option.selected {
+      border-color: var(--primary);
+      background: rgba(0, 255, 136, 0.1);
+    }
+
+    .vote-radio {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .vote-radio.active {
+      border-color: var(--primary);
+      background: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.2);
+    }
+
+    .vote-label {
+      font-size: 13px;
+      color: var(--text);
+      flex: 1;
+      text-align: left;
     }
 
     /* === TTI 页面 === */
@@ -891,20 +975,15 @@
     // 渲染雷达卡片
     function renderRadarCard(item) {
       const domain = DOMAIN_CONFIG[item.domain] || { label: item.domain, color: '#6b7280', icon: '📍' };
-      const stanceColor = item.stance === 'A' ? 'var(--side-a)' : 'var(--side-b)';
       const isLiked = userLikes.has(item.id);
       const userStance = userStances[item.id];
-      const isLong = item.content && item.content.length > 200;
+
+      // 使用新的分段逻辑
+      const contentParts = formatContentWithFirstPara(item.content);
+      const hasMoreContent = contentParts.hasMore;
 
       return `
         <div class="radar-card" data-id="${item.id}">
-          <!-- 标签 -->
-          <div class="card-tags">
-            <span class="tag" style="background:${domain.color}20; border-color:${domain.color}; color:${domain.color}">
-              ${domain.icon} ${domain.label}
-            </span>
-          </div>
-          
           <!-- 标题 -->
           <div class="card-title">${item.title}</div>
           
@@ -927,12 +1006,17 @@
           </div>
           ` : ''}
           
-          <!-- 正文 -->
-          <div class="card-content ${isLong ? 'collapsed' : ''}" id="content-${item.id}">
-            ${formatContent(item.content)}
+          <!-- 正文第一段 -->
+          <div class="card-content-first">
+            ${contentParts.first}
           </div>
-          ${isLong ? `
-          <span class="expand-btn" onclick="toggleExpand(${item.id})">展开全文</span>
+          
+          <!-- 剩余内容（可折叠） -->
+          ${hasMoreContent ? `
+          <div class="card-content-rest collapsed" id="content-rest-${item.id}">
+            ${contentParts.rest}
+          </div>
+          <div class="expand-btn" onclick="toggleExpand(${item.id})">展开全文 ↓</div>
           ` : ''}
           
           <!-- 张力信息 -->
@@ -951,30 +1035,45 @@
             </div>
           </div>
           
+          <!-- 投票区 - 极简设计 -->
+          <div class="vote-section">
+            <div class="vote-question">您的观点？</div>
+            <div class="vote-options">
+              <button class="vote-option ${userStance === 'A' ? 'selected' : ''}" 
+                      data-side="A"
+                      onclick="setStance(${item.id}, 'A', this)">
+                <span class="vote-radio ${userStance === 'A' ? 'active' : ''}"></span>
+                <span class="vote-label">A: ${(item.tension_a || item.band_side_a || '观点A').substring(0, 12)}...</span>
+              </button>
+              <button class="vote-option ${userStance === 'B' ? 'selected' : ''}"
+                      data-side="B"
+                      onclick="setStance(${item.id}, 'B', this)">
+                <span class="vote-radio ${userStance === 'B' ? 'active' : ''}"></span>
+                <span class="vote-label">B: ${(item.tension_b || item.band_side_b || '观点B').substring(0, 12)}...</span>
+              </button>
+            </div>
+          </div>
+          
+          <!-- 底部区域：收藏 + 标签 -->
+          <div class="card-footer">
+            <button class="like-btn ${isLiked ? 'active' : ''}" onclick="toggleLike(${item.id}, this)">
+              <span class="like-icon">${isLiked ? '❤️' : '🤍'}</span>
+              <span class="like-text">收藏</span>
+            </button>
+            
+            <div class="card-tags-bottom">
+              <span class="tag" style="background:${domain.color}20; border-color:${domain.color}; color:${domain.color}">
+                ${domain.icon} ${domain.label}
+              </span>
+            </div>
+          </div>
+          
           <!-- 关键词 -->
           ${(item.keywords && item.keywords.length > 0) ? `
           <div class="keywords">
             ${item.keywords.map(kw => `<span class="keyword-tag">${kw}</span>`).join('')}
           </div>
           ` : ''}
-          
-          <!-- 操作栏 -->
-          <div class="card-actions">
-            <button class="like-btn ${isLiked ? 'active' : ''}" onclick="toggleLike(${item.id}, this)">
-              <span class="like-icon">${isLiked ? '❤️' : '🤍'}</span>
-              <span class="like-text">收藏</span>
-            </button>
-            <div class="stance-buttons">
-              <button class="stance-btn side-a ${userStance === 'A' ? 'active' : ''}" 
-                      onclick="setStance(${item.id}, 'A', this)">
-                我倾向A
-              </button>
-              <button class="stance-btn side-b ${userStance === 'B' ? 'active' : ''}"
-                      onclick="setStance(${item.id}, 'B', this)">
-                我倾向B
-              </button>
-            </div>
-          </div>
         </div>
       `;
     }
@@ -1009,14 +1108,14 @@
 
     // 展开/收起
     window.toggleExpand = function (itemId) {
-      const content = document.getElementById(`content-${itemId}`);
+      const content = document.getElementById(`content-rest-${itemId}`);
       const btn = content.nextElementSibling;
       if (content.classList.contains('collapsed')) {
         content.classList.remove('collapsed');
-        btn.textContent = '收起';
+        btn.textContent = '收起 ↑';
       } else {
         content.classList.add('collapsed');
-        btn.textContent = '展开全文';
+        btn.textContent = '展开全文 ↓';
       }
     };
 
