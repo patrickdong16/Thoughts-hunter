@@ -63,7 +63,7 @@
       padding: 16px;
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: flex-end;
       border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
@@ -126,7 +126,6 @@
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      justify-content: flex-end;
       gap: 2px;
     }
 
@@ -691,8 +690,9 @@
       position: relative;
       overflow: hidden;
       margin-bottom: 8px;
-      background: var(--surface);
+      background: rgba(255, 255, 255, 0.05);
       border-radius: 8px;
+      border: 1px solid var(--border);
     }
 
     .swipe-content {
@@ -706,16 +706,16 @@
 
     .swipe-delete {
       position: absolute;
-      right: -80px;
+      right: -60px;
       top: 0;
       bottom: 0;
-      width: 80px;
-      background: #ef4444;
+      width: 60px;
+      background: transparent;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
-      font-size: 20px;
+      color: #ef4444;
+      font-size: 24px;
       cursor: pointer;
       z-index: 1;
       transition: right 0.3s;
@@ -817,8 +817,6 @@
     }
 
     .detail-header {
-      position: sticky;
-      top: 0;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       padding: 16px;
@@ -1626,7 +1624,10 @@
             const optionA = item ? (item.tension_a || item.band_side_a || '观点A') : '观点A';
             const optionB = item ? (item.tension_b || item.band_side_b || '观点B') : '观点B';
 
-            const text = `A: ${optionA} / B: ${optionB} (选择${stance})`;
+            const question = item ? (item.tension_q || item.band_question || '') : '';
+            const text = question ?
+              `${question} A ${optionA} B ${optionB} (${stance})` :
+              `A ${optionA} B ${optionB} (${stance})`;
 
             return `
               <div class="swipe-item" data-id="${itemId}" data-type="stance">
@@ -1709,17 +1710,18 @@
     };
 
     // 显示详情页面
-    window.showItemDetail = function(itemId) {
+    window.showItemDetail = function (itemId) {
       const item = allItems.find(i => i.id == itemId);
       if (!item) return;
-      
+
       const detailOverlay = document.getElementById('item-detail');
       const detailDate = document.getElementById('detail-date');
       const detailContent = document.getElementById('detail-content');
-      
-      // 设置日期
-      detailDate.textContent = item.publish_date || '未知日期';
-      
+
+      // 设置日期（优先使用publish_date，然后created_at）
+      const dateStr = item.publish_date || item.created_at || item.date;
+      detailDate.textContent = dateStr ? dateStr.split('T')[0] : '未知日期';
+
       // 复用今日页卡片格式
       const userStance = userStances[item.id];
       detailContent.innerHTML = `
@@ -1785,7 +1787,7 @@
           </div>
         </div>
       `;
-      
+
       detailOverlay.style.display = 'block';
     };
 
@@ -1859,9 +1861,9 @@
           const diff = startX - currentX;
 
           // 只允许向左滑
-          if (diff > 0 && diff <= 80) {
+          if (diff > 0 && diff <= 60) {
             content.style.transform = `translateX(-${diff}px)`;
-            deleteBtn.style.right = `${-80 + diff}px`;
+            deleteBtn.style.right = `${-60 + diff}px`;
           }
         });
 
@@ -1870,14 +1872,14 @@
           isSwiping = false;
           const diff = startX - currentX;
 
-          if (diff > 40) {
+          if (diff > 30) {
             // 滑动超过阈值，显示删除按钮
-            content.style.transform = 'translateX(-80px)';
+            content.style.transform = 'translateX(-60px)';
             deleteBtn.style.right = '0';
           } else {
             // 复位
             content.style.transform = 'translateX(0)';
-            deleteBtn.style.right = '-80px';
+            deleteBtn.style.right = '-60px';
           }
         });
       });
