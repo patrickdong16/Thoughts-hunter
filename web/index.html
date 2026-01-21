@@ -126,7 +126,8 @@
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 4px;
+      justify-content: flex-end;
+      gap: 2px;
     }
 
     .date {
@@ -705,7 +706,7 @@
 
     .swipe-delete {
       position: absolute;
-      right: 0;
+      right: -80px;
       top: 0;
       bottom: 0;
       width: 80px;
@@ -717,6 +718,7 @@
       font-size: 20px;
       cursor: pointer;
       z-index: 1;
+      transition: right 0.3s;
     }
 
     .profile-item-title {
@@ -1616,7 +1618,7 @@
           likesDiv.innerHTML = '<div class="empty-state">暂无收藏</div>';
         }
 
-        // 显示立场（简化：只显示问题和选项）
+        // 显示立场（完整问题和选择）
         const stancesList = Object.entries(userStances).filter(([_, stance]) => stance !== null);
         if (stancesList.length > 0) {
           stancesDiv.innerHTML = stancesList.map(([itemId, stance]) => {
@@ -1624,7 +1626,7 @@
             const optionA = item ? (item.tension_a || item.band_side_a || '观点A') : '观点A';
             const optionB = item ? (item.tension_b || item.band_side_b || '观点B') : '观点B';
 
-            const text = `${optionA} vs ${optionB} (选择${stance})`;
+            const text = `A: ${optionA} / B: ${optionB} (选择${stance})`;
 
             return `
               <div class="swipe-item" data-id="${itemId}" data-type="stance">
@@ -1707,33 +1709,83 @@
     };
 
     // 显示详情页面
-    window.showItemDetail = function (itemId) {
+    window.showItemDetail = function(itemId) {
       const item = allItems.find(i => i.id == itemId);
       if (!item) return;
-
+      
       const detailOverlay = document.getElementById('item-detail');
       const detailDate = document.getElementById('detail-date');
       const detailContent = document.getElementById('detail-content');
-
+      
       // 设置日期
       detailDate.textContent = item.publish_date || '未知日期';
-
-      // 生成内容（复用renderRadarCard逻辑）
+      
+      // 复用今日页卡片格式
+      const userStance = userStances[item.id];
       detailContent.innerHTML = `
-        <h2 style="margin-bottom:16px; font-size:20px;">${item.title}</h2>
-        <div style="margin-bottom:16px;">
-          <span style="color:var(--text-secondary); font-size:14px;">${item.author_name || '匿名'}</span>
-        </div>
-        <div style="line-height:1.6; margin-bottom:16px;">${item.content}</div>
-        ${item.tension_a ? `
-          <div style="margin-top:20px; padding:16px; background:var(--surface); border-radius:8px;">
-            <div style="font-weight:600; margin-bottom:8px;">张力问题</div>
-            <div style="color:var(--side-a); margin-bottom:8px;">A: ${item.tension_a}</div>
-            <div style="color:var(--side-b);">B: ${item.tension_b}</div>
+        <div class="radar-card" style="box-shadow:none;">
+          <!-- 标题 -->
+          <div class="card-title">${item.title}</div>
+          
+          <!-- 作者信息 -->
+          ${item.author_name ? `
+          <div class="author-info">
+            <div class="author-avatar">${item.author_avatar || item.author_name.substring(0, 2)}</div>
+            <div>
+              <div class="author-name">${item.author_name}</div>
+              ${item.author_bio ? `<div class="author-bio">${item.author_bio}</div>` : ''}
+            </div>
           </div>
-        ` : ''}
+          ` : ''}
+          
+          <!-- 来源 -->
+          ${item.source ? `
+          <div class="source-line">
+            <div class="source-bar"></div>
+            <span class="source-text">${item.source}</span>
+          </div>
+          ` : ''}
+          
+          <!-- 正文完整内容 -->
+          <div class="card-content-first">${item.content}</div>
+          
+          <!-- 张力信息 -->
+          <div class="tension-box">
+            <div class="tension-question">${item.tension_q || item.band_question || '核心张力'}</div>
+            <div class="tension-poles">
+              <div class="pole">
+                <div class="pole-label side-a">A极</div>
+                <div class="pole-text">${item.tension_a || item.band_side_a || '观点A'}</div>
+              </div>
+              <div class="pole-divider"></div>
+              <div class="pole">
+                <div class="pole-label side-b">B极</div>
+                <div class="pole-text">${item.tension_b || item.band_side_b || '观点B'}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 投票区 -->
+          <div class="vote-section">
+            <div class="vote-question">您的观点？</div>
+            <div class="vote-options">
+              <button class="vote-option ${userStance === 'A' ? 'selected' : ''}" 
+                      data-side="A"
+                      onclick="setStance(${item.id}, 'A', this)">
+                <span class="vote-radio ${userStance === 'A' ? 'active' : ''}"></span>
+                <span class="vote-label">A: ${(item.tension_a || item.band_side_a || '观点A').substring(0, 12)}...</span>
+              </button>
+              <button class="vote-option ${userStance === 'B' ? 'selected' : ''}"
+                      data-side="B"
+                      onclick="setStance(${item.id}, 'B', this)">
+                <span class="vote-radio ${userStance === 'B' ? 'active' : ''}"></span>
+                <span class="vote-label">B: ${(item.tension_b || item.band_side_b || '观点B').substring(0, 12)}...</span>
+              </button>
+            </div>
+          </div>
+        </div>
       `;
-
+      
       detailOverlay.style.display = 'block';
     };
 
@@ -1794,11 +1846,11 @@
         let currentX = 0;
         let isSwiping = false;
         const content = item.querySelector('.swipe-content');
+        const deleteBtn = item.querySelector('.swipe-delete');
 
         item.addEventListener('touchstart', (e) => {
           startX = e.touches[0].clientX;
           isSwiping = true;
-          content.style.transition = 'none';
         });
 
         item.addEventListener('touchmove', (e) => {
@@ -1809,6 +1861,7 @@
           // 只允许向左滑
           if (diff > 0 && diff <= 80) {
             content.style.transform = `translateX(-${diff}px)`;
+            deleteBtn.style.right = `${-80 + diff}px`;
           }
         });
 
@@ -1817,14 +1870,14 @@
           isSwiping = false;
           const diff = startX - currentX;
 
-          content.style.transition = 'transform 0.3s';
-
           if (diff > 40) {
             // 滑动超过阈值，显示删除按钮
             content.style.transform = 'translateX(-80px)';
+            deleteBtn.style.right = '0';
           } else {
             // 复位
             content.style.transform = 'translateX(0)';
+            deleteBtn.style.right = '-80px';
           }
         });
       });
