@@ -42,17 +42,19 @@ tcb login
 #### 5. 部署
 ```bash
 cd web
-tcb hosting deploy . -e 你的环境ID
+tcb hosting deploy . -e thoughts-rador26-2f3u8ht52110fab
 ```
 
 ## 访问地址
 
-部署成功后，访问：
+**生产环境 ID**: `thoughts-rador26-2f3u8ht52110fab`
+
+**访问 URL**: 
 ```
-https://你的环境ID.tcloudbaseapp.com
+https://thoughts-rador26-2f3u8ht52110fab.tcloudbaseapp.com
 ```
 
-例如：`https://env-abc123.tcloudbaseapp.com`
+部署成功后即可访问。
 
 ## 免费额度
 

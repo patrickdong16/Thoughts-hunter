@@ -4,6 +4,17 @@
 
 ---
 
+## 服务配置
+
+| 服务 | 平台 | URL/ID |
+|------|------|--------|
+| 后端 API | Railway | `https://thoughts-radar-backend-production.up.railway.app` |
+| 海外前端 | Vercel | `https://thoughts-hunter.vercel.app` |
+| 大陆前端 | CloudBase | `https://thoughts-rador26-2f3u8ht52110fab.tcloudbaseapp.com` |
+| CloudBase ENV | 腾讯云 | `thoughts-rador26-2f3u8ht52110fab` |
+
+---
+
 ## 每日自动化任务时间表
 
 | 时间（北京） | 任务 | 触发方式 | 说明 |
