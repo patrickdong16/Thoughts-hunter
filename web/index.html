@@ -690,7 +690,7 @@
     // API 配置 - 自动检测环境
     const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3000'
-      : (window.API_URL || 'https://thoughts-radar-backend.railway.app'); // 部署后修改此地址
+      : (window.API_URL || 'https://thoughts-radar-backend-production.up.railway.app');
     const USER_ID = 'web-preview-user-' + Date.now();
     const userLikes = new Set();
     const userStances = {};
