@@ -234,6 +234,8 @@
     .author-avatar {
       width: 40px;
       height: 40px;
+      min-width: 40px;
+      min-height: 40px;
       border-radius: 50%;
       background: rgba(0, 255, 136, 0.1);
       border: 2px solid var(--primary);
@@ -244,6 +246,8 @@
       font-size: 14px;
       font-weight: 700;
       color: var(--primary);
+      overflow: hidden;
+      flex-shrink: 0;
     }
 
     .author-name {
@@ -1496,14 +1500,14 @@
     // 下拉刷新功能
     let startY = 0;
     let pulling = false;
-    const pullThreshold = 80;
+    const pullThreshold = 60;
 
     document.addEventListener('touchstart', (e) => {
       if (window.scrollY === 0) {
         startY = e.touches[0].pageY;
         pulling = true;
       }
-    }, { passive: true });
+    });
 
     document.addEventListener('touchmove', (e) => {
       if (!pulling) return;
@@ -1513,7 +1517,7 @@
       if (diff > 10 && window.scrollY === 0) {
         // 视觉指示
       }
-    }, { passive: true });
+    });
 
     document.addEventListener('touchend', async (e) => {
       if (!pulling) return;
@@ -1523,13 +1527,14 @@
       const diff = endY - startY;
 
       if (diff > pullThreshold && window.scrollY === 0) {
+        console.log('Pull to refresh triggered! diff:', diff);
         // 执行刷新
         const activeTab = document.querySelector('.tab-item.active')?.dataset.tab;
         if (activeTab === 'today') {
           await loadToday();
         }
       }
-    }, { passive: true });
+    });
 
     // Profile子标签切换
     document.querySelectorAll('.profile-tab').forEach(tab => {
