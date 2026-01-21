@@ -1912,13 +1912,33 @@
         const likesDiv = document.getElementById('my-likes');
         const stancesDiv = document.getElementById('my-stances');
 
-        // 显示收藏（准备滑动删除）
+        // 从API获取单个条目详情的辅助函数
+        async function fetchItemDetails(itemId) {
+          try {
+            const res = await fetch(`${API_BASE}/api/radar/item/${itemId}`);
+            const data = await res.json();
+            return data.success ? data.item : null;
+          } catch (e) {
+            console.warn('Failed to fetch item', itemId, e);
+            return null;
+          }
+        }
+
+        // 显示收藏
         const likesList = Array.from(userLikes);
         if (likesList.length > 0) {
-          likesDiv.innerHTML = likesList.map(itemId => {
-            const item = allItems.find(i => i.id === itemId);
+          // 先显示加载中
+          likesDiv.innerHTML = '<div class="empty-state">加载中...</div>';
+
+          // 获取所有收藏条目的详情
+          const likesHtml = [];
+          for (const itemId of likesList) {
+            let item = allItems.find(i => i.id === itemId);
+            if (!item) {
+              item = await fetchItemDetails(itemId);
+            }
             const title = item ? item.title : '内容 #' + itemId;
-            return `
+            likesHtml.push(`
               <div class="swipe-item" data-id="${itemId}" data-type="like">
                 <div class="swipe-content" onclick="showItemDetail(${itemId})">
                   <div class="simple-text">${title}</div>
@@ -1927,8 +1947,9 @@
                   <span>🗑️</span>
                 </div>
               </div>
-            `;
-          }).join('');
+            `);
+          }
+          likesDiv.innerHTML = likesHtml.join('');
           initSwipeDelete();
         } else {
           likesDiv.innerHTML = '<div class="empty-state">暂无收藏</div>';
@@ -1937,26 +1958,35 @@
         // 显示立场（完整问题和选择）
         const stancesList = Object.entries(userStances).filter(([_, stance]) => stance !== null);
         if (stancesList.length > 0) {
-          stancesDiv.innerHTML = stancesList.map(([itemId, stance]) => {
-            const item = allItems.find(i => i.id == itemId);
+          // 先显示加载中
+          stancesDiv.innerHTML = '<div class="empty-state">加载中...</div>';
+
+          // 获取所有立场条目的详情
+          const stancesHtml = [];
+          for (const [itemId, stance] of stancesList) {
+            let item = allItems.find(i => i.id == itemId);
+            if (!item) {
+              item = await fetchItemDetails(itemId);
+            }
             const optionA = item ? (item.tension_a || item.band_side_a || '观点A') : '观点A';
             const optionB = item ? (item.tension_b || item.band_side_b || '观点B') : '观点B';
             const question = item ? (item.tension_q || item.band_question || '立场问题') : '立场问题';
 
-            return `
+            stancesHtml.push(`
               <div class="swipe-item" data-id="${itemId}" data-type="stance">
                 <div class="swipe-content" onclick="showItemDetail(${itemId})">
                   <div class="stance-text-wrap">
-                    <div class="stance-line-1">${question} (${stance})</div>
-                    <div class="stance-line-2">A: ${optionA} / B: ${optionB}</div>
+                    <div class="stance-line-1">${question}</div>
+                    <div class="stance-line-2">我选择: ${stance === 'A' ? optionA : optionB}</div>
                   </div>
                 </div>
                 <div class="swipe-delete" onclick="event.stopPropagation(); removeStance(${itemId})">
                   <span>🗑️</span>
                 </div>
               </div>
-            `;
-          }).join('');
+            `);
+          }
+          stancesDiv.innerHTML = stancesHtml.join('');
           initSwipeDelete();
         } else {
           stancesDiv.innerHTML = '<div class="empty-state">暂无立场</div>';
