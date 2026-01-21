@@ -21,7 +21,19 @@ jobs:
             --max-time 300)
           
           echo "📥 API Response: $response"
-          echo "✅ Daily update completed successfully"
+          echo "✅ Content collection completed"
+
+      - name: Auto-generate daily content
+        run: |
+          echo "🤖 Triggering auto-content generation..."
+          
+          # 调用后端API自动筛选、分析和发布内容
+          generate_response=$(curl -s -X POST https://thoughts-radar-backend-production.up.railway.app/api/automation/generate-daily \
+            -H "Content-Type: application/json" \
+            --max-time 600)
+          
+          echo "📝 Generate Response: $generate_response"
+          echo "✅ Auto-generation completed"
 
       - name: Send push notifications
         run: |
@@ -34,4 +46,3 @@ jobs:
           
           echo "📤 Push Response: $push_response"
           echo "✅ Push notifications sent"
-

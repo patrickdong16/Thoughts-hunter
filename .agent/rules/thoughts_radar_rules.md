@@ -127,6 +127,31 @@
 - **上限**：10条/天
 - **覆盖要求**：每周应覆盖所有6个领域
 
+### 3.3 自动化内容生成规则
+
+#### YouTube 视频筛选
+- **时长要求**：≥40分钟
+- **发布时间**：7天内
+- **议题匹配**：标题或描述必须包含相关议题关键词
+
+#### 每日自动生成配额
+- **来自视频总结**：最低1条，最高2条
+- **AI自动匹配频段**：根据内容分析自动选择T1-F2
+
+#### 目标频道（优先级从高到低）
+1. Lex Fridman Podcast (priority: 10)
+2. Making Sense with Sam Harris (priority: 9)
+3. TED (priority: 8)
+4. Joe Rogan Experience (priority: 7)
+5. Y Combinator (priority: 6)
+
+#### 目标访谈人
+- **技术**：Andrej Karpathy, Demis Hassabis, Ilya Sutskever, Yann LeCun
+- **经济/政治**：Ray Dalio, Daron Acemoglu, Niall Ferguson
+- **哲学**：David Chalmers, Nick Bostrom, Yuval Noah Harari
+
+> ⚠️ **强制执行**：完整配置见 `backend/config/automation.js`
+
 ---
 
 ## 四、UI设计规范
