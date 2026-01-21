@@ -726,6 +726,13 @@
       font-weight: 500;
     }
 
+    .simple-text {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+      text-align: left;
+    }
+
     /* === 立场选项显示 === */
     .stance-options {
       margin-top: 8px;
@@ -793,6 +800,47 @@
     .stance-value {
       flex: 1;
       color: var(--text);
+    }
+
+    /* === 详情页面 === */
+    .detail-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--background);
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .detail-header {
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .detail-close {
+      font-size: 24px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text);
+    }
+
+    .detail-date {
+      font-size: 14px;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .detail-content {
+      padding: 20px;
     }
 
     /* === 统计栏 === */
@@ -1019,6 +1067,16 @@
       </div>
     </div>
   </main>
+
+  <!-- 详情页面（全屏） -->
+  <div id="item-detail" class="detail-overlay" style="display:none;">
+    <div class="detail-header">
+      <button class="detail-close" onclick="closeDetailPage()">✕</button>
+      <div class="detail-date" id="detail-date"></div>
+    </div>
+    <div class="detail-content" id="detail-content"></div>
+  </div>
+
 
   <!-- 统计栏 -->
   <div class="stats-bar" id="stats-bar" style="display:none;">
@@ -1544,8 +1602,8 @@
             const title = item ? item.title : '内容 #' + itemId;
             return `
               <div class="swipe-item" data-id="${itemId}" data-type="like">
-                <div class="swipe-content" onclick="scrollToItem(${itemId})">
-                  <div class="profile-item-title">${title}</div>
+                <div class="swipe-content" onclick="showItemDetail(${itemId})">
+                  <div class="simple-text">${title}</div>
                 </div>
                 <div class="swipe-delete" onclick="removeLike(${itemId})">
                   <span>🗑️</span>
@@ -1566,21 +1624,14 @@
             const optionA = item ? (item.tension_a || item.band_side_a || '观点A') : '观点A';
             const optionB = item ? (item.tension_b || item.band_side_b || '观点B') : '观点B';
 
+            const text = `${optionA} vs ${optionB} (选择${stance})`;
+
             return `
-              <div class="swipe-item stance-item" data-id="${itemId}" data-type="stance">
-                <div class="swipe-content" onclick="scrollToItem(${itemId})">
-                  <div class="stance-row">
-                    <span class="stance-indicator ${stance === 'A' ? 'selected' : ''}">${stance === 'A' ? '●' : '○'}</span>
-                    <span class="stance-label">A:</span>
-                    <span class="stance-value">${optionA}</span>
-                  </div>
-                  <div class="stance-row">
-                    <span class="stance-indicator ${stance === 'B' ? 'selected' : ''}">${stance === 'B' ? '●' : '○'}</span>
-                    <span class="stance-label">B:</span>
-                    <span class="stance-value">${optionB}</span>
-                  </div>
+              <div class="swipe-item" data-id="${itemId}" data-type="stance">
+                <div class="swipe-content" onclick="showItemDetail(${itemId})">
+                  <div class="simple-text">${text}</div>
                 </div>
-                <div class="swipe-delete" onclick="removeStance(${itemId})">
+                <div class="swipe-delete" onclick="event.stopPropagation(); removeStance(${itemId})">
                   <span>🗑️</span>
                 </div>
               </div>
@@ -1634,6 +1685,62 @@
     };
 
     // 滚动到指定内容
+    window.scrollToItem = function (itemId) {
+      // 切换到今日标签
+      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+      document.querySelector('[data-tab="today"]').classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('today').classList.add('active');
+
+      // 滚动到对应卡片
+      setTimeout(() => {
+        const card = document.querySelector(`.radar-card[data-id="${itemId}"]`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // 高亮效果  
+          card.style.boxShadow = '0 0 20px rgba(0, 255, 136, 0.3)';
+          setTimeout(() => {
+            card.style.boxShadow = '';
+          }, 2000);
+        }
+      }, 300);
+    };
+
+    // 显示详情页面
+    window.showItemDetail = function (itemId) {
+      const item = allItems.find(i => i.id == itemId);
+      if (!item) return;
+
+      const detailOverlay = document.getElementById('item-detail');
+      const detailDate = document.getElementById('detail-date');
+      const detailContent = document.getElementById('detail-content');
+
+      // 设置日期
+      detailDate.textContent = item.publish_date || '未知日期';
+
+      // 生成内容（复用renderRadarCard逻辑）
+      detailContent.innerHTML = `
+        <h2 style="margin-bottom:16px; font-size:20px;">${item.title}</h2>
+        <div style="margin-bottom:16px;">
+          <span style="color:var(--text-secondary); font-size:14px;">${item.author_name || '匿名'}</span>
+        </div>
+        <div style="line-height:1.6; margin-bottom:16px;">${item.content}</div>
+        ${item.tension_a ? `
+          <div style="margin-top:20px; padding:16px; background:var(--surface); border-radius:8px;">
+            <div style="font-weight:600; margin-bottom:8px;">张力问题</div>
+            <div style="color:var(--side-a); margin-bottom:8px;">A: ${item.tension_a}</div>
+            <div style="color:var(--side-b);">B: ${item.tension_b}</div>
+          </div>
+        ` : ''}
+      `;
+
+      detailOverlay.style.display = 'block';
+    };
+
+    // 关闭详情页面
+    window.closeDetailPage = function () {
+      document.getElementById('item-detail').style.display = 'none';
+    };
     window.scrollToItem = function (itemId) {
       // 切换到今日标签
       document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
