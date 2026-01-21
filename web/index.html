@@ -1741,26 +1741,6 @@
     window.closeDetailPage = function () {
       document.getElementById('item-detail').style.display = 'none';
     };
-    window.scrollToItem = function (itemId) {
-      // 切换到今日标签
-      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-      document.querySelector('[data-tab="today"]').classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.getElementById('today').classList.add('active');
-
-      // 滚动到对应卡片
-      setTimeout(() => {
-        const card = document.querySelector(`.radar-card[data-id="${itemId}"]`);
-        if (card) {
-          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          // 高亮效果  
-          card.style.boxShadow = '0 0 20px rgba(0, 255, 136, 0.3)';
-          setTimeout(() => {
-            card.style.boxShadow = '';
-          }, 2000);
-        }
-      }, 300);
-    };
 
     // 刷新当前页面（同时刷新今日和往期）
     window.refreshCurrentPage = async function () {
