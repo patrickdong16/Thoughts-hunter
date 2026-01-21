@@ -100,6 +100,28 @@
       font-weight: 500;
     }
 
+    .empty-state {
+      text-align: center;
+      padding: 32px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .delete-btn {
+      background: transparent;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .delete-btn:hover {
+      opacity: 1;
+    }
+
     .date {
       font-size: 12px;
       color: var(--text-secondary);
@@ -568,13 +590,52 @@
       transition: left 0.3s;
     }
 
-    /* === 我的页面 === */
-    .profile-section {
-      background: var(--card);
-      border-radius: 12px;
+    /* === 个人页面 === */
+    .profile-tabs {
+      display: flex;
+      gap: 8px;
       padding: 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .profile-tab {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 15px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .profile-tab.active {
+      background: var(--primary);
+      color: var(--surface);
+    }
+
+    .profile-content {
+      display: none;
+      padding: 16px;
+    }
+
+    .profile-content.active {
+      display: block;
+    }
+
+    .profile-section {
+      padding: 20px;
+      background: var(--background);
+      border-radius: 12px;
       margin: 16px;
-      margin-bottom: 0;
+    }
+
+    .profile-section h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
       border: 1px solid var(--card-border);
     }
 
@@ -801,12 +862,19 @@
 
     <!-- 我的 -->
     <div id="profile" class="tab-content">
-      <div class="profile-section">
-        <h3>❤️ 我的收藏</h3>
+      <!-- 子标签 -->
+      <div class="profile-tabs">
+        <button class="profile-tab active" data-type="likes">❤️ 我的收藏</button>
+        <button class="profile-tab" data-type="stances">🎯 我的立场</button>
+      </div>
+
+      <!-- 收藏列表 -->
+      <div id="profile-likes" class="profile-content active">
         <div id="my-likes" class="empty-state">暂无收藏</div>
       </div>
-      <div class="profile-section">
-        <h3>🎯 我的立场</h3>
+
+      <!-- 立场列表 -->
+      <div id="profile-stances" class="profile-content">
         <div id="my-stances" class="empty-state">暂无立场</div>
       </div>
     </div>
@@ -1311,29 +1379,38 @@
         const likesDiv = document.getElementById('my-likes');
         const stancesDiv = document.getElementById('my-stances');
 
-        // 显示收藏
+        // 显示收藏（带删除按钮）
         const likesList = Array.from(userLikes);
         if (likesList.length > 0) {
-          // 从allItems中查找对应的内容标题
           likesDiv.innerHTML = likesList.map(itemId => {
             const item = allItems.find(i => i.id === itemId);
-            return `<div class="profile-item">${item ? item.title : '内容 #' + itemId}</div>`;
+            const title = item ? item.title : '内容 #' + itemId;
+            return `
+              <div class="profile-item" onclick="scrollToItem(${itemId})">
+                <div class="profile-item-content">${title}</div>
+                <button class="delete-btn" onclick="event.stopPropagation(); removeLike(${itemId})">🗑️</button>
+              </div>
+            `;
           }).join('');
         } else {
           likesDiv.innerHTML = '<div class="empty-state">暂无收藏</div>';
         }
 
-        // 显示立场
+        // 显示立场（带删除按钮）
         const stancesList = Object.entries(userStances).filter(([_, stance]) => stance !== null);
         if (stancesList.length > 0) {
           stancesDiv.innerHTML = stancesList.map(([itemId, stance]) => {
             const item = allItems.find(i => i.id == itemId);
+            const title = item ? item.title : '内容 #' + itemId;
             return `
-              <div class="profile-item">
-                ${item ? item.title : '内容 #' + itemId}：
-                <span style="color:${stance === 'A' ? 'var(--side-a)' : 'var(--side-b)'}">
-                  倾向${stance}
-                </span>
+              <div class="profile-item" onclick="scrollToItem(${itemId})">
+                <div class="profile-item-content">
+                  ${title}：
+                  <span style="color:${stance === 'A' ? 'var(--side-a)' : 'var(--side-b)'}">
+                    倾向${stance}
+                  </span>
+                </div>
+                <button class="delete-btn" onclick="event.stopPropagation(); removeStance(${itemId})">🗑️</button>
               </div>
             `;
           }).join('');
@@ -1341,7 +1418,7 @@
           stancesDiv.innerHTML = '<div class="empty-state">暂无立场</div>';
         }
 
-        console.log('Profile loaded from localStorage:', {
+        console.log('Profile loaded:', {
           likes: likesList.length,
           stances: stancesList.length
         });
@@ -1349,6 +1426,50 @@
         console.error('Profile error:', e);
       }
     }
+
+    // 删除收藏
+    window.removeLike = function (itemId) {
+      userLikes.delete(itemId);
+      localStorage.setItem('userLikes', JSON.stringify([...userLikes]));
+      loadProfile();
+    };
+
+    // 删除立场
+    window.removeStance = function (itemId) {
+      delete userStances[itemId];
+      localStorage.setItem('userStances', JSON.stringify(userStances));
+      loadProfile();
+      // 更新卡片UI
+      const card = document.querySelector(`.radar-card[data-id="${itemId}"]`);
+      if (card) {
+        const voteOptions = card.querySelectorAll('.vote-option');
+        const voteRadios = card.querySelectorAll('.vote-radio');
+        voteOptions.forEach(opt => opt.classList.remove('selected'));
+        voteRadios.forEach(radio => radio.classList.remove('active'));
+      }
+    };
+
+    // 滚动到指定内容
+    window.scrollToItem = function (itemId) {
+      // 切换到今日标签
+      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+      document.querySelector('[data-tab="today"]').classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('today').classList.add('active');
+
+      // 滚动到对应卡片
+      setTimeout(() => {
+        const card = document.querySelector(`.radar-card[data-id="${itemId}"]`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // 高亮效果  
+          card.style.boxShadow = '0 0 20px rgba(0, 255, 136, 0.3)';
+          setTimeout(() => {
+            card.style.boxShadow = '';
+          }, 2000);
+        }
+      }, 300);
+    };
 
     // 下拉刷新功能
     let startY = 0;
@@ -1360,7 +1481,7 @@
         startY = e.touches[0].pageY;
         pulling = true;
       }
-    });
+    }, { passive: true });
 
     document.addEventListener('touchmove', (e) => {
       if (!pulling) return;
@@ -1368,12 +1489,9 @@
       const diff = currentY - startY;
 
       if (diff > 10 && window.scrollY === 0) {
-        // 可以添加视觉指示器
-        if (diff > pullThreshold) {
-          // 达到阈值
-        }
+        // 视觉指示
       }
-    });
+    }, { passive: true });
 
     document.addEventListener('touchend', async (e) => {
       if (!pulling) return;
@@ -1384,8 +1502,26 @@
 
       if (diff > pullThreshold && window.scrollY === 0) {
         // 执行刷新
-        await loadToday();
+        const activeTab = document.querySelector('.tab-item.active')?.dataset.tab;
+        if (activeTab === 'today') {
+          await loadToday();
+        }
       }
+    }, { passive: true });
+
+    // Profile子标签切换
+    document.querySelectorAll('.profile-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const type = tab.dataset.type;
+
+        // 更新标签状态
+        document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // 显示对应内容
+        document.querySelectorAll('.profile-content').forEach(c => c.classList.remove('active'));
+        document.getElementById(`profile-${type}`).classList.add('active');
+      });
     });
 
     // 初始化
