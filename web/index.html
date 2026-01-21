@@ -865,6 +865,137 @@
       padding: 20px;
     }
 
+    /* === 登录弹窗 === */
+    .auth-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .auth-modal {
+      background: var(--card);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 360px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .auth-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .auth-header h2 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .auth-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: var(--background);
+      border-radius: 50%;
+      font-size: 20px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .auth-field {
+      margin-bottom: 16px;
+    }
+
+    .auth-field label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .auth-field input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: var(--font-sans);
+      background: var(--background);
+      color: var(--text);
+    }
+
+    .auth-field input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .auth-error {
+      background: #fef2f2;
+      color: var(--error);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .auth-submit {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .auth-submit:hover {
+      opacity: 0.9;
+    }
+
+    .auth-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .auth-switch {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .auth-switch a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .auth-skip {
+      text-align: center;
+      margin-top: 12px;
+    }
+
+    .auth-skip a {
+      color: var(--text-muted);
+      font-size: 13px;
+      text-decoration: none;
+    }
+
     /* === 统计栏 === */
     .stats-bar {
       position: fixed;
@@ -1099,6 +1230,39 @@
     <div class="detail-content" id="detail-content"></div>
   </div>
 
+  <!-- 登录/注册弹窗 -->
+  <div class="auth-overlay" id="auth-overlay" style="display:none;">
+    <div class="auth-modal">
+      <div class="auth-header">
+        <h2 id="auth-title">登录</h2>
+        <button class="auth-close" onclick="closeAuthModal()">×</button>
+      </div>
+      <form id="auth-form" onsubmit="handleAuth(event)">
+        <div class="auth-field" id="nickname-field" style="display:none;">
+          <label>昵称</label>
+          <input type="text" id="auth-nickname" placeholder="请输入昵称（可选）">
+        </div>
+        <div class="auth-field">
+          <label>邮箱</label>
+          <input type="email" id="auth-email" placeholder="请输入邮箱" required>
+        </div>
+        <div class="auth-field">
+          <label>密码</label>
+          <input type="password" id="auth-password" placeholder="请输入密码（至少6位）" required minlength="6">
+        </div>
+        <div class="auth-error" id="auth-error" style="display:none;"></div>
+        <button type="submit" class="auth-submit" id="auth-submit">登录</button>
+      </form>
+      <div class="auth-switch">
+        <span id="auth-switch-text">还没有账号？</span>
+        <a href="#" onclick="toggleAuthMode(event)">注册</a>
+      </div>
+      <div class="auth-skip">
+        <a href="#" onclick="skipAuth(event)">稍后登录</a>
+      </div>
+    </div>
+  </div>
+
 
   <!-- 统计栏 -->
   <div class="stats-bar" id="stats-bar" style="display:none;">
@@ -1132,16 +1296,148 @@
     const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3000'
       : (window.API_URL || 'https://thoughts-radar-backend-production.up.railway.app');
-    const USER_ID = localStorage.getItem('user_id') || 'web-user-' + Date.now();
-    if (!localStorage.getItem('user_id')) {
-      localStorage.setItem('user_id', USER_ID);
+
+    // 用户认证状态
+    let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    let authToken = localStorage.getItem('authToken');
+    let isAuthMode = 'login'; // 'login' or 'register'
+
+    // 用户ID: 已登录用户使用 user-{id}，游客使用 web-user-{timestamp}
+    const GUEST_USER_ID = localStorage.getItem('guest_user_id') || 'web-user-' + Date.now();
+    if (!localStorage.getItem('guest_user_id')) {
+      localStorage.setItem('guest_user_id', GUEST_USER_ID);
     }
+    const USER_ID = currentUser ? `user-${currentUser.id}` : GUEST_USER_ID;
 
     const userLikes = new Set(JSON.parse(localStorage.getItem('userLikes') || '[]'));
     const userStances = JSON.parse(localStorage.getItem('userStances') || '{}');
     let allItems = [];
     let currentFilter = 'all';
     const scrollPositions = {}; // 记录每个标签页的滚动位置
+
+    // ===== 认证函数 =====
+    function showAuthModal(mode = 'login') {
+      isAuthMode = mode;
+      document.getElementById('auth-overlay').style.display = 'flex';
+      document.getElementById('auth-title').textContent = mode === 'login' ? '登录' : '注册';
+      document.getElementById('auth-submit').textContent = mode === 'login' ? '登录' : '注册';
+      document.getElementById('nickname-field').style.display = mode === 'register' ? 'block' : 'none';
+      document.getElementById('auth-switch-text').textContent = mode === 'login' ? '还没有账号？' : '已有账号？';
+      document.querySelector('.auth-switch a').textContent = mode === 'login' ? '注册' : '登录';
+      document.getElementById('auth-error').style.display = 'none';
+      document.getElementById('auth-form').reset();
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-overlay').style.display = 'none';
+    }
+
+    function toggleAuthMode(e) {
+      e.preventDefault();
+      showAuthModal(isAuthMode === 'login' ? 'register' : 'login');
+    }
+
+    function skipAuth(e) {
+      e.preventDefault();
+      closeAuthModal();
+      localStorage.setItem('authSkipped', 'true');
+    }
+
+    async function handleAuth(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value;
+      const password = document.getElementById('auth-password').value;
+      const nickname = document.getElementById('auth-nickname').value;
+      const submitBtn = document.getElementById('auth-submit');
+      const errorDiv = document.getElementById('auth-error');
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '处理中...';
+      errorDiv.style.display = 'none';
+
+      try {
+        const endpoint = isAuthMode === 'login' ? '/api/auth/login' : '/api/auth/register';
+        const body = isAuthMode === 'login'
+          ? { email, password }
+          : { email, password, nickname };
+
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // 保存认证信息
+          currentUser = data.user;
+          authToken = data.token;
+          localStorage.setItem('currentUser', JSON.stringify(currentUser));
+          localStorage.setItem('authToken', authToken);
+
+          // 迁移游客数据
+          if (GUEST_USER_ID && GUEST_USER_ID.startsWith('web-user-')) {
+            await migrateGuestData(GUEST_USER_ID, currentUser.id);
+          }
+
+          closeAuthModal();
+          updateUserUI();
+          loadProfile(); // 刷新我的页面
+        } else {
+          errorDiv.textContent = data.error;
+          errorDiv.style.display = 'block';
+        }
+      } catch (error) {
+        errorDiv.textContent = '网络错误，请稍后重试';
+        errorDiv.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = isAuthMode === 'login' ? '登录' : '注册';
+      }
+    }
+
+    async function migrateGuestData(guestId, userId) {
+      try {
+        await fetch(`${API_BASE}/api/auth/migrate-data`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guestUserId: guestId, authUserId: userId })
+        });
+      } catch (e) {
+        console.error('Data migration failed:', e);
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      authToken = null;
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
+      updateUserUI();
+      loadProfile();
+    }
+
+    function updateUserUI() {
+      // 可以在这里更新头部显示用户信息
+      const profileIcon = document.querySelector('[data-tab="profile"] .icon');
+      if (currentUser) {
+        profileIcon.textContent = currentUser.avatar || '👤';
+      } else {
+        profileIcon.textContent = '👤';
+      }
+    }
+
+    function getCurrentUserId() {
+      return currentUser ? `user-${currentUser.id}` : GUEST_USER_ID;
+    }
+
+    // 检查是否需要显示登录弹窗
+    function checkAuthPrompt() {
+      if (!currentUser && !localStorage.getItem('authSkipped')) {
+        setTimeout(() => showAuthModal('login'), 1000);
+      }
+    }
 
     // 领域配置
     const DOMAIN_CONFIG = {
@@ -1948,7 +2244,9 @@
 
     // 初始化
     setCurrentDate();
+    updateUserUI();
     loadToday();
+    checkAuthPrompt();
   </script>
 </body>
 

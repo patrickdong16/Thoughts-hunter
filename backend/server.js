@@ -6,6 +6,7 @@ require('dotenv').config();
 const radarRoutes = require('./routes/radar');
 const bandsRoutes = require('./routes/bands');
 const userRoutes = require('./routes/user');
+const authRoutes = require('./routes/auth');
 const sourcesRoutes = require('./routes/sources');
 const draftsRoutes = require('./routes/drafts');
 const collectionRoutes = require('./routes/collection');
@@ -28,6 +29,7 @@ app.use((req, res, next) => {
 });
 
 // 路由
+app.use('/api/auth', authRoutes);
 app.use('/api/radar', radarRoutes);
 app.use('/api/bands', bandsRoutes);
 app.use('/api/user', userRoutes);
@@ -52,6 +54,9 @@ app.get('/', (req, res) => {
         version: '1.0.0',
         endpoints: {
             health: 'GET /health',
+            auth_register: 'POST /api/auth/register',
+            auth_login: 'POST /api/auth/login',
+            auth_me: 'GET /api/auth/me',
             radar_today: 'GET /api/radar/today',
             radar_by_date: 'GET /api/radar/:date',
             radar_item: 'GET /api/radar/item/:id',
