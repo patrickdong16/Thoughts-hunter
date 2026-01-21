@@ -95,9 +95,16 @@ app.use((err, req, res, next) => {
     });
 });
 
-// 启动服务器
-app.listen(PORT, () => {
-    console.log(`
+// 启动服务器（包含数据库初始化）
+const initDatabase = require('./init-database');
+
+async function startServer() {
+    try {
+        // 初始化数据库
+        await initDatabase();
+
+        app.listen(PORT, () => {
+            console.log(`
 ╔═══════════════════════════════════════╗
 ║      思想雷达 API Server              ║
 ║      Thoughts Radar API               ║
@@ -109,6 +116,9 @@ Database: ${process.env.DB_NAME || 'thoughts_radar'}
 
 API Documentation:
 → GET  /health                     - Health check
+→ POST /api/auth/register          - User registration
+→ POST /api/auth/login             - User login
+→ GET  /api/auth/me                - Get current user
 → GET  /api/radar/today            - Today's radar
 → GET  /api/radar/:date            - Radar by date
 → GET  /api/radar/item/:id         - Single item
@@ -121,6 +131,13 @@ API Documentation:
 
 Press Ctrl+C to stop
   `);
-});
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
+startServer();
 
 module.exports = app;
