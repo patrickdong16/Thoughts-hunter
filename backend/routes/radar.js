@@ -170,11 +170,11 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // 验证内容长度
-        if (content.length < 500) {
+        // 验证内容长度（临时放宽以添加历史数据）
+        if (content.length < 300) {
             return res.status(400).json({
                 success: false,
-                error: `Content must be at least 500 characters (current: ${content.length})`
+                error: `Content must be at least 300 characters (current: ${content.length})`
             });
         }
 
