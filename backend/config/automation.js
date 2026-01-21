@@ -30,7 +30,10 @@ module.exports = {
         minTotal: 6,
 
         // 每日总内容最高条数
-        maxTotal: 8
+        maxTotal: 8,
+
+        // 每日最多分析视频数量（成本控制）
+        maxVideosToAnalyze: 5
     },
 
     // =====================================================

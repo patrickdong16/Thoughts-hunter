@@ -175,12 +175,13 @@ router.post('/generate-daily', async (req, res) => {
             });
         }
 
-        // 3. 按优先级排序，限制数量
+        // 3. 按优先级排序，限制分析数量（成本控制：最多5个视频）
         const { dailyQuota, aiAnalysis } = automationConfig;
         eligibleVideos.sort((a, b) => b.priority - a.priority);
-        const toAnalyze = eligibleVideos.slice(0, dailyQuota.maxFromVideos);
+        const maxToAnalyze = dailyQuota.maxVideosToAnalyze || 5;
+        const toAnalyze = eligibleVideos.slice(0, maxToAnalyze);
 
-        console.log(`📊 将分析前 ${toAnalyze.length} 个视频`);
+        console.log(`📊 将分析前 ${toAnalyze.length} 个视频（成本控制上限: ${maxToAnalyze}）`);
 
         // 4. 分析并生成内容
         for (const video of toAnalyze) {
