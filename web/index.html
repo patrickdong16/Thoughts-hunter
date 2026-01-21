@@ -136,19 +136,19 @@
     }
 
     .refresh-btn {
-      font-size: 12px;
+      font-size: 16px;
       color: var(--text-secondary);
       background: transparent;
       border: none;
       cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 4px;
+      padding: 0;
+      margin-bottom: 4px;
       transition: all 0.2s;
     }
 
     .refresh-btn:active {
-      background: rgba(0, 255, 136, 0.1);
       color: var(--primary);
+      transform: rotate(180deg);
     }
 
     /* === 过滤器 === */
@@ -765,6 +765,36 @@
       font-weight: 500;
     }
 
+    /* === 立场行显示（简化） === */
+    .stance-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+
+    .stance-indicator {
+      font-size: 16px;
+      color: var(--text-secondary);
+      min-width: 20px;
+    }
+
+    .stance-indicator.selected {
+      color: var(--primary);
+    }
+
+    .stance-label {
+      font-weight: 600;
+      color: var(--text-secondary);
+      min-width: 20px;
+    }
+
+    .stance-value {
+      flex: 1;
+      color: var(--text);
+    }
+
     /* === 统计栏 === */
     .stats-bar {
       position: fixed;
@@ -919,10 +949,10 @@
       </div>
     </div>
     <div class="header-right">
-      <div class="date" id="current-date"></div>
-      <button class="refresh-btn" id="refresh-btn" onclick="refreshCurrentPage()" style="display:none;">
-        🔄 刷新
+      <button class="refresh-btn" id="refresh-btn" onclick="refreshCurrentPage()">
+        🔄
       </button>
+      <div class="date" id="current-date"></div>
     </div>
   </header>
 
@@ -1077,10 +1107,10 @@
         document.getElementById('stats-bar').style.display =
           tabName === 'today' && allItems.length > 0 ? 'block' : 'none';
 
-        // 显示/隐藏刷新按钮（只在今日和往期显示）
+        // 显示/隐藏刷新按钮（只在今日显示）
         const refreshBtn = document.getElementById('refresh-btn');
         if (refreshBtn) {
-          refreshBtn.style.display = (tabName === 'today' || tabName === 'history') ? 'block' : 'none';
+          refreshBtn.style.display = (tabName === 'today') ? 'block' : 'none';
         }
 
         // 加载相应内容
@@ -1528,28 +1558,26 @@
           likesDiv.innerHTML = '<div class="empty-state">暂无收藏</div>';
         }
 
-        // 显示立场（显示AB选项）
+        // 显示立场（简化：只显示问题和选项）
         const stancesList = Object.entries(userStances).filter(([_, stance]) => stance !== null);
         if (stancesList.length > 0) {
           stancesDiv.innerHTML = stancesList.map(([itemId, stance]) => {
             const item = allItems.find(i => i.id == itemId);
-            const title = item ? item.title : '内容 #' + itemId;
-            const optionA = item ? (item.tension_a || item.band_side_a || '观点A').substring(0, 20) : '观点A';
-            const optionB = item ? (item.tension_b || item.band_side_b || '观点B').substring(0, 20) : '观点B';
+            const optionA = item ? (item.tension_a || item.band_side_a || '观点A') : '观点A';
+            const optionB = item ? (item.tension_b || item.band_side_b || '观点B') : '观点B';
 
             return `
-              <div class="swipe-item" data-id="${itemId}" data-type="stance">
+              <div class="swipe-item stance-item" data-id="${itemId}" data-type="stance">
                 <div class="swipe-content" onclick="scrollToItem(${itemId})">
-                  <div class="profile-item-title">${title}</div>
-                  <div class="stance-options">
-                    <div class="stance-option ${stance === 'A' ? 'selected' : ''}">
-                      <span class="stance-radio">${stance === 'A' ? '●' : '○'}</span>
-                      <span class="stance-text">A: ${optionA}</span>
-                    </div>
-                    <div class="stance-option ${stance === 'B' ? 'selected' : ''}">
-                      <span class="stance-radio">${stance === 'B' ? '●' : '○'}</span>
-                      <span class="stance-text">B: ${optionB}</span>
-                    </div>
+                  <div class="stance-row">
+                    <span class="stance-indicator ${stance === 'A' ? 'selected' : ''}">${stance === 'A' ? '●' : '○'}</span>
+                    <span class="stance-label">A:</span>
+                    <span class="stance-value">${optionA}</span>
+                  </div>
+                  <div class="stance-row">
+                    <span class="stance-indicator ${stance === 'B' ? 'selected' : ''}">${stance === 'B' ? '●' : '○'}</span>
+                    <span class="stance-label">B:</span>
+                    <span class="stance-value">${optionB}</span>
                   </div>
                 </div>
                 <div class="swipe-delete" onclick="removeStance(${itemId})">
@@ -1562,6 +1590,7 @@
         } else {
           stancesDiv.innerHTML = '<div class="empty-state">暂无立场</div>';
         }
+
 
         console.log('Profile loaded:', {
           likes: likesList.length,
@@ -1616,7 +1645,7 @@
       setTimeout(() => {
         const card = document.querySelector(`.radar-card[data-id="${itemId}"]`);
         if (card) {
-          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
           // 高亮效果  
           card.style.boxShadow = '0 0 20px rgba(0, 255, 136, 0.3)';
           setTimeout(() => {
@@ -1626,15 +1655,12 @@
       }, 300);
     };
 
-    // 刷新当前页面
+    // 刷新当前页面（同时刷新今日和往期）
     window.refreshCurrentPage = async function () {
-      const activeTab = document.querySelector('.tab-item.active')?.dataset.tab;
-      if (activeTab === 'today') {
-        await loadToday();
-      } else if (activeTab === 'history') {
-        await loadHistory();
-      }
+      await loadToday();
+      await loadHistory();
     };
+
 
     // 左右滑动换页
     let touchStartX = 0;
