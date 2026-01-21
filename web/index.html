@@ -1309,8 +1309,36 @@
     }
     const USER_ID = currentUser ? `user-${currentUser.id}` : GUEST_USER_ID;
 
-    const userLikes = new Set(JSON.parse(localStorage.getItem('userLikes') || '[]'));
-    const userStances = JSON.parse(localStorage.getItem('userStances') || '{}');
+    let userLikes = new Set(JSON.parse(localStorage.getItem('userLikes') || '[]'));
+    let userStances = JSON.parse(localStorage.getItem('userStances') || '{}');
+
+    // 从后端加载已登录用户的数据
+    async function loadUserDataFromBackend() {
+      if (!currentUser) return;
+      try {
+        // 加载收藏
+        const likesRes = await fetch(`${API_BASE}/api/user/${USER_ID}/likes`);
+        const likesData = await likesRes.json();
+        if (likesData.success && likesData.items) {
+          userLikes = new Set(likesData.items.map(item => item.id));
+          localStorage.setItem('userLikes', JSON.stringify([...userLikes]));
+        }
+
+        // 加载立场
+        const stancesRes = await fetch(`${API_BASE}/api/user/${USER_ID}/stances`);
+        const stancesData = await stancesRes.json();
+        if (stancesData.success && stancesData.items) {
+          userStances = {};
+          stancesData.items.forEach(item => {
+            userStances[item.id] = item.user_stance;
+          });
+          localStorage.setItem('userStances', JSON.stringify(userStances));
+        }
+        console.log('User data loaded from backend:', { likes: userLikes.size, stances: Object.keys(userStances).length });
+      } catch (e) {
+        console.error('Failed to load user data from backend:', e);
+      }
+    }
     let allItems = [];
     let currentFilter = 'all';
     const scrollPositions = {}; // 记录每个标签页的滚动位置
@@ -1877,7 +1905,7 @@
 
       picker.innerHTML = dates.map((date, i) => {
         const d = new Date(date);
-        const label = i === 0 ? '昨天' : i === 1 ? '前天' : `${d.getMonth() + 1}/${d.getDate()}`;
+        const label = `${d.getMonth() + 1}月${d.getDate()}日`;
         return `<button class="date-btn ${i === 0 ? 'active' : ''}" data-date="${date}">${label}</button>`;
       }).join('');
 
@@ -2276,6 +2304,7 @@
     setCurrentDate();
     updateUserUI();
     loadToday();
+    loadUserDataFromBackend().then(() => renderItems()); // 登录用户从后端同步数据
     checkAuthPrompt();
   </script>
 </body>
