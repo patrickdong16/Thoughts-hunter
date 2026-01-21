@@ -1896,11 +1896,16 @@
     async function loadHistory() {
       const picker = document.getElementById('date-picker');
       const dates = [];
-      // 从昨天开始，不包括今天
+      // 使用北京时区计算日期，从昨天开始
       for (let i = 1; i <= 7; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        dates.push(d.toISOString().split('T')[0]);
+        const now = new Date();
+        // 转换为北京时间
+        const beijingTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+        beijingTime.setDate(beijingTime.getDate() - i);
+        const year = beijingTime.getFullYear();
+        const month = String(beijingTime.getMonth() + 1).padStart(2, '0');
+        const day = String(beijingTime.getDate()).padStart(2, '0');
+        dates.push(`${year}-${month}-${day}`);
       }
 
       picker.innerHTML = dates.map((date, i) => {
@@ -2004,8 +2009,8 @@
               <div class="swipe-item" data-id="${itemId}" data-type="stance">
                 <div class="swipe-content" onclick="showItemDetail(${itemId})">
                   <div class="stance-text-wrap">
-                    <div class="stance-line-1">${question}</div>
-                    <div class="stance-line-2">我选择: ${stance === 'A' ? optionA : optionB}</div>
+                    <div class="stance-line-1">${question} (${stance})</div>
+                    <div class="stance-line-2">A: ${optionA} / B: ${optionB}</div>
                   </div>
                 </div>
                 <div class="swipe-delete" onclick="event.stopPropagation(); removeStance(${itemId})">
