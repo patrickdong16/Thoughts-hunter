@@ -10,8 +10,17 @@ const pool = require('../config/database');
 const execAsync = promisify(exec);
 const youtube = google.youtube('v3');
 
-// YouTube API配置
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+// YouTube API配置 - 优先使用环境变量，fallback到配置文件
+const getApiKey = (key) => {
+    if (process.env[key]) return process.env[key];
+    try {
+        const config = require('../config/api-keys.json');
+        return config[key];
+    } catch (e) {
+        return null;
+    }
+};
+const YOUTUBE_API_KEY = getApiKey('YOUTUBE_API_KEY');
 const MAX_RESULTS = parseInt(process.env.MAX_VIDEOS_PER_CHECK) || 10;
 
 /**

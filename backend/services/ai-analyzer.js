@@ -5,8 +5,20 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const pool = require('../config/database');
 
+// Claude API配置 - 优先使用环境变量，fallback到配置文件
+const getApiKey = (key) => {
+    if (process.env[key]) return process.env[key];
+    try {
+        const config = require('../config/api-keys.json');
+        return config[key];
+    } catch (e) {
+        return null;
+    }
+};
+const CLAUDE_API_KEY = getApiKey('CLAUDE_API_KEY');
+
 const anthropic = new Anthropic({
-    apiKey: process.env.CLAUDE_API_KEY
+    apiKey: CLAUDE_API_KEY
 });
 
 // 频段定义系统
@@ -97,7 +109,7 @@ ${metadata.description ? `- 描述: ${metadata.description.substring(0, 200)}` :
  */
 const analyzeTranscript = async (transcript, metadata = {}) => {
     try {
-        if (!process.env.CLAUDE_API_KEY) {
+        if (!CLAUDE_API_KEY) {
             throw new Error('Claude API key未配置');
         }
 
