@@ -198,4 +198,89 @@ router.get('/:user_id/stances', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/user/stats
+ * 获取用户统计数据（生产环境数据口径）
+ */
+router.get('/stats', async (req, res) => {
+    try {
+        // 1. 注册用户统计
+        const usersResult = await pool.query(`
+            SELECT 
+                COUNT(*) as total_registered_users,
+                COUNT(CASE WHEN DATE(created_at) = CURRENT_DATE THEN 1 END) as new_users_today,
+                COUNT(CASE WHEN last_login_at >= CURRENT_DATE THEN 1 END) as active_users_today
+            FROM users
+        `);
+
+        // 2. 用户行为统计（区分注册用户和匿名访客）
+        const actionsResult = await pool.query(`
+            SELECT 
+                COUNT(DISTINCT CASE WHEN user_id LIKE 'guest_%' OR user_id LIKE 'web-preview-%' THEN user_id END) as anonymous_visitors,
+                COUNT(DISTINCT CASE WHEN user_id NOT LIKE 'guest_%' AND user_id NOT LIKE 'web-preview-%' THEN user_id END) as registered_user_actions,
+                COUNT(CASE WHEN liked = true THEN 1 END) as total_likes,
+                COUNT(CASE WHEN stance IS NOT NULL THEN 1 END) as total_stance_selections,
+                COUNT(CASE WHEN stance = 'A' THEN 1 END) as stance_a_count,
+                COUNT(CASE WHEN stance = 'B' THEN 1 END) as stance_b_count
+            FROM user_actions
+        `);
+
+        // 3. 今日互动统计
+        const todayActionsResult = await pool.query(`
+            SELECT 
+                COUNT(CASE WHEN liked = true AND DATE(updated_at) = CURRENT_DATE THEN 1 END) as likes_today,
+                COUNT(CASE WHEN stance IS NOT NULL AND DATE(updated_at) = CURRENT_DATE THEN 1 END) as stances_today
+            FROM user_actions
+        `);
+
+        // 4. 获取注册用户列表（仅基本信息）
+        const usersListResult = await pool.query(`
+            SELECT 
+                id,
+                email,
+                nickname,
+                avatar,
+                created_at,
+                last_login_at
+            FROM users
+            ORDER BY created_at DESC
+        `);
+
+        const stats = usersResult.rows[0];
+        const actions = actionsResult.rows[0];
+        const todayActions = todayActionsResult.rows[0];
+
+        res.json({
+            success: true,
+            dataSource: 'production',
+            generatedAt: new Date().toISOString(),
+            summary: {
+                registeredUsers: {
+                    total: parseInt(stats.total_registered_users),
+                    newToday: parseInt(stats.new_users_today),
+                    activeToday: parseInt(stats.active_users_today)
+                },
+                anonymousVisitors: parseInt(actions.anonymous_visitors),
+                interactions: {
+                    totalLikes: parseInt(actions.total_likes),
+                    likesToday: parseInt(todayActions.likes_today),
+                    totalStanceSelections: parseInt(actions.total_stance_selections),
+                    stancesToday: parseInt(todayActions.stances_today),
+                    stanceDistribution: {
+                        A: parseInt(actions.stance_a_count),
+                        B: parseInt(actions.stance_b_count)
+                    }
+                }
+            },
+            registeredUsersList: usersListResult.rows
+        });
+    } catch (error) {
+        console.error('Error fetching user stats:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch user statistics'
+        });
+    }
+});
+
 module.exports = router;

@@ -1,0 +1,110 @@
+{
+    "defaultRules": {
+        "maxItems": 8,
+        "minItems": 6,
+        "freqBalance": true,
+        "maxPerFreq": 1,
+        "maxVideos": 2,
+        "minContentLength": 300
+    },
+    "themeDays": [
+        {
+            "dates": [
+                "2026-01-23",
+                "2026-01-24"
+            ],
+            "event": "达沃斯世界经济论坛 2026",
+            "eventEn": "Davos World Economic Forum 2026",
+            "rules": {
+                "maxItems": 12,
+                "minItems": 8,
+                "freqBalance": false,
+                "maxPerFreq": null,
+                "maxVideos": null
+            },
+            "focus": {
+                "direction": "政治/科技/金融/经济/宗教/艺术/学术领袖的演讲、访谈与论坛，深度发掘其立场和观点",
+                "expandedSources": true,
+                "expandedSourcesNote": "主题日不限于预设人物名单，任何在活动中发表高质量/有影响力观点的领袖都可入选（如各国元首、央行行长、国际组织负责人等）",
+                "keyFigures": [
+                    "Klaus Schwab",
+                    "Sam Altman",
+                    "Satya Nadella",
+                    "Sundar Pichai",
+                    "Ursula von der Leyen",
+                    "Christine Lagarde",
+                    "Janet Yellen",
+                    "李强",
+                    "Ray Dalio",
+                    "Jamie Dimon",
+                    "Larry Fink",
+                    "Elon Musk",
+                    "Jensen Huang",
+                    "Dario Amodei",
+                    "Mark Carney",
+                    "Donald Trump",
+                    "Jerome Powell",
+                    "Andrew Bailey",
+                    "Kristalina Georgieva"
+                ],
+                "keyTopics": [
+                    "AI治理与监管",
+                    "全球经济走向",
+                    "地缘政治风险",
+                    "绿色转型",
+                    "技术主权",
+                    "金融稳定",
+                    "供应链重构",
+                    "贸易政策",
+                    "货币政策"
+                ],
+                "contentTypes": [
+                    "主题演讲",
+                    "圆桌论坛",
+                    "一对一访谈",
+                    "新闻发布会",
+                    "炉边对话",
+                    "记者招待会"
+                ],
+                "prioritySources": [
+                    "World Economic Forum",
+                    "Bloomberg",
+                    "CNBC",
+                    "Financial Times",
+                    "Reuters",
+                    "BBC News",
+                    "CNN"
+                ]
+            }
+        },
+        {
+            "dates": [
+                "2026-02-14",
+                "2026-02-15",
+                "2026-02-16"
+            ],
+            "event": "慕尼黑安全会议 2026",
+            "eventEn": "Munich Security Conference 2026",
+            "rules": {
+                "maxItems": 10,
+                "minItems": 6,
+                "freqBalance": false,
+                "maxPerFreq": null,
+                "maxVideos": null
+            },
+            "focus": {
+                "direction": "全球安全秩序与大国博弈",
+                "keyFigures": [],
+                "keyTopics": [
+                    "北约扩张",
+                    "印太战略",
+                    "核安全"
+                ],
+                "prioritySources": [
+                    "Munich Security Conference",
+                    "Foreign Affairs"
+                ]
+            }
+        }
+    ]
+}

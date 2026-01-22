@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
+const { getRulesForDate, canAddContent, canAddToFreq } = require('../config/day-rules');
 
 /**
  * GET /api/radar/today
@@ -43,6 +44,57 @@ router.get('/today', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch today radar'
+        });
+    }
+});
+
+/**
+ * GET /api/radar/day-info/:date
+ * 获取指定日期的类型和规则信息
+ */
+router.get('/day-info/:date', async (req, res) => {
+    try {
+        const { date } = req.params;
+
+        // 验证日期格式
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid date format. Use YYYY-MM-DD'
+            });
+        }
+
+        const dayRules = getRulesForDate(date);
+
+        // 查询当日已有内容统计
+        const statsResult = await pool.query(`
+            SELECT freq, COUNT(*) as count 
+            FROM radar_items WHERE date = $1 
+            GROUP BY freq
+        `, [date]);
+
+        const totalCount = statsResult.rows.reduce((sum, r) => sum + parseInt(r.count), 0);
+        const byFreq = Object.fromEntries(statsResult.rows.map(r => [r.freq, parseInt(r.count)]));
+
+        res.json({
+            success: true,
+            date,
+            isThemeDay: dayRules.isThemeDay,
+            event: dayRules.event,
+            eventEn: dayRules.eventEn,
+            rules: dayRules.rules,
+            focus: dayRules.focus,
+            currentStats: {
+                total: totalCount,
+                remaining: dayRules.rules.maxItems - totalCount,
+                byFreq
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching day info:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch day info'
         });
     }
 });
@@ -154,7 +206,8 @@ router.post('/', async (req, res) => {
     try {
         const {
             date, freq, stance, title, author_name, author_avatar,
-            author_bio, source, content, tension_q, tension_a, tension_b, keywords
+            author_bio, source, content, tension_q, tension_a, tension_b, keywords,
+            source_url, video_id
         } = req.body;
 
         // 验证必填字段
@@ -180,6 +233,37 @@ router.post('/', async (req, res) => {
             return res.status(400).json({
                 success: false,
                 error: `Content must be at least 300 characters (current: ${content.length})`
+            });
+        }
+
+        // ========== 主题日/普通日规则验证 ==========
+        const dayRules = getRulesForDate(date);
+
+        // 检查当日总数限制
+        const countResult = await pool.query(
+            'SELECT COUNT(*) FROM radar_items WHERE date = $1', [date]
+        );
+        const currentCount = parseInt(countResult.rows[0].count);
+        const contentCheck = canAddContent(date, currentCount);
+        if (!contentCheck.canAdd) {
+            return res.status(409).json({
+                success: false,
+                error: contentCheck.reason,
+                isThemeDay: dayRules.isThemeDay
+            });
+        }
+
+        // 检查频段限制（仅普通日）
+        const freqResult = await pool.query(
+            'SELECT COUNT(*) FROM radar_items WHERE date = $1 AND freq = $2', [date, freq]
+        );
+        const freqCount = parseInt(freqResult.rows[0].count);
+        const freqCheck = canAddToFreq(date, freq, freqCount);
+        if (!freqCheck.canAdd) {
+            return res.status(409).json({
+                success: false,
+                error: freqCheck.reason,
+                isThemeDay: dayRules.isThemeDay
             });
         }
 

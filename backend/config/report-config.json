@@ -1,0 +1,64 @@
+{
+    "email": {
+        "recipient": "patrickdong@gmail.com",
+        "sender": "report@thoughts-radar.com",
+        "senderName": "思想雷达运营报告",
+        "subject": "思想雷达每日运营报告 - {date}"
+    },
+    "schedule": {
+        "time": "08:00",
+        "timezone": "Asia/Shanghai",
+        "enabled": true
+    },
+    "upcomingEvents": [
+        {
+            "date": "2026-01-23",
+            "endDate": "2026-01-24",
+            "event": "达沃斯世界经济论坛",
+            "eventEn": "Davos World Economic Forum",
+            "suggestThemeDay": true
+        },
+        {
+            "date": "2026-02-14",
+            "endDate": "2026-02-16",
+            "event": "慕尼黑安全会议",
+            "eventEn": "Munich Security Conference",
+            "suggestThemeDay": true
+        },
+        {
+            "date": "2026-03-25",
+            "endDate": "2026-03-28",
+            "event": "博鳌亚洲论坛",
+            "eventEn": "Boao Forum for Asia",
+            "suggestThemeDay": true
+        },
+        {
+            "date": "2026-06-09",
+            "endDate": "2026-06-10",
+            "event": "Apple WWDC",
+            "eventEn": "Apple WWDC",
+            "suggestThemeDay": true
+        },
+        {
+            "date": "2026-09-15",
+            "endDate": "2026-09-22",
+            "event": "联合国大会",
+            "eventEn": "UN General Assembly",
+            "suggestThemeDay": true
+        },
+        {
+            "date": "2026-10-05",
+            "endDate": "2026-10-10",
+            "event": "诺贝尔奖周",
+            "eventEn": "Nobel Prize Week",
+            "suggestThemeDay": true
+        },
+        {
+            "date": "2026-11-09",
+            "endDate": "2026-11-20",
+            "event": "COP气候峰会",
+            "eventEn": "COP Climate Summit",
+            "suggestThemeDay": true
+        }
+    ]
+}

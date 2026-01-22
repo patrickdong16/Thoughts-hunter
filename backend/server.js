@@ -12,6 +12,7 @@ const draftsRoutes = require('./routes/drafts');
 const collectionRoutes = require('./routes/collection');
 const pushRoutes = require('./routes/push');
 const automationRoutes = require('./routes/automation');
+const reportRoutes = require('./routes/report');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +41,7 @@ app.use('/api/drafts', draftsRoutes);
 app.use('/api/collection', collectionRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/automation', automationRoutes);
+app.use('/api/report', reportRoutes);
 
 // 健康检查
 app.get('/health', (req, res) => {

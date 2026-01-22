@@ -19,8 +19,22 @@
 
 | 时间（北京） | 任务 | 触发方式 | 说明 |
 |-------------|------|---------|------|
-| 06:00 | 内容采集 | GitHub Actions | 检查 YouTube 频道新视频 |
-| 06:00 | 推送通知 | GitHub Actions | 向已注册设备发送每日推送 |
+| 04:00 | 内容采集 | GitHub Actions | 检查 YouTube 频道新视频 |
+| 04:00 | 推送通知 | GitHub Actions | 向已注册设备发送每日推送 |
+| 04:00 | 📧 日报发送 | GitHub Actions | 发送运维日报邮件 |
+
+---
+
+## 数据口径说明
+
+> ⚠️ **重要**: 所有日报和统计数据均来自**生产环境数据库 (Railway PostgreSQL)**，不使用本地开发数据。
+
+| 数据类型 | 来源 | 备注 |
+|---------|------|------|
+| 注册用户统计 | `users` 表 | 生产环境 |
+| 匿名访客统计 | `user_actions` 表 (`guest_*` 前缀) | 生产环境 |
+| 内容发布统计 | `radar_items` 表 | 生产环境 |
+| 互动数据 | `user_actions` 表 | 生产环境 |
 
 ---
 
@@ -28,7 +42,7 @@
 
 ### 1. 内容采集 (`check-all`)
 
-**触发**：GitHub Actions `daily-update.yml` 每天 UTC 22:00（北京 06:00）
+**触发**：GitHub Actions `daily-update.yml` 每天 UTC 20:00（北京 04:00）
 
 **流程**：
 1. 调用 `POST /api/collection/check-all`
@@ -49,6 +63,28 @@
 2. 查询当日 `radar_items` 数量
 3. 向所有活跃 `push_tokens` 发送推送
 4. 记录结果到 `push_log` 表
+
+### 3. 运维日报 (`send-daily-report`) 📧
+
+**触发**：GitHub Actions 在推送通知后执行
+
+**流程**：
+1. 调用 `POST /api/report/send-daily`
+2. 生成当日运维报告（使用**生产环境数据**）：
+   - 📰 内容发布统计（新增条目数、按来源分组）
+   - 👥 用户统计（新注册、活跃用户、点赞数、立场选择）
+   - ⚙️ 系统状态（API健康、推送成功率）
+   - 📅 近期事件提醒（未来30天内的预设事件）
+3. 通过 SendGrid 发送邮件至配置的收件人
+
+**配置文件**：`backend/config/report-config.json`
+
+**相关 API**：
+| 操作 | 命令 |
+|------|------|
+| 发送日报 | `curl -X POST .../api/report/send-daily` |
+| 预览日报(JSON) | `curl .../api/report/preview/2026-01-22` |
+| 预览日报(HTML) | `curl .../api/report/preview/2026-01-22/html` |
 
 ---
 
@@ -109,6 +145,8 @@
 - [ ] 今日内容：`GET /api/radar/today` 有数据
 - [ ] 推送状态：`GET /api/push/stats` 查看发送记录
 - [ ] GitHub Actions：检查 workflow 运行状态
+- [ ] **🚨 内容去重**：发布前确认无重复内容（参见 [CONTENT_RULES.md](./CONTENT_RULES.md)）
+
 
 ---
 
