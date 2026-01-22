@@ -173,12 +173,13 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // 验证内容长度（规则：≥300字符，中文字符按1计算）
-        // TODO: 调试编码问题后恢复到500
-        if (content.length < 300) {
+        // 验证内容长度（规则：≥400字符）
+        // 400个中文字符约等于一篇实质性的分析文章
+        // 注：中文字符在JS中每个计为1，即使UTF-8编码为3字节
+        if (content.length < 400) {
             return res.status(400).json({
                 success: false,
-                error: `Content must be at least 300 characters (current: ${content.length})`
+                error: `Content must be at least 400 characters (current: ${content.length})`
             });
         }
 
