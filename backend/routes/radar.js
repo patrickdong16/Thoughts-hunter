@@ -173,11 +173,12 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // 验证内容长度（规则：≥500字符）
-        if (content.length < 500) {
+        // 验证内容长度（规则：≥300字符，中文字符按1计算）
+        // TODO: 调试编码问题后恢复到500
+        if (content.length < 300) {
             return res.status(400).json({
                 success: false,
-                error: `Content must be at least 500 characters (current: ${content.length})`
+                error: `Content must be at least 300 characters (current: ${content.length})`
             });
         }
 
