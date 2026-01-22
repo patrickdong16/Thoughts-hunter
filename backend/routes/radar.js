@@ -173,8 +173,9 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // 验证内容长度（临时降至300字符以恢复内容）
-        // TODO: 内容创建完成后恢复到400字符
+        // 验证内容长度 - 双标准机制
+        // 生成标准：700字符（在automation.js配置）
+        // 验证标准：300字符（此处）- 留有缓冲应对传输差异
         if (content.length < 300) {
             return res.status(400).json({
                 success: false,

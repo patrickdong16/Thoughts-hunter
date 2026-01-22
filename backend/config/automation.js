@@ -207,10 +207,10 @@ module.exports = {
         requireReview: false
     },
 
-    // 内容质量要求
+    // 内容质量要求（生成标准 - 比验证标准高以留有缓冲）
     contentRequirements: {
-        minContentLength: 500,
-        recommendedContentLength: 800,
+        minContentLength: 700,      // 生成时最低要求（后端验证为300）
+        recommendedContentLength: 900, // 推荐目标
         keywordsCount: { min: 3, max: 5 }
     }
 };
