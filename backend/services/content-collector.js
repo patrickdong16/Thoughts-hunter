@@ -75,13 +75,23 @@ const getChannelLatestVideos = async (channelId, maxResults = MAX_RESULTS) => {
             order: 'date'
         });
 
-        const videos = playlistResponse.data.items.map(item => ({
-            videoId: item.contentDetails.videoId,
-            title: item.snippet.title,
-            description: item.snippet.description,
-            publishedAt: item.snippet.publishedAt,
-            thumbnail: item.snippet.thumbnails.default.url,
-            channelTitle: item.snippet.channelTitle
+        const videoIds = playlistResponse.data.items.map(item => item.contentDetails.videoId);
+
+        // 获取视频详情（包含duration）
+        const videosResponse = await youtube.videos.list({
+            key: YOUTUBE_API_KEY,
+            part: 'contentDetails,snippet',
+            id: videoIds.join(',')
+        });
+
+        const videos = videosResponse.data.items.map(video => ({
+            videoId: video.id,
+            title: video.snippet.title,
+            description: video.snippet.description,
+            publishedAt: video.snippet.publishedAt,
+            thumbnail: video.snippet.thumbnails?.default?.url,
+            channelTitle: video.snippet.channelTitle,
+            duration: video.contentDetails.duration  // ISO 8601 格式如 PT1H23M45S
         }));
 
         return videos;
@@ -230,16 +240,18 @@ const checkNewContentForSource = async (sourceId) => {
             const logResult = await pool.query(logQuery, [sourceId, video.videoId]);
 
             if (logResult.rows.length === 0) {
-                // 新视频，记录到日志
+                // 新视频，记录到日志（包含duration用于后续筛选）
                 const insertLogQuery = `
-          INSERT INTO collection_log (source_id, video_id, video_url, video_title, analyzed)
-          VALUES ($1, $2, $3, $4, false)
+          INSERT INTO collection_log (source_id, video_id, video_url, video_title, duration, published_at, analyzed)
+          VALUES ($1, $2, $3, $4, $5, $6, false)
         `;
                 await pool.query(insertLogQuery, [
                     sourceId,
                     video.videoId,
                     `https://www.youtube.com/watch?v=${video.videoId}`,
-                    video.title
+                    video.title,
+                    video.duration,
+                    video.publishedAt
                 ]);
 
                 newVideos.push(video);
