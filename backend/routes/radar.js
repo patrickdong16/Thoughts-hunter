@@ -173,15 +173,16 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // 验证内容长度（规则：≥300字符，中文内容）
-        if (content.length < 300) {
+        // 验证内容长度（规则：≥200字符，中文内容）
+        if (content.length < 200) {
             return res.status(400).json({
                 success: false,
-                error: `Content must be at least 300 characters (current: ${content.length})`
+                error: `Content must be at least 200 characters (current: ${content.length})`
             });
+        });
         }
 
-        const query = `
+const query = `
             INSERT INTO radar_items (
                 date, freq, stance, title, author_name, author_avatar,
                 author_bio, source, content, tension_q, tension_a, tension_b, keywords
@@ -189,35 +190,35 @@ router.post('/', async (req, res) => {
             RETURNING *
         `;
 
-        const result = await pool.query(query, [
-            date, freq, stance.toUpperCase(), title, author_name, author_avatar || '',
-            author_bio || '', source || '', content, tension_q || '', tension_a || '',
-            tension_b || '', keywords || []
-        ]);
+const result = await pool.query(query, [
+    date, freq, stance.toUpperCase(), title, author_name, author_avatar || '',
+    author_bio || '', source || '', content, tension_q || '', tension_a || '',
+    tension_b || '', keywords || []
+]);
 
-        res.json({
-            success: true,
-            item: result.rows[0]
-        });
+res.json({
+    success: true,
+    item: result.rows[0]
+});
     } catch (error) {
-        console.error('Error creating radar item:', error);
-        if (error.code === '23505') {
-            res.status(409).json({
-                success: false,
-                error: 'Item already exists for this date and frequency'
-            });
-        } else if (error.code === '23503') {
-            res.status(400).json({
-                success: false,
-                error: 'Invalid frequency ID'
-            });
-        } else {
-            res.status(500).json({
-                success: false,
-                error: 'Failed to create radar item'
-            });
-        }
+    console.error('Error creating radar item:', error);
+    if (error.code === '23505') {
+        res.status(409).json({
+            success: false,
+            error: 'Item already exists for this date and frequency'
+        });
+    } else if (error.code === '23503') {
+        res.status(400).json({
+            success: false,
+            error: 'Invalid frequency ID'
+        });
+    } else {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create radar item'
+        });
     }
+}
 });
 
 /**
