@@ -55,6 +55,11 @@ function checkVideoEligibility(video, dayRules = null) {
         }
     }
 
+    // 主题日：只检查时长，跳过频道/关键词匹配（主题日通常是特定活动如达沃斯）
+    if (isThemeDay) {
+        return { eligible: true, reason: '主题日：通过时长筛选即符合条件' };
+    }
+
     // 3. 强制要求：必须匹配目标频道或目标访谈人
     if (videoFilters.requireTargetMatch) {
         const matchesChannel = targetChannels.some(c =>
