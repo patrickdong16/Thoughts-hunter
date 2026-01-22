@@ -3,11 +3,8 @@
 // 用于从YouTube等平台获取新内容
 
 const { google } = require('googleapis');
-const { exec } = require('child_process');
-const { promisify } = require('util');
+const { YoutubeTranscript } = require('youtube-transcript');
 const pool = require('../config/database');
-
-const execAsync = promisify(exec);
 const youtube = google.youtube('v3');
 
 // YouTube API配置 - 优先使用环境变量，fallback到配置文件
@@ -102,47 +99,40 @@ const getChannelLatestVideos = async (channelId, maxResults = MAX_RESULTS) => {
 };
 
 /**
- * 使用yt-dlp提取视频字幕
+ * 使用 youtube-transcript 库提取视频字幕（纯 JavaScript, 无需 yt-dlp）
  * @param {string} videoId - YouTube视频ID
  * @returns {Promise<string>} 字幕文本
  */
 const getVideoTranscript = async (videoId) => {
     try {
-        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        console.log(`[Transcript] 获取视频字幕: ${videoId}`);
 
-        // 使用yt-dlp获取自动生成的字幕
-        // --write-auto-sub: 下载自动生成的字幕
-        // --skip-download: 只下载字幕不下载视频
-        // --sub-lang en,zh: 优先英文和中文
-        // --convert-subs txt: 转换为纯文本
-        const command = `yt-dlp --write-auto-sub --skip-download --sub-lang en,zh-Hans,zh --convert-subs txt --output "/tmp/%(id)s" "${videoUrl}" 2>&1`;
+        // 使用 youtube-transcript 库获取字幕
+        // 该库会自动获取可用的字幕（优先手动上传的，其次自动生成的）
+        const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId, {
+            lang: 'en'  // 优先英文
+        }).catch(async (err) => {
+            // 如果英文失败，尝试中文
+            console.log(`[Transcript] 英文字幕失败，尝试中文: ${err.message}`);
+            return YoutubeTranscript.fetchTranscript(videoId, {
+                lang: 'zh-Hans'
+            }).catch(() => {
+                // 再尝试默认语言
+                return YoutubeTranscript.fetchTranscript(videoId);
+            });
+        });
 
-        const { stdout, stderr } = await execAsync(command);
-
-        // 读取生成的字幕文件
-        const fs = require('fs');
-        const subtitlePath = `/tmp/${videoId}.en.txt`;
-
-        if (!fs.existsSync(subtitlePath)) {
-            // 尝试其他语言
-            const alternativePath = `/tmp/${videoId}.zh-Hans.txt`;
-            if (fs.existsSync(alternativePath)) {
-                const transcript = fs.readFileSync(alternativePath, 'utf-8');
-                fs.unlinkSync(alternativePath); // 清理临时文件
-                return cleanTranscript(transcript);
-            }
-
-            throw new Error('未找到字幕文件，视频可能没有可用字幕');
+        if (!transcriptItems || transcriptItems.length === 0) {
+            throw new Error('未找到可用字幕');
         }
 
-        const transcript = fs.readFileSync(subtitlePath, 'utf-8');
+        // 将字幕片段合并为完整文本
+        const transcript = transcriptItems.map(item => item.text).join(' ');
 
-        // 清理临时文件
-        fs.unlinkSync(subtitlePath);
-
+        console.log(`[Transcript] 成功获取字幕，长度: ${transcript.length} 字符`);
         return cleanTranscript(transcript);
     } catch (error) {
-        console.error('提取字幕失败:', error.message);
+        console.error('[Transcript] 提取字幕失败:', error.message);
         throw error;
     }
 };
