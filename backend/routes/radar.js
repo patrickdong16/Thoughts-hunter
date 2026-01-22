@@ -33,11 +33,20 @@ router.get('/today', async (req, res) => {
 
         const result = await pool.query(query, [userId, beijingDate]);
 
+        // 获取主题日信息（供前端显示banner）
+        const dayRules = getRulesForDate(beijingDate);
+        const themeDay = dayRules.isThemeDay ? {
+            event: dayRules.event,
+            eventEn: dayRules.eventEn,
+            focus: dayRules.focus
+        } : null;
+
         res.json({
             success: true,
             date: beijingDate,
             count: result.rows.length,
-            items: result.rows
+            items: result.rows,
+            themeDay: themeDay
         });
     } catch (error) {
         console.error('Error fetching today radar:', error);

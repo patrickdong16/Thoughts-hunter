@@ -31,6 +31,7 @@ export default function TodayScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [selectedFilter, setSelectedFilter] = useState('all');
     const [error, setError] = useState(null);
+    const [themeDay, setThemeDay] = useState(null);
 
     // 加载数据
     const loadData = useCallback(async () => {
@@ -38,6 +39,7 @@ export default function TodayScreen() {
             setError(null);
             const data = await radarAPI.getToday();
             setItems(data.items || []);
+            setThemeDay(data.themeDay || null);
         } catch (err) {
             setError(err.message);
             console.error('Failed to load radar:', err);
@@ -90,6 +92,28 @@ export default function TodayScreen() {
             <Text style={styles.date}>{getCurrentDate()}</Text>
         </View>
     );
+
+    // 渲染主题日Banner
+    const renderThemeBanner = () => {
+        if (!themeDay) return null;
+
+        return (
+            <View style={styles.themeBanner}>
+                <View style={styles.themeBannerContent}>
+                    <Text style={styles.themeBannerIcon}>🎯</Text>
+                    <View style={styles.themeBannerText}>
+                        <Text style={styles.themeBannerTitle}>{themeDay.event}</Text>
+                        <Text style={styles.themeBannerSubtitle}>{themeDay.eventEn}</Text>
+                    </View>
+                </View>
+                {themeDay.focus?.direction && (
+                    <Text style={styles.themeBannerFocus} numberOfLines={2}>
+                        {themeDay.focus.direction}
+                    </Text>
+                )}
+            </View>
+        );
+    };
 
     // 渲染过滤器
     const renderFilters = () => (
@@ -166,6 +190,7 @@ export default function TodayScreen() {
         <SafeAreaView style={styles.container} edges={['top']}>
             <StatusBar barStyle="light-content" />
             {renderHeader()}
+            {renderThemeBanner()}
             {renderFilters()}
 
             <FlatList
@@ -233,6 +258,40 @@ const styles = StyleSheet.create({
         fontSize: Typography.sizes.base,
         color: Colors.textSecondary,
         fontWeight: Typography.weights.medium,
+    },
+    themeBanner: {
+        backgroundColor: '#1a1a2e',
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border,
+    },
+    themeBannerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    themeBannerIcon: {
+        fontSize: 24,
+        marginRight: Spacing.md,
+    },
+    themeBannerText: {
+        flex: 1,
+    },
+    themeBannerTitle: {
+        fontSize: Typography.sizes.lg,
+        fontWeight: Typography.weights.bold,
+        color: '#FFD700',
+    },
+    themeBannerSubtitle: {
+        fontSize: Typography.sizes.xs,
+        color: Colors.textMuted,
+        marginTop: 2,
+    },
+    themeBannerFocus: {
+        fontSize: Typography.sizes.sm,
+        color: Colors.textSecondary,
+        marginTop: Spacing.sm,
+        fontStyle: 'italic',
     },
     filtersContainer: {
         borderBottomWidth: 1,
