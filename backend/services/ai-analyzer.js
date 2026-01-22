@@ -102,6 +102,66 @@ ${metadata.description ? `- 描述: ${metadata.description.substring(0, 200)}` :
 };
 
 /**
+ * 构建元数据分析提示词（无字幕时的 fallback）
+ * @param {Object} metadata - 视频元数据
+ * @returns {string} 完整提示词
+ */
+const buildMetadataPrompt = (metadata) => {
+    const bandList = Object.entries(BAND_DEFINITIONS)
+        .map(([id, def]) => `${id}: ${def.question} (A:${def.stanceA} vs B:${def.stanceB})`)
+        .join('\n');
+
+    return `你是「思想雷达」(Thoughts Radar)的内容分析师。这个视频没有可用字幕，但我们有详细的元数据。请基于以下信息提取符合频段系统的观点。
+
+**频段系统**
+${bandList}
+
+**视频信息**
+- 标题: ${metadata.title || '未知'}
+- 频道: ${metadata.channelTitle || '未知'}
+- 发布日期: ${metadata.publishedAt ? new Date(metadata.publishedAt).toLocaleDateString('zh-CN') : '未知'}
+- 描述: ${metadata.description || '无描述'}
+${metadata.tags ? `- 标签: ${metadata.tags.slice(0, 10).join(', ')}` : ''}
+
+**输出要求**
+
+请基于视频标题、描述和频道信息，输出JSON数组。每个元素代表一个可能的观点，格式如下：
+
+\`\`\`json
+[
+  {
+    "freq": "T1",
+    "stance": "A",
+    "title": "简明标题（20字内，鲜明表达立场）",
+    "author_name": "发言者姓名（从标题或描述中提取）",
+    "author_bio": "身份简介",
+    "source": "源信息（格式：YYYY年M月D日 · 平台 · 视频标题）",
+    "content": "400字以上的论述，基于视频标题和描述合理推断内容要点",
+    "tension_q": "核心讨论问题",
+    "tension_a": "A极立场描述",
+    "tension_b": "B极立场描述",
+    "keywords": ["关键词1", "关键词2", "关键词3"]
+  }
+]
+\`\`\`
+
+**❗ 内容真实性要求（强制执行）**
+1. source字段必须准确反映视频的真实发布日期和频道名称
+2. author_name必须从标题或描述中明确提取，禁止编造
+3. 内容必须基于视频标题和描述的真实信息推断，不能凭空编造
+4. 如果无法从元数据确定主题与频段系统的关联，返回空数组 []
+5. 每个观点必须明确标注「基于元数据推断」
+
+**注意事项**
+1. 由于没有字幕，内容应基于合理推断，而非具体引用
+2. 如果视频主题与频段系统无关，返回空数组 []
+3. content字段必须≥400字
+4. stance必须明确为A或B
+
+请直接返回JSON，不要包含其他解释性文本。`;
+};
+
+/**
  * 使用Claude分析转录内容
  * @param {string} transcript - 转录文本
  * @param {Object} metadata - 视频元数据
@@ -158,6 +218,67 @@ const analyzeTranscript = async (transcript, metadata = {}) => {
         };
     } catch (error) {
         console.error('AI分析失败:', error.message);
+        throw error;
+    }
+};
+
+/**
+ * 使用Claude分析元数据（无字幕时的fallback）
+ * @param {Object} metadata - 视频元数据
+ * @returns {Promise<Object>} 分析结果 {items: [], analyzed: boolean}
+ */
+const analyzeMetadata = async (metadata = {}) => {
+    try {
+        if (!CLAUDE_API_KEY) {
+            throw new Error('Claude API key未配置');
+        }
+
+        if (!metadata.title || !metadata.description) {
+            throw new Error('元数据不完整，无法分析');
+        }
+
+        const prompt = buildMetadataPrompt(metadata);
+
+        console.log('调用Claude API进行元数据分析...');
+
+        const message = await anthropic.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 4096,
+            messages: [{
+                role: 'user',
+                content: prompt
+            }]
+        });
+
+        const responseText = message.content[0].text;
+
+        // 解析JSON响应
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) {
+            console.warn('Claude响应中未找到JSON数组');
+            return { items: [], analyzed: true, rawResponse: responseText };
+        }
+
+        const items = JSON.parse(jsonMatch[0]);
+
+        // 验证每个item的结构 - 元数据模式要求较低：400字符
+        const validItems = items.filter(item => {
+            return item.freq && item.stance && item.title &&
+                item.author_name && item.content &&
+                item.content.length >= 400;  // 元数据模式400字符
+        });
+
+        console.log(`元数据分析完成: 识别到 ${validItems.length} 个有效观点`);
+
+        return {
+            items: validItems,
+            analyzed: true,
+            metadataMode: true,  // 标记这是元数据分析
+            rawItemCount: items.length,
+            validItemCount: validItems.length
+        };
+    } catch (error) {
+        console.error('元数据AI分析失败:', error.message);
         throw error;
     }
 };
@@ -224,19 +345,34 @@ const createDraftFromVideo = async (videoId, sourceId) => {
 
         console.log(`获取到视频: ${metadata.title}`);
 
-        // 2. 提取字幕
+        // 2. 尝试提取字幕（如果失败，使用元数据分析）
+        let transcript = null;
+        let useMetadataFallback = false;
+
         console.log('提取字幕...');
-        const transcript = await collector.getVideoTranscript(videoId);
-
-        if (!transcript || transcript.length < 300) {
-            throw new Error('字幕内容太少或无字幕');
+        try {
+            transcript = await collector.getVideoTranscript(videoId);
+            if (!transcript || transcript.length < 300) {
+                console.log(`字幕内容太少 (${transcript ? transcript.length : 0} 字符)，切换到元数据分析`);
+                useMetadataFallback = true;
+            }
+        } catch (transcriptError) {
+            console.log(`字幕获取失败: ${transcriptError.message}，切换到元数据分析`);
+            useMetadataFallback = true;
         }
-
-        console.log(`字幕长度: ${transcript.length} 字符`);
 
         // 3. AI分析
         console.log('开始AI分析...');
-        const analysis = await analyzeTranscript(transcript, metadata);
+        let analysis;
+
+        if (useMetadataFallback) {
+            // 使用元数据分析
+            console.log('使用元数据分析模式（无字幕 fallback）');
+            analysis = await analyzeMetadata(metadata);
+        } else {
+            console.log(`字幕长度: ${transcript.length} 字符`);
+            analysis = await analyzeTranscript(transcript, metadata);
+        }
 
         if (analysis.items.length === 0) {
             console.log('未识别到符合频段的观点');
