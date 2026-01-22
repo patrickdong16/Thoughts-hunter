@@ -30,15 +30,16 @@ function parseDuration(duration) {
 /**
  * 检查视频是否符合筛选规则
  * @param {Object} video - 视频信息
- * @param {boolean} isThemeDay - 是否为主题日
+ * @param {Object} dayRules - 当日规则（从day-config.json加载）
  * @returns {Object} { eligible: boolean, reason: string }
  */
-function checkVideoEligibility(video, isThemeDay = false) {
+function checkVideoEligibility(video, dayRules = null) {
     const { videoFilters, targetChannels, targetSpeakers, topicKeywords } = automationConfig;
     const textToCheck = `${video.title || ''} ${video.description || ''} ${video.channelTitle || ''}`.toLowerCase();
 
-    // 1. 检查时长 - 主题日使用更宽松的要求（20分钟）
-    const minDuration = isThemeDay ? 20 : videoFilters.minDuration;
+    // 1. 检查时长 - 从配置中读取minDuration（主题日/普通日各自有配置）
+    const minDuration = dayRules?.rules?.minDuration || videoFilters.minDuration;
+    const isThemeDay = dayRules?.isThemeDay || false;
     const durationMinutes = parseDuration(video.duration);
     if (durationMinutes < minDuration) {
         return { eligible: false, reason: `时长 ${durationMinutes}分钟 < ${minDuration}分钟${isThemeDay ? '(主题日)' : ''}` };
@@ -142,15 +143,14 @@ router.post('/generate-daily', async (req, res) => {
     try {
         console.log('🚀 开始每日自动内容生成...');
 
-        // 获取今日日期和主题日状态
+        // 获取今日日期和规则配置
         const beijingDate = new Date().toLocaleDateString('en-CA', {
             timeZone: 'Asia/Shanghai'
         });
         const dayRules = getRulesForDate(beijingDate);
-        const isThemeDay = dayRules.isThemeDay;
 
-        if (isThemeDay) {
-            console.log(`📅 主题日: ${dayRules.event} (时长要求降至20分钟)`);
+        if (dayRules.isThemeDay) {
+            console.log(`📅 主题日: ${dayRules.event} (时长要求: ≥${dayRules.rules.minDuration}分钟)`);
         }
 
         // 1. 获取未分析的视频
@@ -174,10 +174,10 @@ router.post('/generate-daily', async (req, res) => {
             });
         }
 
-        // 2. 筛选符合条件的视频（主题日使用更宽松的时长要求）
+        // 2. 筛选符合条件的视频（从dayRules读取时长要求）
         const eligibleVideos = [];
         for (const video of pendingVideos) {
-            const check = checkVideoEligibility(video, isThemeDay);
+            const check = checkVideoEligibility(video, dayRules);
             if (check.eligible) {
                 eligibleVideos.push({
                     ...video,

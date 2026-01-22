@@ -5,7 +5,8 @@
         "freqBalance": true,
         "maxPerFreq": 1,
         "maxVideos": 2,
-        "minContentLength": 300
+        "minContentLength": 300,
+        "minDuration": 40
     },
     "themeDays": [
         {
@@ -20,7 +21,8 @@
                 "minItems": 8,
                 "freqBalance": false,
                 "maxPerFreq": null,
-                "maxVideos": null
+                "maxVideos": null,
+                "minDuration": 20
             },
             "focus": {
                 "direction": "政治/科技/金融/经济/宗教/艺术/学术领袖的演讲、访谈与论坛，深度发掘其立场和观点",
@@ -93,7 +95,8 @@
                 "minItems": 6,
                 "freqBalance": false,
                 "maxPerFreq": null,
-                "maxVideos": null
+                "maxVideos": null,
+                "minDuration": 20
             },
             "focus": {
                 "direction": "全球安全秩序与大国博弈",
