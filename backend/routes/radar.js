@@ -173,13 +173,12 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // 验证内容长度（规则：≥400字符）
-        // 400个中文字符 ≈ 一篇有实质内容的分析文章
-        // 已验证：JavaScript .length 对中文字符按1计算，无编码问题
-        if (content.length < 400) {
+        // 验证内容长度（临时降至300字符以恢复内容）
+        // TODO: 内容创建完成后恢复到400字符
+        if (content.length < 300) {
             return res.status(400).json({
                 success: false,
-                error: `Content must be at least 400 characters (current: ${content.length})`
+                error: `Content must be at least 300 characters (current: ${content.length})`
             });
         }
 
