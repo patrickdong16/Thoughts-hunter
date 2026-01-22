@@ -11,6 +11,7 @@ const pool = require('../config/database');
 const automationConfig = require('../config/automation');
 const aiAnalyzer = require('../services/ai-analyzer');
 const contentCollector = require('../services/content-collector');
+const { getRulesForDate } = require('../config/day-rules');
 
 /**
  * 解析 ISO 8601 时长字符串为分钟数
