@@ -162,7 +162,7 @@ export default function TodayScreen() {
                 <>
                     <Text style={styles.emptyIcon}>📭</Text>
                     <Text style={styles.emptyText}>今日暂无内容</Text>
-                    <Text style={styles.emptyHint}>下拉刷新查看最新内容</Text>
+                    <Text style={styles.emptyHint}>点击右上角刷新，内容每日更新</Text>
                 </>
             )}
         </View>
@@ -209,15 +209,6 @@ export default function TodayScreen() {
                 ListEmptyComponent={renderEmpty}
                 showsVerticalScrollIndicator={false}
             />
-
-            {/* 统计信息 */}
-            {filteredItems.length > 0 && (
-                <View style={styles.statsBar}>
-                    <Text style={styles.statsText}>
-                        今日{selectedFilter !== 'all' && DomainConfig[selectedFilter]?.label}共{filteredItems.length}条
-                    </Text>
-                </View>
-            )}
         </SafeAreaView>
     );
 }
