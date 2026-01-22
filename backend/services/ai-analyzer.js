@@ -129,11 +129,11 @@ const analyzeTranscript = async (transcript, metadata = {}) => {
 
         const items = JSON.parse(jsonMatch[0]);
 
-        // 验证每个item的结构
+        // 验证每个item的结构 - 生成标准：700字符
         const validItems = items.filter(item => {
             return item.freq && item.stance && item.title &&
                 item.author_name && item.content &&
-                item.content.length >= 500;
+                item.content.length >= 700;  // 生成时要求700字符，留缓冲给300验证标准
         });
 
         console.log(`分析完成: 识别到 ${validItems.length} 个有效观点`);

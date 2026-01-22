@@ -242,11 +242,13 @@ router.put('/:id', async (req, res) => {
             });
         }
 
-        // 验证内容长度
-        if (content && content.length < 500) {
+        // 验证内容长度 - 双标准机制
+        // 生成标准：700字符（在automation.js配置）
+        // 验证标准：300字符（此处）- 留有缓冲应对传输差异
+        if (content && content.length < 300) {
             return res.status(400).json({
                 success: false,
-                error: `Content must be at least 500 characters (current: ${content.length})`
+                error: `Content must be at least 300 characters (current: ${content.length})`
             });
         }
 

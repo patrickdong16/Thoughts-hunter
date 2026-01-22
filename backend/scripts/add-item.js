@@ -63,9 +63,9 @@ async function addRadarItem() {
             console.log('❌ 立场必须是A或B');
             process.exit(1);
         }
-
-        if (content.length < 500) {
-            console.log(`❌ 正文至少需要500字（当前${content.length}字）`);
+        // 验证内容长度 - 双标准机制（验证标准300字符）
+        if (content.length < 300) {
+            console.log(`❌ 正文至少需要300字（当前${content.length}字）`);
             process.exit(1);
         }
 
