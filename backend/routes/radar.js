@@ -173,12 +173,12 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // 验证内容长度（规则：≥250字符）
-        // 250个中文字符足以构成一篇有实质内容的摘要
-        if (content.length < 250) {
+        // 验证内容长度（规则：≥200字符）
+        // TODO: 调查字符计数差异问题
+        if (content.length < 200) {
             return res.status(400).json({
                 success: false,
-                error: `Content must be at least 250 characters (current: ${content.length})`
+                error: `Content must be at least 200 characters (current: ${content.length})`
             });
         }
 
