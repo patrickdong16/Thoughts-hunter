@@ -173,13 +173,12 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // 验证内容长度（规则：≥400字符）
-        // 400个中文字符约等于一篇实质性的分析文章
-        // 注：中文字符在JS中每个计为1，即使UTF-8编码为3字节
-        if (content.length < 400) {
+        // 验证内容长度（规则：≥250字符）
+        // 250个中文字符足以构成一篇有实质内容的摘要
+        if (content.length < 250) {
             return res.status(400).json({
                 success: false,
-                error: `Content must be at least 400 characters (current: ${content.length})`
+                error: `Content must be at least 250 characters (current: ${content.length})`
             });
         }
 
