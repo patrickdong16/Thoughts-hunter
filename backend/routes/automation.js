@@ -438,4 +438,138 @@ router.get('/status', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/automation/batch-publish
+ * 批量发布已批准但未实际发布的草稿
+ * Emergency endpoint to publish approved drafts that may have been missed
+ */
+router.post('/batch-publish', async (req, res) => {
+    const { sourceFilter, limit = 20 } = req.body;
+    const results = {
+        processed: 0,
+        published: 0,
+        skipped: 0,
+        errors: []
+    };
+
+    try {
+        const beijingDate = new Date().toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Shanghai'
+        });
+
+        console.log(`🚀 批量发布草稿内容 (日期: ${beijingDate})`);
+
+        // 获取现有频段
+        const { rows: existingFreqs } = await pool.query(
+            `SELECT freq FROM radar_items WHERE date = $1`,
+            [beijingDate]
+        );
+        const usedFreqs = new Set(existingFreqs.map(r => r.freq));
+        console.log(`📊 已存在频段: ${[...usedFreqs].join(', ') || '无'}`);
+
+        // 获取已批准但未实际发布的草稿
+        let query = `
+            SELECT d.*, cs.name as source_name
+            FROM drafts d
+            LEFT JOIN content_sources cs ON d.source_id = cs.id
+            WHERE d.status = 'approved'
+            AND d.generated_items IS NOT NULL
+            AND jsonb_array_length(d.generated_items) > 0
+        `;
+        const params = [];
+
+        if (sourceFilter) {
+            query += ` AND cs.name ILIKE $1`;
+            params.push(`%${sourceFilter}%`);
+        }
+
+        query += ` ORDER BY d.created_at DESC LIMIT ${parseInt(limit)}`;
+
+        const { rows: drafts } = await pool.query(query, params);
+        console.log(`📝 找到 ${drafts.length} 个待发布草稿`);
+
+        for (const draft of drafts) {
+            results.processed++;
+            let items = draft.generated_items;
+            if (typeof items === 'string') {
+                items = JSON.parse(items);
+            }
+
+            if (!items || items.length === 0) continue;
+
+            for (const item of items) {
+                // 跳过已存在的频段
+                if (usedFreqs.has(item.freq)) {
+                    console.log(`⏭️ 跳过 [${item.freq}] ${item.title?.substring(0, 25)}... (频段已存在)`);
+                    results.skipped++;
+                    continue;
+                }
+
+                try {
+                    const insertResult = await pool.query(`
+                        INSERT INTO radar_items (
+                            date, freq, stance, title, 
+                            author_name, author_avatar, author_bio,
+                            source, content, 
+                            tension_q, tension_a, tension_b, keywords
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                        ON CONFLICT (date, freq) DO NOTHING
+                        RETURNING id, freq, title
+                    `, [
+                        item.date || beijingDate,
+                        item.freq,
+                        item.stance || 'A',
+                        item.title,
+                        item.author_name,
+                        item.author_avatar || item.author_name?.substring(0, 2) || 'XX',
+                        item.author_bio || '',
+                        item.source || '',
+                        item.content,
+                        item.tension_q || '',
+                        item.tension_a || '',
+                        item.tension_b || '',
+                        item.keywords || []
+                    ]);
+
+                    if (insertResult.rows.length > 0) {
+                        const inserted = insertResult.rows[0];
+                        console.log(`✅ 发布: [${inserted.freq}] ${inserted.title?.substring(0, 30)}...`);
+                        usedFreqs.add(item.freq);
+                        results.published++;
+                    }
+                } catch (insertError) {
+                    results.errors.push(`[${item.freq}]: ${insertError.message}`);
+                }
+            }
+
+            // 更新草稿的reviewed_at
+            await pool.query(
+                `UPDATE drafts SET reviewed_at = CURRENT_TIMESTAMP, reviewed_by = 'batch_publish' WHERE id = $1`,
+                [draft.id]
+            );
+        }
+
+        // 获取最终统计
+        const { rows: finalCount } = await pool.query(
+            `SELECT COUNT(*) as count FROM radar_items WHERE date = $1`,
+            [beijingDate]
+        );
+
+        console.log(`\n🏁 完成! 处理:${results.processed} 发布:${results.published} 跳过:${results.skipped}`);
+
+        res.json({
+            success: true,
+            date: beijingDate,
+            message: `批量发布完成: 新增 ${results.published} 条内容`,
+            totalToday: parseInt(finalCount[0].count),
+            results
+        });
+
+    } catch (error) {
+        console.error('❌ 批量发布失败:', error);
+        res.status(500).json({ success: false, error: error.message, results });
+    }
+});
+
 module.exports = router;
+
