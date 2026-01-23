@@ -571,5 +571,277 @@ router.post('/batch-publish', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/automation/smart-generate
+ * 智能内容生成（成本优化版）
+ * 
+ * 策略：
+ * 1. 计算当日缺口
+ * 2. 预筛选视频队列
+ * 3. 按需逐条分析（每次只调1次Claude）
+ * 4. 质量验证循环（失败则尝试下一个）
+ */
+router.post('/smart-generate', async (req, res) => {
+    const { maxRetries = 5, dryRun = false } = req.body;
+    const startTime = Date.now();
+
+    const results = {
+        targetGap: 0,
+        preFiltered: 0,
+        apiCalls: 0,
+        published: 0,
+        failed: 0,
+        skipped: 0,
+        errors: [],
+        items: []
+    };
+
+    try {
+        // 获取今日日期和规则
+        const beijingDate = new Date().toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Shanghai'
+        });
+        const dayRules = getRulesForDate(beijingDate);
+
+        console.log('🧠 智能内容生成启动...');
+        console.log(`📅 日期: ${beijingDate} | 主题日: ${dayRules.isThemeDay ? '是' : '否'}`);
+
+        // 1. 计算当日缺口
+        const { rows: todayCount } = await pool.query(
+            `SELECT COUNT(*) as count FROM radar_items WHERE date = $1`,
+            [beijingDate]
+        );
+        const currentCount = parseInt(todayCount[0].count);
+        const minItems = dayRules.rules?.minItems || automationConfig.dailyQuota.minTotal;
+        const targetGap = Math.max(0, minItems - currentCount);
+        results.targetGap = targetGap;
+
+        console.log(`📊 当前: ${currentCount} 条 | 目标: ${minItems} 条 | 缺口: ${targetGap} 条`);
+
+        if (targetGap === 0) {
+            return res.json({
+                success: true,
+                message: '已达到当日配额，无需生成',
+                date: beijingDate,
+                currentCount,
+                results
+            });
+        }
+
+        // 2. 获取已占用的频段
+        const { rows: existingFreqs } = await pool.query(
+            `SELECT freq FROM radar_items WHERE date = $1`,
+            [beijingDate]
+        );
+        const usedFreqs = new Set(existingFreqs.map(r => r.freq));
+
+        // 3. 预筛选视频队列（未分析 + 时长符合）
+        const minDuration = dayRules.rules?.minDuration || 40;
+        const { rows: candidateVideos } = await pool.query(`
+            SELECT cl.*, cs.name as source_name, cs.default_domain
+            FROM collection_log cl
+            LEFT JOIN content_sources cs ON cl.source_id = cs.id
+            WHERE cl.analyzed = false
+            ORDER BY cl.checked_at DESC
+            LIMIT 100
+        `);
+
+        // 应用预筛选规则
+        const preFilteredVideos = candidateVideos.filter(video => {
+            const durationMinutes = parseDuration(video.duration);
+            if (durationMinutes < minDuration) {
+                console.log(`⏭️ 预筛选跳过 "${video.video_title?.substring(0, 25)}...": 时长${durationMinutes}m < ${minDuration}m`);
+                return false;
+            }
+            return true;
+        });
+
+        results.preFiltered = preFilteredVideos.length;
+        console.log(`🔍 预筛选通过: ${preFilteredVideos.length}/${candidateVideos.length} 个视频`);
+
+        if (preFilteredVideos.length === 0) {
+            return res.json({
+                success: true,
+                message: '预筛选后无符合条件的视频',
+                date: beijingDate,
+                results
+            });
+        }
+
+        // 4. 按优先级排序
+        preFilteredVideos.sort((a, b) => calculatePriority(b) - calculatePriority(a));
+
+        // 5. 按需逐条分析（智能循环）
+        let publishedThisRun = 0;
+        let consecutiveFailures = 0;
+        const maxConsecutiveFailures = maxRetries;
+        const maxApiCalls = automationConfig.dailyQuota.maxVideosToAnalyze || 30;
+
+        for (const video of preFilteredVideos) {
+            // 检查是否达到目标或超过API限制
+            if (publishedThisRun >= targetGap) {
+                console.log(`✅ 已达到目标缺口 (${publishedThisRun}/${targetGap})`);
+                break;
+            }
+
+            if (results.apiCalls >= maxApiCalls) {
+                console.log(`⚠️ 达到API调用上限 (${maxApiCalls})`);
+                break;
+            }
+
+            if (consecutiveFailures >= maxConsecutiveFailures) {
+                console.log(`⚠️ 连续失败 ${consecutiveFailures} 次，暂停分析`);
+                results.errors.push(`连续失败${consecutiveFailures}次，自动暂停`);
+                break;
+            }
+
+            // Dry run模式：只记录不执行
+            if (dryRun) {
+                console.log(`[DRY RUN] 将分析: "${video.video_title?.substring(0, 40)}..."`);
+                results.skipped++;
+                continue;
+            }
+
+            try {
+                console.log(`\n🔍 分析 [${results.apiCalls + 1}]: "${video.video_title?.substring(0, 40)}..."`);
+                results.apiCalls++;
+
+                // 调用AI分析
+                const draft = await aiAnalyzer.createDraftFromVideo(
+                    video.video_id,
+                    video.source_id
+                );
+
+                // 解析生成的内容
+                const generatedItems = typeof draft.generated_items === 'string'
+                    ? JSON.parse(draft.generated_items)
+                    : draft.generated_items;
+
+                if (!generatedItems || generatedItems.length === 0) {
+                    console.log('⚠️ 未生成有效内容');
+                    consecutiveFailures++;
+                    results.failed++;
+                    continue;
+                }
+
+                // 质量验证 + 频段冲突检查
+                let publishedFromThisVideo = 0;
+                for (const item of generatedItems) {
+                    // 质量检查：内容长度
+                    if (!item.content || item.content.length < 300) {
+                        console.log(`❌ 质量不达标 [${item.freq}]: 内容仅${item.content?.length || 0}字符`);
+                        continue;
+                    }
+
+                    // 频段冲突检查
+                    if (usedFreqs.has(item.freq)) {
+                        console.log(`⏭️ 频段冲突 [${item.freq}]: 已存在`);
+                        results.skipped++;
+                        continue;
+                    }
+
+                    // 发布到 radar_items
+                    try {
+                        const insertResult = await pool.query(`
+                            INSERT INTO radar_items (
+                                date, freq, stance, title, 
+                                author_name, author_avatar, author_bio,
+                                source, content, 
+                                tension_q, tension_a, tension_b, keywords
+                            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                            ON CONFLICT (date, freq) DO NOTHING
+                            RETURNING id, freq, title
+                        `, [
+                            item.date || beijingDate,
+                            item.freq,
+                            item.stance || 'A',
+                            item.title,
+                            item.author_name,
+                            item.author_avatar || item.author_name?.substring(0, 2) || 'XX',
+                            item.author_bio || '',
+                            item.source || '',
+                            item.content,
+                            item.tension_q || '',
+                            item.tension_a || '',
+                            item.tension_b || '',
+                            item.keywords || []
+                        ]);
+
+                        if (insertResult.rows.length > 0) {
+                            const inserted = insertResult.rows[0];
+                            console.log(`✅ 发布成功: [${inserted.freq}] ${inserted.title?.substring(0, 30)}...`);
+                            usedFreqs.add(item.freq);
+                            publishedFromThisVideo++;
+                            publishedThisRun++;
+                            results.published++;
+                            results.items.push({
+                                id: inserted.id,
+                                freq: inserted.freq,
+                                title: inserted.title
+                            });
+
+                            // 每个视频最多发布1条（避免单视频垄断）
+                            if (publishedFromThisVideo >= 1) break;
+                        }
+                    } catch (insertError) {
+                        results.errors.push(`发布失败 [${item.freq}]: ${insertError.message}`);
+                    }
+                }
+
+                // 更新草稿状态
+                await pool.query(
+                    `UPDATE drafts SET status = 'approved', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = 'smart_generate' WHERE id = $1`,
+                    [draft.id]
+                );
+
+                // 重置连续失败计数
+                if (publishedFromThisVideo > 0) {
+                    consecutiveFailures = 0;
+                } else {
+                    consecutiveFailures++;
+                    results.failed++;
+                }
+
+            } catch (analyzeError) {
+                console.error(`❌ 分析失败: ${analyzeError.message}`);
+                results.errors.push(`分析失败 "${video.video_title?.substring(0, 20)}": ${analyzeError.message}`);
+                consecutiveFailures++;
+                results.failed++;
+
+                // 标记视频为已分析（避免重复尝试）
+                await pool.query(
+                    `UPDATE collection_log SET analyzed = true WHERE video_id = $1`,
+                    [video.video_id]
+                );
+            }
+        }
+
+        // 获取最终统计
+        const { rows: finalCount } = await pool.query(
+            `SELECT COUNT(*) as count FROM radar_items WHERE date = $1`,
+            [beijingDate]
+        );
+
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(`\n🏁 智能生成完成!`);
+        console.log(`   API调用: ${results.apiCalls} | 发布: ${results.published} | 失败: ${results.failed}`);
+        console.log(`   总耗时: ${duration}s`);
+
+        res.json({
+            success: true,
+            date: beijingDate,
+            message: `智能生成完成: 新增 ${results.published} 条内容`,
+            totalToday: parseInt(finalCount[0].count),
+            duration: `${duration}s`,
+            costEfficiency: results.apiCalls > 0 ? `${((results.published / results.apiCalls) * 100).toFixed(0)}%` : 'N/A',
+            results
+        });
+
+    } catch (error) {
+        console.error('❌ 智能生成失败:', error);
+        res.status(500).json({ success: false, error: error.message, results });
+    }
+});
+
 module.exports = router;
 
