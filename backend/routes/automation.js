@@ -125,6 +125,59 @@ function calculatePriority(video) {
 }
 
 /**
+ * POST /api/automation/add-video
+ * 手动添加视频到采集队列
+ */
+router.post('/add-video', async (req, res) => {
+    try {
+        const { videoId, title, channelTitle, duration, publishedAt } = req.body;
+
+        if (!videoId) {
+            return res.status(400).json({ success: false, error: 'videoId is required' });
+        }
+
+        // 检查是否已存在
+        const existing = await pool.query(
+            'SELECT id, analyzed FROM collection_log WHERE video_id = $1',
+            [videoId]
+        );
+
+        if (existing.rows.length > 0) {
+            // 重置分析状态
+            await pool.query(
+                'UPDATE collection_log SET analyzed = false WHERE video_id = $1',
+                [videoId]
+            );
+            return res.json({ success: true, action: 'reset', message: '视频已重置为待分析状态' });
+        }
+
+        // 插入新记录
+        await pool.query(`
+            INSERT INTO collection_log (source_id, video_id, video_title, duration, published_at, analyzed)
+            VALUES (1, $1, $2, $3, $4, false)
+        `, [videoId, title || 'Unknown', duration || 'PT0S', publishedAt || new Date().toISOString()]);
+
+        res.json({ success: true, action: 'added', message: '视频已添加到采集队列' });
+    } catch (error) {
+        console.error('Add video error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/automation/reset-all
+ * 重置所有视频为待分析状态
+ */
+router.post('/reset-all', async (req, res) => {
+    try {
+        const result = await pool.query('UPDATE collection_log SET analyzed = false');
+        res.json({ success: true, message: `已重置 ${result.rowCount} 个视频为待分析状态` });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
  * POST /api/automation/generate-daily
  * 自动生成每日内容
  * 
