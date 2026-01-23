@@ -1,8 +1,8 @@
 # Railway Nixpacks 配置
-# 直接使用 nixpkgs 的 yt-dlp 包
+# 添加 yt-dlp 用于获取 YouTube 字幕
 
 [phases.setup]
-nixPkgs = ["yt-dlp", "ffmpeg-headless"]
+nixPkgs = ["nodejs_20", "yt-dlp", "ffmpeg-headless"]
 
 [phases.install]
 cmds = ["npm ci"]
