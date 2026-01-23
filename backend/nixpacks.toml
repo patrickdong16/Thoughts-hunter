@@ -5,7 +5,7 @@
 nixPkgs = ["nodejs_20", "yt-dlp", "ffmpeg-headless"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm install"]
 
 [start]
 cmd = "npm start"
