@@ -192,14 +192,47 @@ const analyzeTranscript = async (transcript, metadata = {}) => {
 
         const responseText = message.content[0].text;
 
-        // 解析JSON响应
+        // 解析JSON响应（增强版：带错误恢复）
         const jsonMatch = responseText.match(/\[[\s\S]*\]/);
         if (!jsonMatch) {
             console.warn('Claude响应中未找到JSON数组');
             return { items: [], analyzed: true, rawResponse: responseText };
         }
 
-        const items = JSON.parse(jsonMatch[0]);
+        let items;
+        try {
+            items = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+            // 尝试修复常见JSON问题
+            console.warn('JSON解析失败，尝试修复...');
+            let fixedJson = jsonMatch[0]
+                // 修复尾随逗号
+                .replace(/,\s*]/g, ']')
+                .replace(/,\s*}/g, '}')
+                // 修复未转义的换行符在字符串中
+                .replace(/(?<!\\)\n(?=[^"]*"[^"]*$)/g, '\\n')
+                // 修复单引号
+                .replace(/'/g, '"');
+
+            try {
+                items = JSON.parse(fixedJson);
+                console.log('JSON修复成功');
+            } catch (secondError) {
+                console.error('JSON修复失败:', secondError.message);
+                // 最后尝试：提取单个对象
+                const singleMatch = responseText.match(/\{[\s\S]*?"freq"[\s\S]*?"content"[\s\S]*?\}/);
+                if (singleMatch) {
+                    try {
+                        items = [JSON.parse(singleMatch[0])];
+                        console.log('成功提取单个条目');
+                    } catch {
+                        throw parseError;
+                    }
+                } else {
+                    throw parseError;
+                }
+            }
+        }
 
         // 验证每个item的结构 - 生成标准：700字符
         const validItems = items.filter(item => {
