@@ -17,8 +17,8 @@ RUN apt-get update && apt-get install -y \
 # 复制 package 文件
 COPY package*.json ./
 
-# 安装 npm 依赖（不使用缓存挂载）
-RUN npm ci --omit=dev
+# 安装 npm 依赖
+RUN npm install --omit=dev
 
 # 复制应用代码
 COPY . .
