@@ -8,6 +8,7 @@ import {
     RefreshControl,
     ActivityIndicator,
     StatusBar,
+    ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import RadarCard from '../components/RadarCard';
@@ -97,18 +98,62 @@ export default function TodayScreen() {
     const renderThemeBanner = () => {
         if (!themeDay) return null;
 
+        // 获取今日内容的作者列表（从 items 中提取）
+        const todayAuthors = items.map(item => item.author_name).filter(Boolean);
+
+        // 获取主题日重点人物（如果有）
+        const keyFigures = themeDay.focus?.keyFigures || [];
+        // 标记今日已有内容的重点人物
+        const displayFigures = keyFigures.slice(0, 8).map(name => ({
+            name,
+            hasContent: todayAuthors.includes(name)
+        }));
+
         return (
             <View style={styles.themeBanner}>
-                <View style={styles.themeBannerContent}>
-                    <Text style={styles.themeBannerIcon}>🎯</Text>
-                    <View style={styles.themeBannerText}>
-                        <Text style={styles.themeBannerTitle}>{themeDay.event}</Text>
-                        <Text style={styles.themeBannerSubtitle}>{themeDay.eventEn}</Text>
-                    </View>
+                {/* 主标题区 */}
+                <View style={styles.themeBannerHeader}>
+                    <Text style={styles.themeBannerBadge}>🔥 主题日</Text>
+                    <Text style={styles.themeBannerTitle}>{themeDay.event}</Text>
+                    <Text style={styles.themeBannerSubtitle}>{themeDay.eventEn}</Text>
                 </View>
+
+                {/* 关键发言人 */}
+                {displayFigures.length > 0 && (
+                    <View style={styles.keyFiguresSection}>
+                        <Text style={styles.keyFiguresLabel}>📌 重点关注</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.keyFiguresScroll}
+                        >
+                            {displayFigures.map((figure, index) => (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.keyFigureChip,
+                                        figure.hasContent && styles.keyFigureChipActive
+                                    ]}
+                                >
+                                    <Text style={[
+                                        styles.keyFigureText,
+                                        figure.hasContent && styles.keyFigureTextActive
+                                    ]}>
+                                        {figure.name}
+                                    </Text>
+                                    {figure.hasContent && (
+                                        <Text style={styles.keyFigureCheck}>✓</Text>
+                                    )}
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
+
+                {/* 焦点说明 */}
                 {themeDay.focus?.direction && (
                     <Text style={styles.themeBannerFocus} numberOfLines={2}>
-                        {themeDay.focus.direction}
+                        💡 {themeDay.focus.direction}
                     </Text>
                 )}
             </View>
@@ -253,36 +298,77 @@ const styles = StyleSheet.create({
     themeBanner: {
         backgroundColor: '#1a1a2e',
         paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
+        paddingVertical: Spacing.lg,
+        borderBottomWidth: 2,
+        borderBottomColor: '#FFD700',
     },
-    themeBannerContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    themeBannerHeader: {
+        marginBottom: Spacing.md,
     },
-    themeBannerIcon: {
-        fontSize: 24,
-        marginRight: Spacing.md,
-    },
-    themeBannerText: {
-        flex: 1,
+    themeBannerBadge: {
+        fontSize: Typography.sizes.xs,
+        color: '#FF6B6B',
+        fontWeight: Typography.weights.bold,
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     themeBannerTitle: {
-        fontSize: Typography.sizes.lg,
+        fontSize: Typography.sizes.xl,
         fontWeight: Typography.weights.bold,
         color: '#FFD700',
     },
     themeBannerSubtitle: {
+        fontSize: Typography.sizes.sm,
+        color: '#888',
+        marginTop: 2,
+    },
+    keyFiguresSection: {
+        marginTop: Spacing.sm,
+    },
+    keyFiguresLabel: {
         fontSize: Typography.sizes.xs,
         color: Colors.textMuted,
-        marginTop: 2,
+        marginBottom: Spacing.xs,
+    },
+    keyFiguresScroll: {
+        marginHorizontal: -Spacing.lg,
+        paddingHorizontal: Spacing.lg,
+    },
+    keyFigureChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xs,
+        borderRadius: 16,
+        marginRight: Spacing.sm,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    keyFigureChipActive: {
+        backgroundColor: 'rgba(76, 175, 80, 0.2)',
+        borderColor: '#4CAF50',
+    },
+    keyFigureText: {
+        fontSize: Typography.sizes.xs,
+        color: Colors.textMuted,
+    },
+    keyFigureTextActive: {
+        color: '#4CAF50',
+        fontWeight: Typography.weights.medium,
+    },
+    keyFigureCheck: {
+        fontSize: 10,
+        color: '#4CAF50',
+        marginLeft: 4,
     },
     themeBannerFocus: {
         fontSize: Typography.sizes.sm,
         color: Colors.textSecondary,
-        marginTop: Spacing.sm,
+        marginTop: Spacing.md,
         fontStyle: 'italic',
+        lineHeight: 20,
     },
     filtersContainer: {
         borderBottomWidth: 1,
