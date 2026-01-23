@@ -99,42 +99,84 @@ const getChannelLatestVideos = async (channelId, maxResults = MAX_RESULTS) => {
 };
 
 /**
- * 使用 youtube-transcript 库提取视频字幕（纯 JavaScript, 无需 yt-dlp）
+ * 使用 yt-dlp 提取视频字幕（优先），youtube-transcript 作为 fallback
  * @param {string} videoId - YouTube视频ID
  * @returns {Promise<string>} 字幕文本
  */
 const getVideoTranscript = async (videoId) => {
-    try {
-        console.log(`[Transcript] 获取视频字幕: ${videoId}`);
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const fs = require('fs');
+    const execAsync = promisify(exec);
 
-        // 使用 youtube-transcript 库获取字幕
-        // 该库会自动获取可用的字幕（优先手动上传的，其次自动生成的）
+    console.log(`[Transcript] 获取视频字幕: ${videoId}`);
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+    // 方法1: 尝试使用 yt-dlp（更可靠）
+    try {
+        console.log('[Transcript] 尝试 yt-dlp 获取字幕...');
+
+        // 下载自动生成的英文字幕
+        const outputPath = `/tmp/subtitle_${videoId}`;
+        const command = `yt-dlp --write-auto-sub --sub-lang en --skip-download --sub-format json3 -o "${outputPath}" "${videoUrl}" 2>&1`;
+
+        await execAsync(command, { timeout: 60000 });
+
+        // 读取字幕文件
+        const subtitleFile = `${outputPath}.en.json3`;
+        if (fs.existsSync(subtitleFile)) {
+            const subtitleData = JSON.parse(fs.readFileSync(subtitleFile, 'utf-8'));
+
+            // 从 json3 格式提取文本
+            let text = '';
+            if (subtitleData.events) {
+                for (const event of subtitleData.events) {
+                    if (event.segs) {
+                        for (const seg of event.segs) {
+                            if (seg.utf8 && seg.utf8.trim() !== '') {
+                                text += seg.utf8;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 清理临时文件
+            try { fs.unlinkSync(subtitleFile); } catch (e) { }
+
+            if (text.length > 100) {
+                console.log(`[Transcript] yt-dlp 成功获取字幕，长度: ${text.length} 字符`);
+                return cleanTranscript(text);
+            }
+        }
+        console.log('[Transcript] yt-dlp 未找到字幕文件');
+    } catch (ytdlpError) {
+        console.log(`[Transcript] yt-dlp 失败: ${ytdlpError.message}`);
+    }
+
+    // 方法2: fallback 到 youtube-transcript npm 包
+    try {
+        console.log('[Transcript] 尝试 youtube-transcript 库...');
         const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId, {
-            lang: 'en'  // 优先英文
-        }).catch(async (err) => {
-            // 如果英文失败，尝试中文
-            console.log(`[Transcript] 英文字幕失败，尝试中文: ${err.message}`);
+            lang: 'en'
+        }).catch(async () => {
             return YoutubeTranscript.fetchTranscript(videoId, {
                 lang: 'zh-Hans'
             }).catch(() => {
-                // 再尝试默认语言
                 return YoutubeTranscript.fetchTranscript(videoId);
             });
         });
 
-        if (!transcriptItems || transcriptItems.length === 0) {
-            throw new Error('未找到可用字幕');
+        if (transcriptItems && transcriptItems.length > 0) {
+            const transcript = transcriptItems.map(item => item.text).join(' ');
+            console.log(`[Transcript] youtube-transcript 成功，长度: ${transcript.length} 字符`);
+            return cleanTranscript(transcript);
         }
-
-        // 将字幕片段合并为完整文本
-        const transcript = transcriptItems.map(item => item.text).join(' ');
-
-        console.log(`[Transcript] 成功获取字幕，长度: ${transcript.length} 字符`);
-        return cleanTranscript(transcript);
-    } catch (error) {
-        console.error('[Transcript] 提取字幕失败:', error.message);
-        throw error;
+    } catch (ytError) {
+        console.log(`[Transcript] youtube-transcript 失败: ${ytError.message}`);
     }
+
+    throw new Error('所有字幕获取方法均失败');
 };
 
 /**

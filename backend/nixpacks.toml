@@ -1,0 +1,14 @@
+# Railway 部署配置
+# 安装 Python 和 yt-dlp 用于获取 YouTube 字幕
+
+[phases.setup]
+nixPkgs = ["python312", "ffmpeg"]
+
+[phases.install]
+cmds = [
+    "pip install yt-dlp",
+    "npm ci"
+]
+
+[start]
+cmd = "npm start"
