@@ -498,12 +498,7 @@ router.post('/batch-publish', async (req, res) => {
             if (!items || items.length === 0) continue;
 
             for (const item of items) {
-                // 跳过已存在的频段
-                if (usedFreqs.has(item.freq)) {
-                    console.log(`⏭️ 跳过 [${item.freq}] ${item.title?.substring(0, 25)}... (频段已存在)`);
-                    results.skipped++;
-                    continue;
-                }
+                // 主题日允许同频段多条内容
 
                 try {
                     const insertResult = await pool.query(`
@@ -513,7 +508,6 @@ router.post('/batch-publish', async (req, res) => {
                             source, content, 
                             tension_q, tension_a, tension_b, keywords
                         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-                        ON CONFLICT (date, freq) DO NOTHING
                         RETURNING id, freq, title
                     `, [
                         item.date || beijingDate,
@@ -733,12 +727,8 @@ router.post('/smart-generate', async (req, res) => {
                         continue;
                     }
 
-                    // 频段冲突检查
-                    if (usedFreqs.has(item.freq)) {
-                        console.log(`⏭️ 频段冲突 [${item.freq}]: 已存在`);
-                        results.skipped++;
-                        continue;
-                    }
+                    // 主题日允许同频段多条内容，不做冲突检查
+                    // 普通日的频段平衡由应用层规则控制
 
                     // 发布到 radar_items
                     try {
@@ -749,7 +739,6 @@ router.post('/smart-generate', async (req, res) => {
                                 source, content, 
                                 tension_q, tension_a, tension_b, keywords
                             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-                            ON CONFLICT (date, freq) DO NOTHING
                             RETURNING id, freq, title
                         `, [
                             item.date || beijingDate,
