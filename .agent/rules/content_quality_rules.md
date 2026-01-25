@@ -70,3 +70,24 @@ if (content.length < 500) {
 - [ ] 每篇正文 ≥ 500字
 - [ ] 每篇包含完整张力问题
 - [ ] 每篇作者信息完整
+
+---
+
+## 自动化规则强制执行
+
+### 已实现的检查机制 (v2.0)
+
+| 检查项 | 普通日 | 主题日 | 实现位置 |
+|--------|--------|--------|----------|
+| **重复标题** | ✅ 阻止 | ✅ 阻止 | batch-publish, smart-generate, backfill-date |
+| **maxPerFreq** | ✅ 1条/频段 | ❌ 不限制 | 同上 |
+| **maxItems** | ✅ 8条上限 | ✅ 30条上限 | batch-publish, smart-generate |
+| **内容长度** | ✅ ≥300字符 | ✅ ≥300字符 | 所有端点 |
+
+### 关键实现细节
+
+1. **重复判断**: `date + title` 的组合唯一
+2. **正日期判断**: 使用 `Asia/Shanghai` 时区计算北京日期
+3. **主题日识别**: 通过 `day-config.json` 中的 `themeDays` 数组
+4. **配置来源**: `day-rules.js` 的 `getRulesForDate()` 函数
+
