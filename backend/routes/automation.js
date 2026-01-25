@@ -520,6 +520,21 @@ router.post('/batch-publish', async (req, res) => {
                     continue;
                 }
 
+                // maxPerFreq 检查 (普通日每频段限1条)
+                const dayRules = getRulesForDate(itemDate);
+                if (!dayRules.isThemeDay) {
+                    const maxPerFreq = dayRules.rules?.maxPerFreq || 1;
+                    const { rows: freqCount } = await pool.query(
+                        `SELECT COUNT(*) as count FROM radar_items WHERE date = $1 AND freq = $2`,
+                        [itemDate, item.freq]
+                    );
+                    if (parseInt(freqCount[0].count) >= maxPerFreq) {
+                        console.log(`⏭️ 跳过频段已满: [${item.freq}] 已有${freqCount[0].count}条`);
+                        results.skipped++;
+                        continue;
+                    }
+                }
+
                 try {
                     const insertResult = await pool.query(`
                         INSERT INTO radar_items (
@@ -747,8 +762,29 @@ router.post('/smart-generate', async (req, res) => {
                         continue;
                     }
 
-                    // 主题日允许同频段多条内容，不做冲突检查
-                    // 普通日的频段平衡由应用层规则控制
+                    // 防止重复: 检查同日期+标题是否已存在
+                    const itemDate = item.date || beijingDate;
+                    const { rows: existingItem } = await pool.query(
+                        `SELECT id FROM radar_items WHERE date = $1 AND title = $2`,
+                        [itemDate, item.title]
+                    );
+                    if (existingItem.length > 0) {
+                        console.log(`⏭️ 跳过重复标题: [${item.freq}] ${item.title?.substring(0, 25)}...`);
+                        continue;
+                    }
+
+                    // maxPerFreq 检查 (普通日每频段限1条)
+                    if (!dayRules.isThemeDay) {
+                        const maxPerFreq = dayRules.rules?.maxPerFreq || 1;
+                        const { rows: freqCount } = await pool.query(
+                            `SELECT COUNT(*) as count FROM radar_items WHERE date = $1 AND freq = $2`,
+                            [itemDate, item.freq]
+                        );
+                        if (parseInt(freqCount[0].count) >= maxPerFreq) {
+                            console.log(`⏭️ 跳过频段已满: [${item.freq}] 已有${freqCount[0].count}条 (限${maxPerFreq}条)`);
+                            continue;
+                        }
+                    }
 
                     // 发布到 radar_items
                     try {
@@ -1085,6 +1121,21 @@ router.post('/backfill-date', async (req, res) => {
                     console.log(`⏭️ 跳过重复: [${item.freq}] ${item.title?.substring(0, 25)}...`);
                     results.skipped++;
                     continue;
+                }
+
+                // maxPerFreq 检查 (普通日每频段限1条)
+                const dayRules = getRulesForDate(targetDate);
+                if (!dayRules.isThemeDay) {
+                    const maxPerFreq = dayRules.rules?.maxPerFreq || 1;
+                    const { rows: freqCount } = await pool.query(
+                        `SELECT COUNT(*) as count FROM radar_items WHERE date = $1 AND freq = $2`,
+                        [targetDate, item.freq]
+                    );
+                    if (parseInt(freqCount[0].count) >= maxPerFreq) {
+                        console.log(`⏭️ 跳过频段已满: [${item.freq}] 已有${freqCount[0].count}条`);
+                        results.skipped++;
+                        continue;
+                    }
                 }
 
                 try {
