@@ -11,6 +11,7 @@ const pool = require('../config/database');
 const automationConfig = require('../config/automation');
 const aiAnalyzer = require('../services/ai-analyzer');
 const contentCollector = require('../services/content-collector');
+const contentValidator = require('../services/content-validator');
 const { getRulesForDate } = require('../config/day-rules');
 
 /**
@@ -498,7 +499,14 @@ router.post('/batch-publish', async (req, res) => {
             if (!items || items.length === 0) continue;
 
             for (const item of items) {
-                // 主题日允许同频段多条内容
+                // 质量验证 - 发布前必须通过
+                const validation = contentValidator.validateItem(item);
+                if (validation.blocked) {
+                    console.log(`❌ 质量验证失败 [${item.freq}] ${item.title?.substring(0, 20)}...`);
+                    validation.errors.forEach(e => console.log(`   - ${e.description}: ${e.message}`));
+                    results.skipped++;
+                    continue;
+                }
 
                 try {
                     const insertResult = await pool.query(`
@@ -828,6 +836,291 @@ router.post('/smart-generate', async (req, res) => {
 
     } catch (error) {
         console.error('❌ 智能生成失败:', error);
+        res.status(500).json({ success: false, error: error.message, results });
+    }
+});
+
+/**
+ * POST /api/automation/validate-draft/:id
+ * 验证单个草稿内容是否符合质量规则
+ */
+router.post('/validate-draft/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const { rows } = await pool.query(
+            `SELECT * FROM drafts WHERE id = $1`,
+            [id]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, error: '草稿不存在' });
+        }
+
+        const draft = rows[0];
+        let items = draft.generated_items;
+        if (typeof items === 'string') {
+            items = JSON.parse(items);
+        }
+
+        if (!items || items.length === 0) {
+            return res.json({
+                success: true,
+                draftId: id,
+                validation: {
+                    passed: false,
+                    reason: '草稿无生成内容'
+                }
+            });
+        }
+
+        const batchResult = contentValidator.validateBatch(items);
+
+        res.json({
+            success: true,
+            draftId: id,
+            validation: batchResult
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/automation/validate-batch
+ * 批量验证草稿
+ */
+router.post('/validate-batch', async (req, res) => {
+    const { status = 'approved', limit = 50 } = req.body;
+
+    try {
+        const { rows: drafts } = await pool.query(`
+            SELECT d.*, cs.name as source_name
+            FROM drafts d
+            LEFT JOIN content_sources cs ON d.source_id = cs.id
+            WHERE d.status = $1
+            AND d.generated_items IS NOT NULL
+            AND jsonb_array_length(d.generated_items) > 0
+            ORDER BY d.created_at DESC
+            LIMIT $2
+        `, [status, limit]);
+
+        const results = {
+            total: drafts.length,
+            passed: 0,
+            blocked: 0,
+            warned: 0,
+            drafts: []
+        };
+
+        for (const draft of drafts) {
+            let items = draft.generated_items;
+            if (typeof items === 'string') {
+                items = JSON.parse(items);
+            }
+
+            const validation = contentValidator.validateBatch(items);
+
+            results.drafts.push({
+                id: draft.id,
+                source: draft.source_name,
+                itemCount: items.length,
+                validation: {
+                    passed: validation.passed,
+                    blocked: validation.blocked,
+                    warned: validation.warned
+                }
+            });
+
+            if (validation.blocked > 0) {
+                results.blocked++;
+            } else if (validation.warned > 0) {
+                results.warned++;
+            } else {
+                results.passed++;
+            }
+        }
+
+        res.json({ success: true, results });
+
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/automation/validation-report
+ * 获取今日内容验证报告
+ */
+router.get('/validation-report', async (req, res) => {
+    try {
+        const beijingDate = new Date().toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Shanghai'
+        });
+
+        const { rows: items } = await pool.query(`
+            SELECT * FROM radar_items WHERE date = $1
+        `, [beijingDate]);
+
+        // 验证所有已发布内容
+        const validation = contentValidator.validateBatch(items);
+
+        // 统计违规模式
+        const violationStats = {};
+        for (const item of validation.items) {
+            for (const err of item.errors) {
+                const key = err.check;
+                violationStats[key] = (violationStats[key] || 0) + 1;
+            }
+        }
+
+        res.json({
+            success: true,
+            date: beijingDate,
+            totalItems: items.length,
+            validation: {
+                passed: validation.passed,
+                blocked: validation.blocked,
+                warned: validation.warned
+            },
+            violationStats,
+            details: validation.items.filter(i => !i.passed).slice(0, 10)
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/automation/backfill-date
+ * 补充历史日期内容
+ * Backfill content for a specific historical date from approved drafts
+ */
+router.post('/backfill-date', async (req, res) => {
+    const { targetDate, limit = 10 } = req.body;
+
+    if (!targetDate) {
+        return res.status(400).json({ success: false, error: 'targetDate is required (format: YYYY-MM-DD)' });
+    }
+
+    const results = {
+        processed: 0,
+        published: 0,
+        skipped: 0,
+        errors: []
+    };
+
+    try {
+        console.log(`🚀 补充历史日期内容: ${targetDate}`);
+
+        // 获取该日期已存在的频段
+        const { rows: existingFreqs } = await pool.query(
+            `SELECT freq FROM radar_items WHERE date = $1`,
+            [targetDate]
+        );
+        const usedFreqs = new Set(existingFreqs.map(r => r.freq));
+        console.log(`📊 ${targetDate} 已存在频段: ${[...usedFreqs].join(', ') || '无'}`);
+
+        // 获取已批准的草稿内容
+        const { rows: drafts } = await pool.query(`
+            SELECT d.*, cs.name as source_name
+            FROM drafts d
+            LEFT JOIN content_sources cs ON d.source_id = cs.id
+            WHERE d.status = 'approved'
+            AND d.generated_items IS NOT NULL
+            AND jsonb_array_length(d.generated_items) > 0
+            ORDER BY d.created_at DESC
+            LIMIT $1
+        `, [parseInt(limit) * 3]);
+
+        console.log(`📝 找到 ${drafts.length} 个已批准草稿`);
+
+        for (const draft of drafts) {
+            if (results.published >= parseInt(limit)) break;
+
+            results.processed++;
+            let items = draft.generated_items;
+            if (typeof items === 'string') {
+                try {
+                    items = JSON.parse(items);
+                } catch (e) {
+                    continue;
+                }
+            }
+
+            if (!items || items.length === 0) continue;
+
+            for (const item of items) {
+                if (results.published >= parseInt(limit)) break;
+
+                // 跳过已使用的频段
+                if (usedFreqs.has(item.freq)) continue;
+
+                // 质量检查
+                if (!item.content || item.content.length < 300) {
+                    results.skipped++;
+                    continue;
+                }
+
+                try {
+                    const insertResult = await pool.query(`
+                        INSERT INTO radar_items (
+                            date, freq, stance, title, 
+                            author_name, author_avatar, author_bio,
+                            source, content, 
+                            tension_q, tension_a, tension_b, keywords
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                        RETURNING id, freq, title
+                    `, [
+                        targetDate,
+                        item.freq,
+                        item.stance || 'A',
+                        item.title,
+                        item.author_name,
+                        item.author_avatar || item.author_name?.substring(0, 2) || 'XX',
+                        item.author_bio || '',
+                        item.source || '',
+                        item.content,
+                        item.tension_q || '',
+                        item.tension_a || '',
+                        item.tension_b || '',
+                        item.keywords || []
+                    ]);
+
+                    if (insertResult.rows.length > 0) {
+                        const inserted = insertResult.rows[0];
+                        console.log(`✅ [${inserted.freq}] ${inserted.title?.substring(0, 30)}...`);
+                        usedFreqs.add(item.freq);
+                        results.published++;
+                    }
+                } catch (insertError) {
+                    if (!insertError.message.includes('duplicate')) {
+                        results.errors.push(`[${item.freq}]: ${insertError.message}`);
+                    }
+                }
+            }
+        }
+
+        // 获取最终统计
+        const { rows: finalCount } = await pool.query(
+            `SELECT COUNT(*) as count FROM radar_items WHERE date = $1`,
+            [targetDate]
+        );
+
+        console.log(`\n🏁 完成! 处理:${results.processed} 发布:${results.published} 跳过:${results.skipped}`);
+
+        res.json({
+            success: true,
+            date: targetDate,
+            message: `历史日期补充完成: 新增 ${results.published} 条内容`,
+            totalForDate: parseInt(finalCount[0].count),
+            results
+        });
+
+    } catch (error) {
+        console.error('❌ 历史日期补充失败:', error);
         res.status(500).json({ success: false, error: error.message, results });
     }
 });
