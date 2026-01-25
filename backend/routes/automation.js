@@ -468,6 +468,26 @@ router.post('/batch-publish', async (req, res) => {
         const usedFreqs = new Set(existingFreqs.map(r => r.freq));
         console.log(`📊 已存在频段: ${[...usedFreqs].join(', ') || '无'}`);
 
+        // maxItems 检查 - 避免超过每日配额
+        const { rows: currentCount } = await pool.query(
+            `SELECT COUNT(*) as count FROM radar_items WHERE date = $1`,
+            [beijingDate]
+        );
+        const todayCount = parseInt(currentCount[0].count);
+        const dayRulesForToday = getRulesForDate(beijingDate);
+        const maxItems = dayRulesForToday.rules?.maxItems || 8;
+
+        if (todayCount >= maxItems) {
+            return res.json({
+                success: true,
+                date: beijingDate,
+                message: `已达到当日配额 (${todayCount}/${maxItems} 条)，无需批量发布`,
+                totalToday: todayCount,
+                results
+            });
+        }
+        console.log(`📊 当前${todayCount}条，配额${maxItems}条，可发布${maxItems - todayCount}条`);
+
         // 获取已批准但未实际发布的草稿
         let query = `
             SELECT d.*, cs.name as source_name
