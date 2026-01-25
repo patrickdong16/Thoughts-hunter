@@ -508,6 +508,18 @@ router.post('/batch-publish', async (req, res) => {
                     continue;
                 }
 
+                // 防止重复: 检查同日期+标题是否已存在
+                const itemDate = item.date || beijingDate;
+                const { rows: existingItem } = await pool.query(
+                    `SELECT id FROM radar_items WHERE date = $1 AND title = $2`,
+                    [itemDate, item.title]
+                );
+                if (existingItem.length > 0) {
+                    console.log(`⏭️ 跳过重复: [${item.freq}] ${item.title?.substring(0, 25)}...`);
+                    results.skipped++;
+                    continue;
+                }
+
                 try {
                     const insertResult = await pool.query(`
                         INSERT INTO radar_items (
@@ -1060,6 +1072,17 @@ router.post('/backfill-date', async (req, res) => {
 
                 // 质量检查
                 if (!item.content || item.content.length < 300) {
+                    results.skipped++;
+                    continue;
+                }
+
+                // 防止重复: 检查同日期+标题是否已存在
+                const { rows: existingItem } = await pool.query(
+                    `SELECT id FROM radar_items WHERE date = $1 AND title = $2`,
+                    [targetDate, item.title]
+                );
+                if (existingItem.length > 0) {
+                    console.log(`⏭️ 跳过重复: [${item.freq}] ${item.title?.substring(0, 25)}...`);
                     results.skipped++;
                     continue;
                 }
