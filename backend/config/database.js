@@ -30,9 +30,10 @@ if (process.env.DATABASE_URL) {
   });
 }
 
+// 处理连接池错误 - 不要退出进程，让连接池自动恢复
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  console.error('Database pool error (will attempt to recover):', err.message);
+  // 不再调用 process.exit(-1)，让连接池自动重新建立连接
 });
 
 module.exports = pool;
