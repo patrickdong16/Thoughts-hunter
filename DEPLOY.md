@@ -107,7 +107,7 @@ railway run npm run init-db
 
 #### 步骤7：获取后端URL
 - 在 "Settings" > "Domains" 中生成公开域名
-- 类似: `https://thoughts-radar-production.up.railway.app`
+- 当前生产环境: `https://thoughts-radar-backend-production.up.railway.app`
 - **记录这个URL** 用于CMS和APP配置
 
 ### 2. CMS部署到 Vercel
@@ -384,13 +384,13 @@ npm run build:cms
 
 ```bash
 # 健康检查
-curl https://your-backend.railway.app/health
+curl https://thoughts-radar-backend-production.up.railway.app/health
 
 # 应该返回:
 # {"success":true,"message":"Thoughts Radar API is running",...}
 
 # 测试API
-curl https://your-backend.railway.app/api/bands
+curl https://thoughts-radar-backend-production.up.railway.app/api/bands
 ```
 
 ### 2. CMS验证

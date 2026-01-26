@@ -9,6 +9,13 @@
 
 ## 🚀 快速开始
 
+**生产环境：**
+| 服务 | 平台 | URL |
+|------|------|-----|
+| 后端 API | Railway | `https://thoughts-radar-backend-production.up.railway.app` |
+| 海外前端 | Vercel | `https://thoughts-hunter.vercel.app` |
+| 大陆前端 | CloudBase | `https://thoughts-rador26-2f3u8ht52110fab.tcloudbaseapp.com` |
+
 **本地开发：**
 - 📖 [本地启动指南](LOCAL_SETUP.md)
 - ⚡ [快速命令表](QUICK_COMMANDS.md)
