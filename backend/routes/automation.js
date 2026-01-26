@@ -1466,6 +1466,107 @@ router.post('/generate-daily-v2', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/automation/update-youtube-engagement
+ * 更新 YouTube 互动数据（观看量、点赞、评论）
+ */
+router.post('/update-youtube-engagement', async (req, res) => {
+    const startTime = Date.now();
+    const results = {
+        total: 0,
+        updated: 0,
+        failed: 0,
+        errors: []
+    };
+
+    try {
+        console.log('🎬 更新 YouTube 互动数据...');
+
+        // 引入 YouTube 互动服务
+        const { updateAllEngagement, getEngagementStats, getTopByViews } = require('../services/youtube-engagement');
+
+        // 执行更新
+        const updateResult = await updateAllEngagement();
+        results.total = updateResult.total;
+        results.updated = updateResult.updated;
+        results.failed = updateResult.failed;
+
+        // 获取统计
+        const stats = await getEngagementStats();
+
+        // 获取热度 Top 5
+        const topVideos = await getTopByViews(5);
+
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        res.json({
+            success: true,
+            message: `YouTube 互动数据更新完成`,
+            duration: `${duration}s`,
+            results,
+            stats: {
+                totalViews: stats.total_views,
+                avgViews: stats.avg_views,
+                totalLikes: stats.total_likes,
+                totalComments: stats.total_comments
+            },
+            topVideos: topVideos.map(v => ({
+                title: v.title?.substring(0, 50),
+                author: v.author_name,
+                views: v.yt_view_count,
+                likes: v.yt_like_count
+            }))
+        });
+
+    } catch (error) {
+        console.error('❌ YouTube 互动数据更新失败:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            results
+        });
+    }
+});
+
+/**
+ * GET /api/automation/youtube-engagement-stats
+ * 获取 YouTube 互动数据统计
+ */
+router.get('/youtube-engagement-stats', async (req, res) => {
+    try {
+        const { getEngagementStats, getTopByViews } = require('../services/youtube-engagement');
+
+        const stats = await getEngagementStats();
+        const topVideos = await getTopByViews(10);
+
+        res.json({
+            success: true,
+            stats: {
+                totalItems: stats.total_items,
+                withEngagement: stats.with_engagement,
+                totalViews: stats.total_views,
+                avgViews: stats.avg_views,
+                maxViews: stats.max_views,
+                totalLikes: stats.total_likes,
+                totalComments: stats.total_comments
+            },
+            topVideos: topVideos.map(v => ({
+                id: v.id,
+                title: v.title,
+                author: v.author_name,
+                freq: v.freq,
+                date: v.date,
+                views: v.yt_view_count,
+                likes: v.yt_like_count,
+                comments: v.yt_comment_count
+            }))
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
 
 
