@@ -4,16 +4,25 @@
 
 const Anthropic = require('@anthropic-ai/sdk');
 const pool = require('../config/database');
+const { withTimeout, withRetry, TIMEOUTS, RETRY_CONFIGS } = require('../utils/api-utils');
 
-// Claude API配置 - 优先使用环境变量，fallback到配置文件
+// Claude API配置 - 优先使用环境变量，fallback到配置文件（开发环境）
 const getApiKey = (key) => {
     if (process.env[key]) return process.env[key];
-    try {
-        const config = require('../config/api-keys.json');
-        return config[key];
-    } catch (e) {
-        return null;
+    // 开发环境 fallback
+    if (process.env.NODE_ENV !== 'production') {
+        try {
+            const config = require('../config/api-keys.json');
+            if (config[key]) {
+                console.warn(`⚠️ 使用本地配置文件中的 ${key}（仅限开发环境）`);
+                return config[key];
+            }
+        } catch (e) {
+            // 配置文件不存在，忽略
+        }
     }
+    console.warn(`⚠️ API Key ${key} 未在环境变量中配置`);
+    return null;
 };
 const CLAUDE_API_KEY = getApiKey('CLAUDE_API_KEY');
 
@@ -181,14 +190,21 @@ const analyzeTranscript = async (transcript, metadata = {}) => {
 
         console.log('调用Claude API进行分析...');
 
-        const message = await anthropic.messages.create({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 4096,
-            messages: [{
-                role: 'user',
-                content: prompt
-            }]
-        });
+        const message = await withRetry(
+            () => withTimeout(
+                anthropic.messages.create({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 4096,
+                    messages: [{
+                        role: 'user',
+                        content: prompt
+                    }]
+                }),
+                TIMEOUTS.CLAUDE_API,
+                'Claude API 请求超时'
+            ),
+            RETRY_CONFIGS.CLAUDE_API
+        );
 
         const responseText = message.content[0].text;
 
@@ -205,34 +221,75 @@ const analyzeTranscript = async (transcript, metadata = {}) => {
         } catch (parseError) {
             // 尝试修复常见JSON问题
             console.warn('JSON解析失败，尝试修复...');
+            console.warn('解析错误位置:', parseError.message);
+
             let fixedJson = jsonMatch[0]
                 // 修复尾随逗号
                 .replace(/,\s*]/g, ']')
                 .replace(/,\s*}/g, '}')
                 // 修复未转义的换行符在字符串中
-                .replace(/(?<!\\)\n(?=[^"]*"[^"]*$)/g, '\\n')
-                // 修复单引号
-                .replace(/'/g, '"');
+                .replace(/\n/g, '\\n')
+                .replace(/\r/g, '\\r')
+                .replace(/\t/g, '\\t')
+                // 修复未转义的引号
+                .replace(/(?<!\\)"/g, (match, offset, string) => {
+                    // 跳过已经是JSON结构的引号
+                    const before = string.substring(Math.max(0, offset - 1), offset);
+                    const after = string.substring(offset + 1, offset + 2);
+                    if (before === ':' || before === '[' || before === '{' || before === ',' ||
+                        after === ':' || after === ']' || after === '}' || after === ',') {
+                        return match;
+                    }
+                    return '\\"';
+                });
 
             try {
                 items = JSON.parse(fixedJson);
-                console.log('JSON修复成功');
+                console.log('JSON修复成功（方法1：转义修复）');
             } catch (secondError) {
-                console.error('JSON修复失败:', secondError.message);
-                // 最后尝试：提取单个对象
-                const singleMatch = responseText.match(/\{[\s\S]*?"freq"[\s\S]*?"content"[\s\S]*?\}/);
-                if (singleMatch) {
-                    try {
-                        items = [JSON.parse(singleMatch[0])];
-                        console.log('成功提取单个条目');
-                    } catch {
-                        throw parseError;
+                console.warn('方法1失败，尝试方法2...');
+
+                // 方法2：提取JSON块
+                try {
+                    // 找到第一个 [ 和最后一个 ]
+                    const startIdx = jsonMatch[0].indexOf('[');
+                    const endIdx = jsonMatch[0].lastIndexOf(']');
+                    if (startIdx !== -1 && endIdx !== -1) {
+                        const cleanJson = jsonMatch[0].substring(startIdx, endIdx + 1)
+                            .replace(/[\x00-\x1F\x7F]/g, ' '); // 移除控制字符
+                        items = JSON.parse(cleanJson);
+                        console.log('JSON修复成功（方法2：清理控制字符）');
+                    } else {
+                        throw secondError;
                     }
-                } else {
-                    throw parseError;
+                } catch (thirdError) {
+                    console.warn('方法2失败，尝试方法3...');
+
+                    // 方法3：提取单个对象
+                    const objectMatches = responseText.match(/\{\s*"freq"\s*:\s*"[^"]+"\s*,[\s\S]*?"content"\s*:\s*"[\s\S]*?"\s*\}/g);
+                    if (objectMatches && objectMatches.length > 0) {
+                        items = [];
+                        for (const objStr of objectMatches) {
+                            try {
+                                const obj = JSON.parse(objStr.replace(/\n/g, '\\n'));
+                                items.push(obj);
+                            } catch (e) {
+                                // 跳过解析失败的对象
+                            }
+                        }
+                        if (items.length > 0) {
+                            console.log(`JSON修复成功（方法3：提取 ${items.length} 个单独对象）`);
+                        } else {
+                            throw parseError;
+                        }
+                    } else {
+                        console.error('所有JSON修复方法均失败');
+                        return { items: [], analyzed: true, parseError: parseError.message };
+                    }
                 }
             }
         }
+
 
         // 验证每个item的结构 - 生成标准：700字符
         const validItems = items.filter(item => {
@@ -274,25 +331,94 @@ const analyzeMetadata = async (metadata = {}) => {
 
         console.log('调用Claude API进行元数据分析...');
 
-        const message = await anthropic.messages.create({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 4096,
-            messages: [{
-                role: 'user',
-                content: prompt
-            }]
-        });
+        const message = await withRetry(
+            () => withTimeout(
+                anthropic.messages.create({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 4096,
+                    messages: [{
+                        role: 'user',
+                        content: prompt
+                    }]
+                }),
+                TIMEOUTS.CLAUDE_API,
+                'Claude API 元数据分析请求超时'
+            ),
+            RETRY_CONFIGS.CLAUDE_API
+        );
 
         const responseText = message.content[0].text;
 
-        // 解析JSON响应
+        // 解析JSON响应（增强版：带错误恢复，与 analyzeTranscript 一致）
         const jsonMatch = responseText.match(/\[[\s\S]*\]/);
         if (!jsonMatch) {
             console.warn('Claude响应中未找到JSON数组');
             return { items: [], analyzed: true, rawResponse: responseText };
         }
 
-        const items = JSON.parse(jsonMatch[0]);
+        let items;
+        try {
+            items = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+            // 尝试修复常见JSON问题（三层修复协议）
+            console.warn('元数据JSON解析失败，尝试修复...');
+            console.warn('解析错误位置:', parseError.message);
+
+            let fixedJson = jsonMatch[0]
+                // 修复尾随逗号
+                .replace(/,\s*]/g, ']')
+                .replace(/,\s*}/g, '}')
+                // 修复未转义的换行符在字符串中
+                .replace(/\n/g, '\\n')
+                .replace(/\r/g, '\\r')
+                .replace(/\t/g, '\\t');
+
+            try {
+                items = JSON.parse(fixedJson);
+                console.log('元数据JSON修复成功（方法1：转义修复）');
+            } catch (secondError) {
+                console.warn('方法1失败，尝试方法2...');
+
+                // 方法2：清理控制字符
+                try {
+                    const startIdx = jsonMatch[0].indexOf('[');
+                    const endIdx = jsonMatch[0].lastIndexOf(']');
+                    if (startIdx !== -1 && endIdx !== -1) {
+                        const cleanJson = jsonMatch[0].substring(startIdx, endIdx + 1)
+                            .replace(/[\x00-\x1F\x7F]/g, ' '); // 移除控制字符
+                        items = JSON.parse(cleanJson);
+                        console.log('元数据JSON修复成功（方法2：清理控制字符）');
+                    } else {
+                        throw secondError;
+                    }
+                } catch (thirdError) {
+                    console.warn('方法2失败，尝试方法3...');
+
+                    // 方法3：提取单个对象
+                    const objectMatches = responseText.match(/\{\s*"freq"\s*:\s*"[^"]+"\s*,[\s\S]*?"content"\s*:\s*"[\s\S]*?"\s*\}/g);
+                    if (objectMatches && objectMatches.length > 0) {
+                        items = [];
+                        for (const objStr of objectMatches) {
+                            try {
+                                const obj = JSON.parse(objStr.replace(/\n/g, '\\n'));
+                                items.push(obj);
+                            } catch (e) {
+                                // 跳过解析失败的对象
+                            }
+                        }
+                        if (items.length > 0) {
+                            console.log(`元数据JSON修复成功（方法3：提取 ${items.length} 个单独对象）`);
+                        } else {
+                            console.error('所有JSON修复方法均失败');
+                            return { items: [], analyzed: true, parseError: parseError.message };
+                        }
+                    } else {
+                        console.error('所有JSON修复方法均失败');
+                        return { items: [], analyzed: true, parseError: parseError.message };
+                    }
+                }
+            }
+        }
 
         // 验证每个item的结构 - 元数据模式要求较低：400字符
         const validItems = items.filter(item => {
@@ -452,6 +578,7 @@ const createDraftFromVideo = async (videoId, sourceId) => {
 
 module.exports = {
     analyzeTranscript,
+    analyzeMetadata,
     generateRadarItem,
     createDraftFromVideo,
     BAND_DEFINITIONS

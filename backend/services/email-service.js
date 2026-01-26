@@ -5,6 +5,7 @@
  */
 
 const reportConfig = require('../config/report-config.json');
+const { withTimeout, withRetry, TIMEOUTS, RETRY_CONFIGS } = require('../utils/api-utils');
 
 // 检测是否有 SendGrid API Key
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
@@ -44,7 +45,14 @@ async function sendViaSendGrid(subject, html) {
             html
         };
 
-        await sgMail.send(msg);
+        await withRetry(
+            () => withTimeout(
+                sgMail.send(msg),
+                TIMEOUTS.EMAIL,
+                'SendGrid 邮件发送请求超时'
+            ),
+            RETRY_CONFIGS.EMAIL
+        );
 
         console.log(`✅ Report email sent to ${reportConfig.email.recipient}`);
         return {

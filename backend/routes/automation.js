@@ -13,6 +13,7 @@ const aiAnalyzer = require('../services/ai-analyzer');
 const contentCollector = require('../services/content-collector');
 const contentValidator = require('../services/content-validator');
 const { getRulesForDate } = require('../config/day-rules');
+const { notifyFailure } = require('../utils/api-utils');
 
 /**
  * 解析 ISO 8601 时长字符串为分钟数
@@ -378,6 +379,15 @@ router.post('/generate-daily', async (req, res) => {
 
     } catch (error) {
         console.error('❌ 自动生成失败:', error);
+
+        // 发送失败通知
+        const beijingDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
+        await notifyFailure('automation', {
+            endpoint: 'generate-daily',
+            errors: [error.message, ...results.errors],
+            date: beijingDate
+        });
+
         res.status(500).json({
             success: false,
             error: error.message,
@@ -904,6 +914,15 @@ router.post('/smart-generate', async (req, res) => {
 
     } catch (error) {
         console.error('❌ 智能生成失败:', error);
+
+        // 发送失败通知
+        const beijingDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
+        await notifyFailure('automation', {
+            endpoint: 'smart-generate',
+            errors: [error.message, ...results.errors],
+            date: beijingDate
+        });
+
         res.status(500).json({ success: false, error: error.message, results });
     }
 });
@@ -1216,6 +1235,116 @@ router.post('/backfill-date', async (req, res) => {
     } catch (error) {
         console.error('❌ 历史日期补充失败:', error);
         res.status(500).json({ success: false, error: error.message, results });
+    }
+});
+
+// ============================================================
+// 智能发现 API 端点 (Smart Discovery Endpoints)
+// ============================================================
+
+const smartDiscovery = require('../services/smart-discovery');
+
+/**
+ * POST /api/automation/smart-discover
+ * 执行智能热榜发现
+ */
+router.post('/smart-discover', async (req, res) => {
+    try {
+        const { keywords, maxVideos = 20, dryRun = false } = req.body;
+        console.log('🔥 API: 触发智能发现...');
+
+        const results = await smartDiscovery.runSmartDiscovery({
+            keywords: keywords || undefined,
+            maxVideosToQueue: maxVideos,
+            dryRun
+        });
+
+        res.json({
+            success: true,
+            message: `智能发现完成: 发现 ${results.discovered}, 达标 ${results.qualified}, 入队 ${results.queued}`,
+            results
+        });
+    } catch (error) {
+        console.error('❌ 智能发现失败:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/automation/full-pipeline
+ * 完整智能流程：发现 → 评分 → 分析 → 发布
+ */
+router.post('/full-pipeline', async (req, res) => {
+    const startTime = Date.now();
+    const { keywords, maxAnalyze = 5 } = req.body;
+    const results = { discovery: null, analyzed: 0, published: 0, errors: [] };
+
+    try {
+        console.log('🚀 完整智能流程启动...');
+
+        // Step 1: 智能发现
+        results.discovery = await smartDiscovery.runSmartDiscovery({
+            keywords: keywords || undefined,
+            maxVideosToQueue: 30,
+            dryRun: false
+        });
+
+        // Step 2: 获取高分视频分析
+        const { rows: qualifiedVideos } = await pool.query(`
+            SELECT * FROM collection_log 
+            WHERE analyzed = false AND quality_score >= $1
+            ORDER BY quality_score DESC LIMIT $2
+        `, [smartDiscovery.DISCOVERY_CONFIG.qualityThreshold, maxAnalyze]);
+
+        const beijingDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
+
+        for (const video of qualifiedVideos) {
+            try {
+                const draft = await aiAnalyzer.createDraftFromVideo(video.video_id, video.source_id || 1);
+                const items = typeof draft.generated_items === 'string'
+                    ? JSON.parse(draft.generated_items) : draft.generated_items;
+
+                if (items?.length > 0) {
+                    const item = items[0];
+                    await pool.query(`
+                        INSERT INTO radar_items (date, freq, stance, title, author_name, author_avatar, 
+                            author_bio, source, content, tension_q, tension_a, tension_b, keywords)
+                        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+                    `, [beijingDate, item.freq, item.stance, item.title, item.author_name,
+                        item.author_avatar || '??', item.author_bio || '', item.source, item.content,
+                        item.tension_q || '', item.tension_a || '', item.tension_b || '', item.keywords || []]);
+                    results.published++;
+                    results.analyzed++;
+                }
+            } catch (e) {
+                results.errors.push(e.message);
+            }
+        }
+
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+        res.json({ success: true, duration: `${duration}s`, message: `发布 ${results.published} 条`, results });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message, results });
+    }
+});
+
+/**
+ * GET /api/automation/discovery-stats
+ * 获取发现统计数据
+ */
+router.get('/discovery-stats', async (req, res) => {
+    try {
+        const { rows: stats } = await pool.query(`
+            SELECT DATE(checked_at) as date, discovery_method, COUNT(*) as total,
+                COUNT(CASE WHEN analyzed THEN 1 END) as analyzed,
+                ROUND(AVG(quality_score), 1) as avg_score,
+                COUNT(CASE WHEN quality_score >= 60 THEN 1 END) as qualified
+            FROM collection_log WHERE checked_at >= NOW() - INTERVAL '7 days'
+            GROUP BY DATE(checked_at), discovery_method ORDER BY date DESC
+        `);
+        res.json({ success: true, period: '7 days', stats });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 

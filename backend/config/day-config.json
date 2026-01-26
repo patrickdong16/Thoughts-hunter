@@ -17,8 +17,8 @@
             "event": "达沃斯世界经济论坛 2026",
             "eventEn": "Davos World Economic Forum 2026",
             "rules": {
-                "maxItems": 30,
-                "minItems": 20,
+                "maxItems": 12,
+                "minItems": 10,
                 "freqBalance": false,
                 "maxPerFreq": null,
                 "maxVideos": null,

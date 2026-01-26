@@ -3,6 +3,7 @@
 
 const { Expo } = require('expo-server-sdk');
 const pool = require('../config/database');
+const { withTimeout, withRetry, TIMEOUTS, RETRY_CONFIGS } = require('../utils/api-utils');
 
 // 创建 Expo SDK 客户端
 const expo = new Expo();
@@ -56,10 +57,17 @@ const sendToAllDevices = async ({ title, body, data = {} }) => {
 
         for (const chunk of chunks) {
             try {
-                const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+                const ticketChunk = await withRetry(
+                    () => withTimeout(
+                        expo.sendPushNotificationsAsync(chunk),
+                        TIMEOUTS.PUSH_NOTIFICATION,
+                        'Expo 推送请求超时'
+                    ),
+                    RETRY_CONFIGS.PUSH_NOTIFICATION
+                );
                 tickets.push(...ticketChunk);
             } catch (error) {
-                console.error('发送推送批次失败:', error);
+                console.error('发送推送批次失败:', error.message);
             }
         }
 

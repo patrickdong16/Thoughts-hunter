@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { getRulesForDate, canAddContent, canAddToFreq } = require('../config/day-rules');
+const { validateContentLength, MIN_CONTENT_LENGTH } = require('../utils/char-count');
 
 /**
  * GET /api/radar/today
@@ -235,13 +236,13 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // 验证内容长度 - 双标准机制
-        // 生成标准：700字符（在automation.js配置）
-        // 验证标准：300字符（此处）- 留有缓冲应对传输差异
-        if (content.length < 300) {
+        // 验证内容长度 - 统一计数标准
+        // 使用 countVisibleChars() 计算可见字符数，排除换行和多余空格
+        const contentValidation = validateContentLength(content);
+        if (!contentValidation.valid) {
             return res.status(400).json({
                 success: false,
-                error: `Content must be at least 300 characters (current: ${content.length})`
+                error: `内容不足${MIN_CONTENT_LENGTH}字（当前${contentValidation.count}字，还需${contentValidation.shortage}字）`
             });
         }
 
@@ -335,14 +336,15 @@ router.put('/:id', async (req, res) => {
             });
         }
 
-        // 验证内容长度 - 双标准机制
-        // 生成标准：700字符（在automation.js配置）
-        // 验证标准：300字符（此处）- 留有缓冲应对传输差异
-        if (content && content.length < 300) {
-            return res.status(400).json({
-                success: false,
-                error: `Content must be at least 300 characters (current: ${content.length})`
-            });
+        // 验证内容长度 - 统一计数标准
+        if (content) {
+            const contentValidation = validateContentLength(content);
+            if (!contentValidation.valid) {
+                return res.status(400).json({
+                    success: false,
+                    error: `内容不足${MIN_CONTENT_LENGTH}字（当前${contentValidation.count}字，还需${contentValidation.shortage}字）`
+                });
+            }
         }
 
         const query = `

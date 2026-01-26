@@ -6,16 +6,25 @@ const { google } = require('googleapis');
 const { YoutubeTranscript } = require('youtube-transcript');
 const pool = require('../config/database');
 const youtube = google.youtube('v3');
+const { withTimeout, withRetry, TIMEOUTS, RETRY_CONFIGS } = require('../utils/api-utils');
 
-// YouTube API配置 - 优先使用环境变量，fallback到配置文件
+// YouTube API配置 - 优先使用环境变量，fallback到配置文件（开发环境）
 const getApiKey = (key) => {
     if (process.env[key]) return process.env[key];
-    try {
-        const config = require('../config/api-keys.json');
-        return config[key];
-    } catch (e) {
-        return null;
+    // 开发环境 fallback
+    if (process.env.NODE_ENV !== 'production') {
+        try {
+            const config = require('../config/api-keys.json');
+            if (config[key]) {
+                console.warn(`⚠️ 使用本地配置文件中的 ${key}（仅限开发环境）`);
+                return config[key];
+            }
+        } catch (e) {
+            // 配置文件不存在，忽略
+        }
     }
+    console.warn(`⚠️ API Key ${key} 未在环境变量中配置`);
+    return null;
 };
 const YOUTUBE_API_KEY = getApiKey('YOUTUBE_API_KEY');
 const MAX_RESULTS = parseInt(process.env.MAX_VIDEOS_PER_CHECK) || 10;
@@ -35,13 +44,20 @@ const getChannelLatestVideos = async (channelId, maxResults = MAX_RESULTS) => {
         // 如果是@handle格式，需要先获取频道ID
         let actualChannelId = channelId;
         if (channelId.startsWith('@')) {
-            const searchResponse = await youtube.search.list({
-                key: YOUTUBE_API_KEY,
-                part: 'snippet',
-                q: channelId,
-                type: 'channel',
-                maxResults: 1
-            });
+            const searchResponse = await withRetry(
+                () => withTimeout(
+                    youtube.search.list({
+                        key: YOUTUBE_API_KEY,
+                        part: 'snippet',
+                        q: channelId,
+                        type: 'channel',
+                        maxResults: 1
+                    }),
+                    TIMEOUTS.YOUTUBE_API,
+                    'YouTube 频道搜索请求超时'
+                ),
+                RETRY_CONFIGS.YOUTUBE_API
+            );
 
             if (searchResponse.data.items.length === 0) {
                 throw new Error(`找不到频道: ${channelId}`);
@@ -51,11 +67,18 @@ const getChannelLatestVideos = async (channelId, maxResults = MAX_RESULTS) => {
         }
 
         // 获取频道的uploads播放列表
-        const channelResponse = await youtube.channels.list({
-            key: YOUTUBE_API_KEY,
-            part: 'contentDetails',
-            id: actualChannelId
-        });
+        const channelResponse = await withRetry(
+            () => withTimeout(
+                youtube.channels.list({
+                    key: YOUTUBE_API_KEY,
+                    part: 'contentDetails',
+                    id: actualChannelId
+                }),
+                TIMEOUTS.YOUTUBE_API,
+                'YouTube 频道信息请求超时'
+            ),
+            RETRY_CONFIGS.YOUTUBE_API
+        );
 
         if (!channelResponse.data.items || channelResponse.data.items.length === 0) {
             throw new Error(`频道不存在: ${channelId}`);
@@ -64,22 +87,36 @@ const getChannelLatestVideos = async (channelId, maxResults = MAX_RESULTS) => {
         const uploadsPlaylistId = channelResponse.data.items[0].contentDetails.relatedPlaylists.uploads;
 
         // 获取最新上传的视频
-        const playlistResponse = await youtube.playlistItems.list({
-            key: YOUTUBE_API_KEY,
-            part: 'snippet,contentDetails',
-            playlistId: uploadsPlaylistId,
-            maxResults: maxResults,
-            order: 'date'
-        });
+        const playlistResponse = await withRetry(
+            () => withTimeout(
+                youtube.playlistItems.list({
+                    key: YOUTUBE_API_KEY,
+                    part: 'snippet,contentDetails',
+                    playlistId: uploadsPlaylistId,
+                    maxResults: maxResults,
+                    order: 'date'
+                }),
+                TIMEOUTS.YOUTUBE_API,
+                'YouTube 播放列表请求超时'
+            ),
+            RETRY_CONFIGS.YOUTUBE_API
+        );
 
         const videoIds = playlistResponse.data.items.map(item => item.contentDetails.videoId);
 
         // 获取视频详情（包含duration）
-        const videosResponse = await youtube.videos.list({
-            key: YOUTUBE_API_KEY,
-            part: 'contentDetails,snippet',
-            id: videoIds.join(',')
-        });
+        const videosResponse = await withRetry(
+            () => withTimeout(
+                youtube.videos.list({
+                    key: YOUTUBE_API_KEY,
+                    part: 'contentDetails,snippet',
+                    id: videoIds.join(',')
+                }),
+                TIMEOUTS.YOUTUBE_API,
+                'YouTube 视频详情请求超时'
+            ),
+            RETRY_CONFIGS.YOUTUBE_API
+        );
 
         const videos = videosResponse.data.items.map(video => ({
             videoId: video.id,
@@ -202,11 +239,18 @@ const cleanTranscript = (rawTranscript) => {
  */
 const getVideoMetadata = async (videoId) => {
     try {
-        const response = await youtube.videos.list({
-            key: YOUTUBE_API_KEY,
-            part: 'snippet,contentDetails,statistics',
-            id: videoId
-        });
+        const response = await withRetry(
+            () => withTimeout(
+                youtube.videos.list({
+                    key: YOUTUBE_API_KEY,
+                    part: 'snippet,contentDetails,statistics',
+                    id: videoId
+                }),
+                TIMEOUTS.YOUTUBE_API,
+                'YouTube 视频元数据请求超时'
+            ),
+            RETRY_CONFIGS.YOUTUBE_API
+        );
 
         if (!response.data.items || response.data.items.length === 0) {
             throw new Error(`视频不存在: ${videoId}`);
