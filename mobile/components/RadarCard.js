@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { Colors, Typography, Spacing, BorderRadius, DomainConfig } from '../constants/theme';
 import { userAPI } from '../services/api';
 
@@ -89,11 +89,21 @@ export default function RadarCard({ item, onUpdate }) {
                 </View>
             </View>
 
-            {/* 出处 */}
-            {item.source && (
-                <View style={styles.source}>
-                    <View style={styles.sourceBorder} />
-                    <Text style={styles.sourceText}>{item.source}</Text>
+            {/* 出处信息（发布场合、时间、原文链接）*/}
+            {(item.source || item.source_url) && (
+                <View style={styles.sourceCard}>
+                    <Text style={styles.sourceLabel}>📍 来源出处</Text>
+                    {item.source && (
+                        <Text style={styles.sourceText}>{item.source}</Text>
+                    )}
+                    {item.source_url && (
+                        <TouchableOpacity
+                            onPress={() => Linking.openURL(item.source_url)}
+                            style={styles.sourceLink}
+                        >
+                            <Text style={styles.sourceLinkText}>🔗 查看原文</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             )}
 
@@ -246,21 +256,33 @@ const styles = StyleSheet.create({
         color: Colors.textSecondary,
         marginTop: 2,
     },
-    source: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    sourceCard: {
+        backgroundColor: Colors.background,
+        borderRadius: BorderRadius.md,
+        padding: Spacing.md,
         marginBottom: Spacing.md,
+        borderLeftWidth: 3,
+        borderLeftColor: Colors.primary,
     },
-    sourceBorder: {
-        width: 3,
-        height: '100%',
-        backgroundColor: Colors.primary,
-        marginRight: Spacing.sm,
+    sourceLabel: {
+        fontSize: Typography.sizes.xs,
+        color: Colors.textSecondary,
+        marginBottom: Spacing.xs,
+        fontWeight: Typography.weights.semibold,
     },
     sourceText: {
         fontSize: Typography.sizes.sm,
+        color: Colors.text,
+        lineHeight: Typography.sizes.sm * Typography.lineHeights.relaxed,
+    },
+    sourceLink: {
+        marginTop: Spacing.sm,
+        paddingVertical: Spacing.xs,
+    },
+    sourceLinkText: {
+        fontSize: Typography.sizes.sm,
         color: Colors.primary,
-        flex: 1,
+        fontWeight: Typography.weights.medium,
     },
     contentContainer: {
         marginBottom: Spacing.lg,

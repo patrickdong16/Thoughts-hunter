@@ -286,25 +286,43 @@
       margin-top: 2px;
     }
 
-    /* 来源 */
-    .source-line {
-      display: flex;
-      align-items: center;
-      margin-bottom: 12px;
+    /* 来源信息卡片 */
+    .source-card {
+      background: var(--background);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      border-left: 3px solid var(--primary);
     }
 
-    .source-bar {
-      width: 3px;
-      height: 100%;
-      min-height: 16px;
-      background: var(--primary);
-      margin-right: 8px;
-      border-radius: 2px;
+    .source-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      margin-bottom: 6px;
     }
 
     .source-text {
       font-size: 13px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 8px;
+      font-size: 13px;
       color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+
+    .source-link:hover {
+      opacity: 0.8;
+      text-decoration: underline;
     }
 
     /* 正文内容 */
@@ -1643,11 +1661,12 @@
           </div>
           ` : ''}
           
-          <!-- 来源 -->
-          ${item.source ? `
-          <div class="source-line">
-            <div class="source-bar"></div>
-            <span class="source-text">${item.source}</span>
+          <!-- 来源信息（发布场合、时间、原文链接）-->
+          ${(item.source || item.source_url) ? `
+          <div class="source-card">
+            <div class="source-label">📍 来源出处</div>
+            ${item.source ? `<div class="source-text">${item.source}</div>` : ''}
+            ${item.source_url ? `<a href="${item.source_url}" target="_blank" rel="noopener noreferrer" class="source-link">🔗 查看原文</a>` : ''}
           </div>
           ` : ''}
           
@@ -2127,11 +2146,12 @@
           </div>
           ` : ''}
           
-          <!-- 来源 -->
-          ${item.source ? `
-          <div class="source-line">
-            <div class="source-bar"></div>
-            <span class="source-text">${item.source}</span>
+          <!-- 来源信息（发布场合、时间、原文链接）-->
+          ${(item.source || item.source_url) ? `
+          <div class="source-card">
+            <div class="source-label">📍 来源出处</div>
+            ${item.source ? `<div class="source-text">${item.source}</div>` : ''}
+            ${item.source_url ? `<a href="${item.source_url}" target="_blank" rel="noopener noreferrer" class="source-link">🔗 查看原文</a>` : ''}
           </div>
           ` : ''}
           
