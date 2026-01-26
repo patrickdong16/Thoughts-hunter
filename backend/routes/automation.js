@@ -1348,5 +1348,124 @@ router.get('/discovery-stats', async (req, res) => {
     }
 });
 
+// =====================================================
+// 多来源内容生成 V2
+// Multi-Source Content Generation V2
+// =====================================================
+
+const multiSourceGenerator = require('../services/multi-source-generator');
+
+/**
+ * GET /api/automation/search-plan
+ * 获取当日多来源搜索计划（用于调试和预览）
+ */
+router.get('/search-plan', async (req, res) => {
+    try {
+        const beijingDate = new Date().toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Shanghai'
+        });
+
+        const plan = await multiSourceGenerator.getSearchPlan(beijingDate);
+        res.json(plan);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/automation/content-gap
+ * 获取当日内容缺口信息
+ */
+router.get('/content-gap', async (req, res) => {
+    try {
+        const { date } = req.query;
+        const beijingDate = date || new Date().toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Shanghai'
+        });
+
+        const gap = await multiSourceGenerator.getContentGap(beijingDate);
+        res.json({ success: true, ...gap });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/automation/generate-daily-v2
+ * 多来源每日内容生成
+ * 
+ * 策略：
+ * 1. 计算内容缺口
+ * 2. 按优先级生成搜索计划（Web > YouTube > RSS/HN）
+ * 3. 返回搜索计划供客户端/Claude执行
+ * 
+ * 注意：此端点返回搜索计划，实际执行需要外部调用MCP
+ */
+router.post('/generate-daily-v2', async (req, res) => {
+    const startTime = Date.now();
+
+    try {
+        const beijingDate = new Date().toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Shanghai'
+        });
+
+        console.log('🚀 多来源内容生成 V2 启动...');
+        console.log(`📅 日期: ${beijingDate}`);
+
+        // 1. 获取内容缺口
+        const gap = await multiSourceGenerator.getContentGap(beijingDate);
+
+        console.log(`📊 当前: ${gap.currentCount} 条 | 目标: ${gap.minItems} 条 | 缺口: ${gap.gap} 条`);
+
+        if (!gap.needsMore) {
+            return res.json({
+                success: true,
+                message: '今日内容已达标，无需生成',
+                date: beijingDate,
+                currentCount: gap.currentCount,
+                gap
+            });
+        }
+
+        // 2. 尝试从视频队列获取（现有流程）
+        const videoQueue = await multiSourceGenerator.getFromVideoQueue();
+        console.log(`📹 视频队列: ${videoQueue.length} 个符合条件的视频`);
+
+        // 3. 生成多来源搜索计划
+        const searchPlan = await multiSourceGenerator.getSearchPlan(beijingDate);
+
+        // 4. 返回搜索计划
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        console.log(`🏁 搜索计划生成完成 (${duration}s)`);
+        console.log(`   Web查询: ${searchPlan.searches.web?.length || 0}`);
+        console.log(`   YouTube查询: ${searchPlan.searches.youtube?.length || 0}`);
+        console.log(`   RSS源: ${searchPlan.searches.rss?.length || 0}`);
+        console.log(`   HN查询: ${searchPlan.searches.hackernews?.length || 0}`);
+
+        res.json({
+            success: true,
+            date: beijingDate,
+            message: `需要补充 ${gap.gap} 条内容`,
+            duration: `${duration}s`,
+            gap,
+            videoQueueCount: videoQueue.length,
+            searchPlan: searchPlan.searches,
+            instructions: {
+                step1: '使用 web search 执行 searchPlan.web 中的查询',
+                step2: '使用 youtube-transcript MCP 获取视频字幕',
+                step3: '使用 rss-reader MCP 读取 searchPlan.rss 中的订阅源',
+                step4: '使用 hackernews MCP 搜索 searchPlan.hackernews 中的主题',
+                step5: '将获取的内容通过 AI 分析生成 radar_items'
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ 多来源生成失败:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
+
 
