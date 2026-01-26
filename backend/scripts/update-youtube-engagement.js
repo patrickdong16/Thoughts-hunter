@@ -8,7 +8,10 @@
  * 回滚: 删除此文件和 services/youtube-engagement.js
  */
 
-require('dotenv').config();
+const path = require('path');
+// 尝试从 backend 目录加载 .env
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
 const { updateAllEngagement, getEngagementStats, getTopByViews } = require('../services/youtube-engagement');
 const pool = require('../config/database');
 

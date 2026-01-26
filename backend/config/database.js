@@ -14,7 +14,7 @@ if (process.env.DATABASE_URL) {
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 10000,  // 增加到 10 秒，Railway 冷启动需要更长时间
   });
 } else {
   // 本地开发：使用单独配置
@@ -26,7 +26,7 @@ if (process.env.DATABASE_URL) {
     password: process.env.DB_PASSWORD || '',
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 10000,  // 增加到 10 秒
   });
 }
 
