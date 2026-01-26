@@ -237,6 +237,55 @@
 
 ---
 
+## 📍 来源信息格式规范 (Source Information v5.0)
+
+> 🆕 **v5.0 新增**：每条内容必须包含完整的来源信息，支持用户验证真实性
+
+### 来源字段定义
+
+| 字段 | 必填 | 说明 | 示例 |
+|------|------|------|------|
+| `source` | ✅ 是 | 发布场合、活动名称和时间 | `Davos WEF 2026 主题演讲, 2026年1月23日` |
+| `source_url` | ✅ 是 | 可访问的原文/视频链接 | `https://youtube.com/watch?v=xxx` |
+
+### source 字段格式
+
+**格式模板**：`[活动/平台名称] [类型], [日期]`
+
+| 类型 | 格式示例 |
+|------|----------|
+| 论坛演讲 | `Davos WEF 2026 主题演讲, 2026年1月23日` |
+| 访谈节目 | `Lex Fridman Podcast #420, 2026年1月15日` |
+| 新闻采访 | `Bloomberg TV 专访, 2026年1月20日` |
+| 学术讲座 | `MIT Technology Review 年会, 2026年1月10日` |
+| 播客节目 | `Acquired Podcast Episode 180, 2026年1月12日` |
+
+### source_url 要求
+
+- **必须可访问**：链接必须能够打开
+- **必须是原始来源**：不接受二手转载链接
+- **优先选择官方渠道**：YouTube 官方频道 > 第三方上传
+
+**合格 URL 示例**：
+```
+✅ https://www.youtube.com/watch?v=AbCdEfGhIjK
+✅ https://www.foreignaffairs.com/articles/xxx
+✅ https://www.bloomberg.com/news/videos/xxx
+❌ https://twitter.com/xxx (碎片化内容)
+❌ https://unknown-blog.com/xxx (非权威来源)
+```
+
+### 内容录入检查清单
+
+发布前必须确认：
+
+- [ ] `source` 字段已填写（含活动名称 + 日期）
+- [ ] `source_url` 字段已填写（可点击访问）
+- [ ] URL 已验证可访问
+- [ ] URL 指向原始来源（非转载）
+
+---
+
 ## 快速参考卡
 
 ```
@@ -258,5 +307,5 @@
 
 ---
 
-*Last Updated: 2026-01-23 10:56 (Rules v4.2)*
-*更新记录: 新增主题日核心法则 - 100%主题聚焦 + 跨领域领袖资格要求*
+*Last Updated: 2026-01-26 18:45 (Rules v5.0)*
+*更新记录: 新增来源信息格式规范 - source 和 source_url 字段必填要求*

@@ -32,7 +32,8 @@ async function addRadarItem() {
         const authorName = await question('作者姓名: ');
         const authorAvatar = await question('作者头像缩写 (2-3个字母): ');
         const authorBio = await question('作者简介: ');
-        const source = await question('来源: ');
+        const source = await question('来源场合/时间 (如 "Davos WEF 2026, Jan 23"): ');
+        const sourceUrl = await question('原文链接 (YouTube/文章 URL): ');
 
         console.log('\n请输入正文内容（至少500字，输入完成后按Ctrl+D）:');
         let content = '';
@@ -73,14 +74,14 @@ async function addRadarItem() {
         const query = `
       INSERT INTO radar_items (
         date, freq, stance, title, author_name, author_avatar, 
-        author_bio, source, content, tension_q, tension_a, tension_b, keywords
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        author_bio, source, source_url, content, tension_q, tension_a, tension_b, keywords
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING id
     `;
 
         const result = await pool.query(query, [
             date, freq, stance.toUpperCase(), title, authorName, authorAvatar,
-            authorBio, source, content, tensionQ, tensionA, tensionB, keywords
+            authorBio, source, sourceUrl || null, content, tensionQ, tensionA, tensionB, keywords
         ]);
 
         console.log(`\n✅ 成功添加雷达条目！ID: ${result.rows[0].id}`);
