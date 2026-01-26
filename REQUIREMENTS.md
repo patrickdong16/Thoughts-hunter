@@ -130,6 +130,43 @@
 1. 对现实有**解释力**、能进入命题对照的思想材料
 2. 不仅是"新闻事实"，而是对事实背后的**结构解释、理论框架与价值冲突**的表达
 
+### 4.4 多来源自动化采集
+
+> **状态**：✅ 已实现 (2026-01-26)
+
+#### 4.4.1 支持的内容来源
+
+| 优先级 | 来源类型 | 说明 | MCP工具 |
+|--------|----------|------|---------|
+| 1 | Web搜索 | 核心人物最新演讲/访谈/文章 | `search_web` |
+| 2 | YouTube | 目标频道视频+字幕 | `youtube-transcript` |
+| 3 | RSS订阅 | 思想类杂志/博客 | `rss-reader` |
+| 4 | HN | 技术/哲学热门讨论 | `hackernews` |
+
+#### 4.4.2 RSS订阅源
+
+| 名称 | 领域 |
+|------|------|
+| Aeon | 哲学/思想 |
+| Foreign Affairs | 政治/国际 |
+| The Atlantic | 政治/文化 |
+| MIT Technology Review | 技术 |
+| The Economist | 金融/政治 |
+
+#### 4.4.3 自动化API端点
+
+| 端点 | 用途 |
+|------|------|
+| `GET /api/automation/content-gap` | 查看当日内容缺口 |
+| `GET /api/automation/search-plan` | 获取多来源搜索计划 |
+| `POST /api/automation/generate-daily-v2` | 多来源生成入口 |
+
+#### 4.4.4 调度规则
+
+- 定时执行：北京时间 **04:00**
+- Cron: `0 20 * * *` (UTC)
+- 配置文件：`railway.json`
+
 ---
 
 ## 五、内容发布规则
