@@ -1567,6 +1567,59 @@ router.get('/youtube-engagement-stats', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/automation/set-video-ids
+ * 批量设置内容的 YouTube video_id
+ * Body: { mappings: [{id: 123, video_id: "xxx"}, ...] }
+ */
+router.post('/set-video-ids', async (req, res) => {
+    try {
+        const { mappings } = req.body;
+
+        if (!mappings || !Array.isArray(mappings) || mappings.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'mappings array is required'
+            });
+        }
+
+        const results = {
+            updated: 0,
+            failed: 0,
+            errors: []
+        };
+
+        for (const { id, video_id } of mappings) {
+            try {
+                const result = await pool.query(
+                    'UPDATE radar_items SET video_id = $1 WHERE id = $2 RETURNING id, title',
+                    [video_id, id]
+                );
+
+                if (result.rows.length > 0) {
+                    results.updated++;
+                    console.log(`✓ Updated id=${id} with video_id=${video_id}`);
+                } else {
+                    results.failed++;
+                    results.errors.push(`id=${id} not found`);
+                }
+            } catch (err) {
+                results.failed++;
+                results.errors.push(`id=${id}: ${err.message}`);
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Updated ${results.updated} items`,
+            results
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
 
 
