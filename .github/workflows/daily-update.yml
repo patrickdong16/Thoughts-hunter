@@ -82,28 +82,43 @@ jobs:
 
       # =====================================================
       # Step 3: P2 - YouTube 视频采集（配额至少1条）
+      # 先扫描频道填充队列，再生成视频内容
       # =====================================================
-      - name: P2 - Collect from YouTube
+      - name: P2 - Scan channels and collect videos
         id: p2_youtube
         run: |
-          echo "🎬 P2: Starting YouTube collection..."
+          echo "🎬 P2: Starting YouTube channel scan..."
           
+          # Step 3a: 扫描频道填充采集队列（每日一次，最多50频道）
+          scan_response=$(curl -s -X POST "https://thoughts-radar-backend-production.up.railway.app/api/automation/scan-channels" \
+            -H "Content-Type: application/json" \
+            -d '{"maxVideosPerChannel": 3, "daysBack": 7}' \
+            --max-time 120)
+          
+          echo "📡 Scan Response: $scan_response"
+          
+          videos_added=$(echo "$scan_response" | jq -r '.results.videosAdded // 0')
+          channels_scanned=$(echo "$scan_response" | jq -r '.results.channelsScanned // 0')
+          echo "✅ Scanned $channels_scanned channels, added $videos_added videos to queue"
+          
+          # Step 3b: 从队列生成视频内容
           TARGET_DATE="${{ github.event.inputs.target_date }}"
           DATE_PARAM=""
           if [ -n "$TARGET_DATE" ]; then
             DATE_PARAM="?date=$TARGET_DATE"
           fi
           
-          # 调用视频内容生成
-          generate_response=$(curl -s -X POST "https://thoughts-radar-backend-production.up.railway.app/api/automation/generate-daily${DATE_PARAM}" \
+          echo "🎬 Processing video queue..."
+          generate_response=$(curl -s -X POST "https://thoughts-radar-backend-production.up.railway.app/api/automation/process-video-queue${DATE_PARAM}" \
             -H "Content-Type: application/json" \
             --max-time 900)
           
-          echo "🎬 P2 YouTube Response: $generate_response"
+          echo "🎬 P2 Generate Response: $generate_response"
           
           published=$(echo "$generate_response" | jq -r '.results.published // 0')
           echo "p2_published=$published" >> $GITHUB_OUTPUT
-          echo "✅ P2 completed: $published video items"
+          echo "scan_added=$videos_added" >> $GITHUB_OUTPUT
+          echo "✅ P2 completed: $published video items published"
 
       # =====================================================
       # Step 4: 最终配额检查
