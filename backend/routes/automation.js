@@ -185,20 +185,22 @@ router.get('/validate-quota', async (req, res) => {
 /**
  * POST /api/automation/scan-channels
  * 扫描所有配置频道的新视频并添加到采集队列
+ * 优先使用 YouTube API，配额用完自动切换到 RSS
  */
 router.post('/scan-channels', async (req, res) => {
     try {
         const { maxVideosPerChannel = 5, daysBack = 7 } = req.body;
 
-        console.log('Starting channel scan...');
-        const results = await videoScanner.scanAllChannels({
+        console.log('Starting channel scan (with RSS fallback)...');
+        const results = await videoScanner.scanWithFallback({
             maxVideosPerChannel,
             daysBack
         });
 
         res.json({
             success: true,
-            message: `扫描完成: ${results.videosAdded} 个视频已添加到队列`,
+            message: `扫描完成 [${results.method}]: ${results.videosAdded} 个视频已添加到队列`,
+            method: results.method,
             results
         });
     } catch (error) {

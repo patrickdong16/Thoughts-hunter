@@ -291,6 +291,135 @@ async function searchSpeakerVideos(speakerName, options = {}) {
     }
 }
 
+/**
+ * 通过 RSS Feed 扫描频道视频（无配额限制）
+ * YouTube RSS: https://www.youtube.com/feeds/videos.xml?channel_id=UC...
+ * @param {string} channelId - UC 开头的频道 ID
+ */
+async function scanChannelViaRSS(channelId) {
+    const Parser = require('rss-parser');
+    const parser = new Parser();
+
+    try {
+        const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+        const feed = await parser.parseURL(feedUrl);
+
+        return feed.items.map(item => ({
+            videoId: item.id?.split(':').pop() || item.link?.split('v=').pop(),
+            title: item.title,
+            channelTitle: feed.title,
+            publishedAt: item.pubDate || item.isoDate,
+            link: item.link
+        }));
+    } catch (error) {
+        console.error(`RSS scan ${channelId} error:`, error.message);
+        return [];
+    }
+}
+
+/**
+ * 通过 RSS 扫描所有频道（备用渠道）
+ * 适用于 YouTube API 配额用完时
+ */
+async function scanAllChannelsViaRSS(options = {}) {
+    const { minDuration = 40 } = options;
+
+    const results = {
+        channelsScanned: 0,
+        channelsFailed: 0,
+        videosFound: 0,
+        videosAdded: 0,
+        videosSkipped: 0,
+        errors: []
+    };
+
+    const channels = automationConfig.targetChannels || [];
+    console.log(`[RSS] Scanning ${channels.length} channels...`);
+
+    for (const channel of channels) {
+        // 只处理 UC 开头的标准频道 ID
+        if (!channel.channelId?.startsWith('UC')) {
+            results.channelsFailed++;
+            continue;
+        }
+
+        try {
+            const videos = await scanChannelViaRSS(channel.channelId);
+
+            if (videos.length === 0) {
+                results.channelsFailed++;
+                continue;
+            }
+
+            results.channelsScanned++;
+            results.videosFound += videos.length;
+
+            // 获取这些视频的详情（检查时长）- 仅消耗 1 单位/视频
+            const videoIds = videos.map(v => v.videoId).filter(Boolean);
+            const details = await getVideoDetails(videoIds);
+            const detailsMap = new Map(details.map(d => [d.id, d]));
+
+            for (const video of videos) {
+                const detail = detailsMap.get(video.videoId);
+                const duration = parseDuration(detail?.contentDetails?.duration);
+
+                // 检查时长
+                if (duration < minDuration) continue;
+
+                // 检查是否已存在
+                if (await isVideoInQueue(video.videoId)) {
+                    results.videosSkipped++;
+                    continue;
+                }
+
+                // 添加到队列
+                await pool.query(`
+                    INSERT INTO collection_log 
+                    (video_id, video_title, channel_title, duration, published_at, checked_at, analyzed)
+                    VALUES ($1, $2, $3, $4, $5, NOW(), false)
+                    ON CONFLICT (video_id) DO NOTHING
+                `, [video.videoId, video.title, video.channelTitle,
+                detail?.contentDetails?.duration || 'PT0S', video.publishedAt]);
+
+                results.videosAdded++;
+                console.log(`[RSS] ✅ Added: ${video.title}`);
+            }
+
+        } catch (error) {
+            results.errors.push({ channel: channel.name, error: error.message });
+        }
+    }
+
+    return results;
+}
+
+/**
+ * 智能扫描：优先 API，失败则 fallback 到 RSS
+ */
+async function scanWithFallback(options = {}) {
+    console.log('Attempting YouTube API scan...');
+
+    try {
+        const apiResults = await scanAllChannels(options);
+
+        // 如果 API 成功扫描了频道，返回结果
+        if (apiResults.channelsScanned > 0) {
+            return { method: 'api', ...apiResults };
+        }
+
+        // API 失败（可能配额用完），尝试 RSS
+        console.log('API scan failed, falling back to RSS...');
+        const rssResults = await scanAllChannelsViaRSS(options);
+        return { method: 'rss', ...rssResults };
+
+    } catch (error) {
+        // API 出错，尝试 RSS
+        console.log(`API error: ${error.message}, falling back to RSS...`);
+        const rssResults = await scanAllChannelsViaRSS(options);
+        return { method: 'rss', ...rssResults };
+    }
+}
+
 module.exports = {
     scanChannelVideos,
     getVideoDetails,
@@ -298,5 +427,8 @@ module.exports = {
     searchSpeakerVideos,
     parseDuration,
     addToQueue,
-    isVideoInQueue
+    isVideoInQueue,
+    scanChannelViaRSS,
+    scanAllChannelsViaRSS,
+    scanWithFallback
 };
