@@ -28,8 +28,8 @@ function loadConfig() {
  * 获取数据库中现有领袖
  */
 async function getExistingLeaders() {
-    const result = await pool.query('SELECT name, is_active FROM thought_leaders');
-    return new Map(result.rows.map(r => [r.name, r.is_active]));
+    const result = await pool.query('SELECT name, status FROM thought_leaders');
+    return new Map(result.rows.map(r => [r.name, r.status === 'active']));
 }
 
 /**
@@ -104,8 +104,8 @@ async function syncFromConfig(dryRun = false) {
         try {
             await pool.query(`
                 INSERT INTO thought_leaders 
-                (name, name_cn, role, domain, priority, rss_url, blog_url, twitter_handle, notes, is_active)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
+                (name, name_cn, role, domain, priority, rss_url, blog_url, twitter_handle, notes, status)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'active')
             `, [
                 leader.name,
                 leader.name_cn || null,
@@ -142,7 +142,7 @@ async function syncFromConfig(dryRun = false) {
                     blog_url = COALESCE($7, blog_url),
                     twitter_handle = COALESCE($8, twitter_handle),
                     notes = COALESCE($9, notes),
-                    is_active = true,
+                    status = 'active',
                     updated_at = NOW()
                 WHERE name = $1
             `, [
@@ -166,7 +166,7 @@ async function syncFromConfig(dryRun = false) {
     for (const name of diff.toDeactivate) {
         try {
             await pool.query(`
-                UPDATE thought_leaders SET is_active = false, updated_at = NOW()
+                UPDATE thought_leaders SET status = 'paused', updated_at = NOW()
                 WHERE name = $1
             `, [name]);
             results.deactivated++;
