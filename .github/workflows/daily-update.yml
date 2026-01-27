@@ -5,6 +5,12 @@ on:
     # 每天北京时间早上4点运行 (UTC 20:00前一天)
     - cron: '0 20 * * *'
   workflow_dispatch:  # 允许手动触发
+    inputs:
+      target_date:
+        description: '目标日期 (YYYY-MM-DD)，留空则使用当天'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   update-content:
@@ -28,9 +34,19 @@ jobs:
         run: |
           echo "🤖 Triggering auto-content generation..."
           
+          # 构建日期参数
+          TARGET_DATE="${{ github.event.inputs.target_date }}"
+          DATE_PARAM=""
+          if [ -n "$TARGET_DATE" ]; then
+            DATE_PARAM="?date=$TARGET_DATE"
+            echo "📅 Using target date: $TARGET_DATE"
+          else
+            echo "📅 Using current date"
+          fi
+          
           # 调用后端API自动筛选、分析和发布视频内容
           # 注意：普通日最多2条视频，主题日不限
-          generate_response=$(curl -s -X POST https://thoughts-radar-backend-production.up.railway.app/api/automation/generate-daily \
+          generate_response=$(curl -s -X POST "https://thoughts-radar-backend-production.up.railway.app/api/automation/generate-daily${DATE_PARAM}" \
             -H "Content-Type: application/json" \
             --max-time 900)
           
