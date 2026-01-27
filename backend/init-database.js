@@ -110,6 +110,10 @@ async function initDatabase() {
                 UNIQUE(source_id, video_id)
             )
         `);
+        // 迁移：确保旧表也有这些列（CREATE TABLE IF NOT EXISTS 不会添加新列）
+        await pool.query(`ALTER TABLE collection_log ADD COLUMN IF NOT EXISTS title TEXT`);
+        await pool.query(`ALTER TABLE collection_log ADD COLUMN IF NOT EXISTS description TEXT`);
+        await pool.query(`ALTER TABLE collection_log ADD COLUMN IF NOT EXISTS channel_title VARCHAR(200)`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_collection_log_source_id ON collection_log(source_id)`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_collection_log_analyzed ON collection_log(analyzed)`);
         console.log('✓ collection_log table ready');
