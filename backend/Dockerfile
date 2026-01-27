@@ -27,4 +27,4 @@ COPY . .
 EXPOSE 3000
 
 # 启动命令
-CMD ["node", "index.js"]
+CMD ["node", "start-with-init.js"]
