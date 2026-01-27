@@ -1749,6 +1749,72 @@ router.get('/leaders/pending', async (req, res) => {
     }
 });
 
+// ===============================================
+// 配置同步 API (2026-01-27 新增)
+// ===============================================
+const configSync = require('../services/leader-config-sync');
+
+/**
+ * GET /api/automation/leaders/config-stats
+ * 获取配置文件统计
+ */
+router.get('/leaders/config-stats', async (req, res) => {
+    try {
+        const stats = configSync.getConfigStats();
+        res.json({
+            success: true,
+            ...stats
+        });
+    } catch (error) {
+        console.error('Get config stats error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/automation/leaders/diff
+ * 预览配置与数据库的差异（不执行同步）
+ */
+router.get('/leaders/diff', async (req, res) => {
+    try {
+        const diff = await configSync.diffConfig();
+        res.json({
+            success: true,
+            diff: {
+                toAdd: diff.toAdd.map(l => ({ name: l.name, domain: l.domain })),
+                toUpdate: diff.toUpdate.length,
+                toDeactivate: diff.toDeactivate
+            },
+            summary: `新增 ${diff.toAdd.length}, 更新 ${diff.toUpdate.length}, 停用 ${diff.toDeactivate.length}`
+        });
+    } catch (error) {
+        console.error('Diff config error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/automation/leaders/sync
+ * 从 CONTENT_SOURCES.json 同步到数据库
+ */
+router.post('/leaders/sync', async (req, res) => {
+    try {
+        const dryRun = req.query.dryRun === 'true';
+        console.log(`🔄 ${dryRun ? '[预览]' : '[执行]'} 配置同步...`);
+
+        const results = await configSync.syncFromConfig(dryRun);
+
+        res.json({
+            success: true,
+            message: dryRun ? '预览完成（未执行）' : '同步完成',
+            results
+        });
+    } catch (error) {
+        console.error('Sync config error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
 
 

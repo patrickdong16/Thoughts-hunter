@@ -1,0 +1,606 @@
+{
+    "version": "1.0",
+    "lastUpdated": "2026-01-27",
+    "description": "思想雷达内容来源配置 - 机器可读版本",
+    "leaders": [
+        {
+            "name": "Elon Musk",
+            "name_cn": "埃隆·马斯克",
+            "domain": "T",
+            "priority": 1,
+            "role": "Tesla/SpaceX/xAI CEO",
+            "focus": "技术乐观主义",
+            "twitter": "elonmusk",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Demis Hassabis",
+            "name_cn": "Demis Hassabis",
+            "domain": "T",
+            "priority": 1,
+            "role": "Google DeepMind CEO",
+            "focus": "AGI",
+            "twitter": "demaboris",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Sam Altman",
+            "name_cn": "Sam Altman",
+            "domain": "T",
+            "priority": 1,
+            "role": "OpenAI CEO",
+            "focus": "AI 发展",
+            "twitter": "sama",
+            "rss_url": null,
+            "blog_url": "https://blog.samaltman.com"
+        },
+        {
+            "name": "Ilya Sutskever",
+            "name_cn": "Ilya Sutskever",
+            "domain": "T",
+            "priority": 1,
+            "role": "SSI 创始人",
+            "focus": "AI 安全",
+            "twitter": "ilyasut",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Dario Amodei",
+            "name_cn": "Dario Amodei",
+            "domain": "T",
+            "priority": 1,
+            "role": "Anthropic CEO",
+            "focus": "AI 对齐",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": "https://www.darioamodei.com"
+        },
+        {
+            "name": "Geoffrey Hinton",
+            "name_cn": "Geoffrey Hinton",
+            "domain": "T",
+            "priority": 2,
+            "role": "AI 先驱",
+            "focus": "AI 风险",
+            "twitter": "geoffreyhinton",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Yann LeCun",
+            "name_cn": "Yann LeCun",
+            "domain": "T",
+            "priority": 2,
+            "role": "Meta AI",
+            "focus": "AI 乐观派",
+            "twitter": "ylecun",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Stuart Russell",
+            "name_cn": "Stuart Russell",
+            "domain": "T",
+            "priority": 3,
+            "role": "UC Berkeley",
+            "focus": "AI 安全",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Fei-Fei Li",
+            "name_cn": "李飞飞",
+            "domain": "T",
+            "priority": 3,
+            "role": "Stanford HAI",
+            "focus": "AI 伦理",
+            "twitter": "drfeifei",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Marc Andreessen",
+            "name_cn": "Marc Andreessen",
+            "domain": "T",
+            "priority": 2,
+            "role": "a16z",
+            "focus": "技术乐观主义",
+            "twitter": "pmarca",
+            "rss_url": "https://pmarca.substack.com/feed",
+            "blog_url": "https://pmarca.substack.com"
+        },
+        {
+            "name": "Peter Thiel",
+            "name_cn": "彼得·蒂尔",
+            "domain": "T",
+            "priority": 2,
+            "role": "投资人/哲学家",
+            "focus": "技术悲观主义",
+            "twitter": "peterthiel",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Balaji Srinivasan",
+            "name_cn": "Balaji Srinivasan",
+            "domain": "T",
+            "priority": 3,
+            "role": "a16z",
+            "focus": "网络国家",
+            "twitter": "balajis",
+            "rss_url": "https://balajis.com/rss/",
+            "blog_url": "https://balajis.com"
+        },
+        {
+            "name": "Vitalik Buterin",
+            "name_cn": "Vitalik Buterin",
+            "domain": "T",
+            "priority": 3,
+            "role": "以太坊创始人",
+            "focus": "加密货币",
+            "twitter": "VitalikButerin",
+            "rss_url": null,
+            "blog_url": "https://vitalik.eth.limo"
+        },
+        {
+            "name": "Francis Fukuyama",
+            "name_cn": "弗朗西斯·福山",
+            "domain": "P",
+            "priority": 2,
+            "role": "政治学者",
+            "focus": "历史终结论",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "John Mearsheimer",
+            "name_cn": "John Mearsheimer",
+            "domain": "P",
+            "priority": 2,
+            "role": "现实主义者",
+            "focus": "大国竞争",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Anne Applebaum",
+            "name_cn": "Anne Applebaum",
+            "domain": "P",
+            "priority": 3,
+            "role": "历史学家/记者",
+            "focus": "威权主义",
+            "twitter": "anneapplebaum",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Fareed Zakaria",
+            "name_cn": "Fareed Zakaria",
+            "domain": "P",
+            "priority": 3,
+            "role": "CNN/学者",
+            "focus": "全球化",
+            "twitter": "FareedZakaria",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Ian Bremmer",
+            "name_cn": "Ian Bremmer",
+            "domain": "P",
+            "priority": 2,
+            "role": "Eurasia Group",
+            "focus": "地缘政治",
+            "twitter": "ianbremmer",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Graham Allison",
+            "name_cn": "Graham Allison",
+            "domain": "P",
+            "priority": 2,
+            "role": "哈佛",
+            "focus": "修昔底德陷阱",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Kishore Mahbubani",
+            "name_cn": "马凯硕",
+            "domain": "P",
+            "priority": 3,
+            "role": "新加坡",
+            "focus": "亚洲视角",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Yascha Mounk",
+            "name_cn": "Yascha Mounk",
+            "domain": "P",
+            "priority": 3,
+            "role": "民主研究",
+            "focus": "自由民主",
+            "twitter": "Yascha_Mounk",
+            "rss_url": "https://www.persuasion.community/feed",
+            "blog_url": "https://www.persuasion.community"
+        },
+        {
+            "name": "Larry Diamond",
+            "name_cn": "Larry Diamond",
+            "domain": "P",
+            "priority": 3,
+            "role": "斯坦福",
+            "focus": "民主倒退",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Slavoj Žižek",
+            "name_cn": "齐泽克",
+            "domain": "Φ",
+            "priority": 3,
+            "role": "哲学家",
+            "focus": "意识形态批判",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Michael Sandel",
+            "name_cn": "Michael Sandel",
+            "domain": "Φ",
+            "priority": 2,
+            "role": "哈佛",
+            "focus": "公共哲学",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Martha Nussbaum",
+            "name_cn": "Martha Nussbaum",
+            "domain": "Φ",
+            "priority": 3,
+            "role": "芝加哥大学",
+            "focus": "能力方法",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Peter Singer",
+            "name_cn": "Peter Singer",
+            "domain": "Φ",
+            "priority": 3,
+            "role": "普林斯顿",
+            "focus": "伦理学",
+            "twitter": "PeterSinger",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Tyler Cowen",
+            "name_cn": "Tyler Cowen",
+            "domain": "Φ",
+            "priority": 2,
+            "role": "经济学家/博主",
+            "focus": "文化评论",
+            "twitter": "tylercowen",
+            "rss_url": "https://marginalrevolution.com/feed",
+            "blog_url": "https://marginalrevolution.com"
+        },
+        {
+            "name": "Nassim Taleb",
+            "name_cn": "Nassim Taleb",
+            "domain": "Φ",
+            "priority": 2,
+            "role": "风险/哲学",
+            "focus": "黑天鹅理论",
+            "twitter": "nntaleb",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Jonathan Haidt",
+            "name_cn": "Jonathan Haidt",
+            "domain": "Φ",
+            "priority": 2,
+            "role": "NYU",
+            "focus": "道德心理学",
+            "twitter": "JonHaidt",
+            "rss_url": null,
+            "blog_url": "https://jonathanhaidt.com"
+        },
+        {
+            "name": "Yuval Noah Harari",
+            "name_cn": "尤瓦尔·赫拉利",
+            "domain": "Φ",
+            "priority": 1,
+            "role": "历史学家",
+            "focus": "人类未来",
+            "twitter": "haraboris",
+            "rss_url": null,
+            "blog_url": "https://www.ynharari.com"
+        },
+        {
+            "name": "Niall Ferguson",
+            "name_cn": "Niall Ferguson",
+            "domain": "H",
+            "priority": 2,
+            "role": "历史学家/评论家",
+            "focus": "帝国衰落",
+            "twitter": "naboris",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Peter Turchin",
+            "name_cn": "Peter Turchin",
+            "domain": "H",
+            "priority": 3,
+            "role": "历史动力学",
+            "focus": "社会周期",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": "https://peterturchin.com"
+        },
+        {
+            "name": "Timothy Snyder",
+            "name_cn": "Timothy Snyder",
+            "domain": "H",
+            "priority": 2,
+            "role": "耶鲁",
+            "focus": "暴政研究",
+            "twitter": "TimothyDSnyder",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Adam Tooze",
+            "name_cn": "Adam Tooze",
+            "domain": "H",
+            "priority": 2,
+            "role": "哥伦比亚",
+            "focus": "经济史",
+            "twitter": "adam_tooze",
+            "rss_url": "https://adamtooze.substack.com/feed",
+            "blog_url": "https://adamtooze.substack.com"
+        },
+        {
+            "name": "Jared Diamond",
+            "name_cn": "Jared Diamond",
+            "domain": "H",
+            "priority": 3,
+            "role": "UCLA",
+            "focus": "文明兴衰",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Ray Dalio",
+            "name_cn": "Ray Dalio",
+            "domain": "F",
+            "priority": 1,
+            "role": "桥水基金",
+            "focus": "周期/大国博弈",
+            "twitter": "RayDalio",
+            "rss_url": null,
+            "blog_url": "https://www.linkedin.com/today/author/raydalio"
+        },
+        {
+            "name": "Howard Marks",
+            "name_cn": "Howard Marks",
+            "domain": "F",
+            "priority": 2,
+            "role": "橡树资本",
+            "focus": "市场周期",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Mohamed El-Erian",
+            "name_cn": "Mohamed El-Erian",
+            "domain": "F",
+            "priority": 2,
+            "role": "经济学家",
+            "focus": "央行政策",
+            "twitter": "elerianm",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Cathie Wood",
+            "name_cn": "Cathie Wood",
+            "domain": "F",
+            "priority": 3,
+            "role": "ARK Invest",
+            "focus": "颠覆创新",
+            "twitter": "CathieDWood",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Larry Fink",
+            "name_cn": "Larry Fink",
+            "domain": "F",
+            "priority": 2,
+            "role": "贝莱德 CEO",
+            "focus": "ESG",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Nouriel Roubini",
+            "name_cn": "Nouriel Roubini",
+            "domain": "F",
+            "priority": 3,
+            "role": "NYU",
+            "focus": "危机预测",
+            "twitter": "Nouriel",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Ben Thompson",
+            "name_cn": "Ben Thompson",
+            "domain": "F",
+            "priority": 2,
+            "role": "Stratechery 创始人",
+            "focus": "科技商业分析",
+            "twitter": "benthompson",
+            "rss_url": "https://stratechery.com/feed/",
+            "blog_url": "https://stratechery.com"
+        },
+        {
+            "name": "Charles Taylor",
+            "name_cn": "Charles Taylor",
+            "domain": "R",
+            "priority": 2,
+            "role": "哲学家",
+            "focus": "世俗时代",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "John Gray",
+            "name_cn": "John Gray",
+            "domain": "R",
+            "priority": 2,
+            "role": "政治哲学家",
+            "focus": "反乌托邦",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "David Bentley Hart",
+            "name_cn": "David Bentley Hart",
+            "domain": "R",
+            "priority": 3,
+            "role": "神学家",
+            "focus": "神学批评",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        }
+    ],
+    "youtubeChannels": [
+        {
+            "name": "Lex Fridman Podcast",
+            "domain": "T",
+            "focus": "深度访谈"
+        },
+        {
+            "name": "Dwarkesh Podcast",
+            "domain": "T",
+            "focus": "AI 专访"
+        },
+        {
+            "name": "a16z",
+            "domain": "T",
+            "focus": "风投视角"
+        },
+        {
+            "name": "ARK Invest",
+            "domain": "T",
+            "focus": "创新投资"
+        },
+        {
+            "name": "Machine Learning Street Talk",
+            "domain": "T",
+            "focus": "AI 学术"
+        },
+        {
+            "name": "Foreign Affairs",
+            "domain": "P",
+            "focus": "外交政策"
+        },
+        {
+            "name": "Council on Foreign Relations",
+            "domain": "P",
+            "focus": "国际关系"
+        },
+        {
+            "name": "Brookings Institution",
+            "domain": "P",
+            "focus": "政策研究"
+        },
+        {
+            "name": "Long Now Foundation",
+            "domain": "Φ",
+            "focus": "长期思维"
+        },
+        {
+            "name": "Santa Fe Institute",
+            "domain": "Φ",
+            "focus": "复杂系统"
+        },
+        {
+            "name": "Intelligence Squared",
+            "domain": "Φ",
+            "focus": "辩论"
+        },
+        {
+            "name": "Real Vision",
+            "domain": "F",
+            "focus": "投资访谈"
+        },
+        {
+            "name": "Bridgewater",
+            "domain": "F",
+            "focus": "Ray Dalio"
+        },
+        {
+            "name": "The All-In Podcast",
+            "domain": "F",
+            "focus": "硅谷投资"
+        }
+    ],
+    "publications": [
+        {
+            "name": "Foreign Affairs",
+            "domain": "P",
+            "rss_url": null
+        },
+        {
+            "name": "The Economist",
+            "domain": "P,F",
+            "rss_url": null
+        },
+        {
+            "name": "Financial Times",
+            "domain": "F",
+            "rss_url": null
+        },
+        {
+            "name": "The Atlantic",
+            "domain": "Φ,H",
+            "rss_url": null
+        },
+        {
+            "name": "MIT Technology Review",
+            "domain": "T",
+            "rss_url": "https://www.technologyreview.com/feed/"
+        },
+        {
+            "name": "Aeon",
+            "domain": "Φ",
+            "rss_url": "https://aeon.co/feed.rss"
+        }
+    ]
+}
