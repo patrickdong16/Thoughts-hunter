@@ -5,6 +5,28 @@
  * - 普通日：使用 defaultRules
  * - 主题日：使用 themeDays 中的配置覆盖
  * 
+ * === 内容生成 v2.0 框架 (2026-01-27) ===
+ * 
+ * 采集优先级体系：
+ * - P0: 跟踪名单内人物 → RSS/博客/Google
+ * - P1: 同级别思想者 → RSS/博客/Google  
+ * - P2: YouTube 视频 → 频道扫描 + RSS fallback
+ * 
+ * 普通日配额 (defaultRules)：
+ * - 非视频: 5-7 条 (minNonVideoItems/maxNonVideoItems)
+ * - 视频: ≥1 条 (minVideoItems)
+ * - 频段覆盖: T1/P1/H1/Φ1/F1/R1 各≥1 (minPerFrequency)
+ * 
+ * 主题日配额 (themeDays)：
+ * - 总量: 10-20 条
+ * - 内容类型: 灵活 (contentTypeFlex: true)
+ * - 频段覆盖: 灵活 (frequencyFlex: true)
+ * 
+ * P2 视频扫描机制：
+ * - API 端点: /api/automation/scan-channels
+ * - 优先 YouTube API，配额用完自动切换 RSS
+ * - 频道配置: backend/config/automation.js → targetChannels
+ * 
  * 使用方式：
  * const { getRulesForDate, getTodayRules } = require('./day-rules');
  * const rules = getRulesForDate('2026-01-22');

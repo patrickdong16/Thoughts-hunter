@@ -1,11 +1,26 @@
 /**
- * 多来源内容生成器
+ * 多来源内容生成器 v2.0
  * Multi-Source Content Generator
  * 
- * 支持3种内容来源：
- * 1. 实时Web搜索 - 思想圈主流网站/刊物/会议
- * 2. YouTube搜索 - 目标频道和人物
- * 3. RSS/HN订阅 - 主流杂志和核心人物博客
+ * === 采集优先级体系 ===
+ * 
+ * P0 (最高): 跟踪名单内人物
+ *     渠道: RSS/博客/Google
+ *     实现: leader-content-fetcher.js
+ * 
+ * P1 (补充): 同级别思想者
+ *     渠道: RSS/博客/Google/HN/arXiv
+ *     实现: 本文件 generateWebSearchQueries(), getRSSSources(), generateHNQueries()
+ * 
+ * P2 (视频): YouTube 频道扫描
+ *     渠道: YouTube API + RSS fallback
+ *     实现: video-scanner.js → scanWithFallback()
+ *     API: /api/automation/scan-channels
+ *     流程: 扫描 → 队列 → 处理
+ * 
+ * 配额规则:
+ * - 普通日: 非视频 5-7 + 视频 ≥1 + 频段覆盖 (day-config.json)
+ * - 主题日: 10-20 条，灵活模式
  * 
  * 注意：此服务不直接调用MCP，而是准备搜索查询
  * 实际的MCP调用由automation路由通过Claude完成
