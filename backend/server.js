@@ -43,12 +43,48 @@ app.use('/api/push', pushRoutes);
 app.use('/api/automation', automationRoutes);
 app.use('/api/report', reportRoutes);
 
-// 健康检查
-app.get('/health', (req, res) => {
+// 健康检查 - 详细版本用于调试
+const pool = require('./config/database');
+
+app.get('/health', async (req, res) => {
+    const startTime = Date.now();
+    const checks = {
+        server: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        env: {
+            NODE_ENV: process.env.NODE_ENV || 'development',
+            PORT: process.env.PORT || 3000,
+            DATABASE_URL: process.env.DATABASE_URL ? 'set (hidden)' : 'NOT SET',
+        },
+        database: 'checking...'
+    };
+
+    try {
+        // 测试数据库连接
+        const dbStart = Date.now();
+        const result = await pool.query('SELECT NOW() as time, current_database() as db');
+        checks.database = {
+            status: 'connected',
+            responseTime: `${Date.now() - dbStart}ms`,
+            serverTime: result.rows[0].time,
+            database: result.rows[0].db
+        };
+    } catch (dbError) {
+        checks.database = {
+            status: 'error',
+            error: dbError.message,
+            code: dbError.code
+        };
+    }
+
+    checks.totalResponseTime = `${Date.now() - startTime}ms`;
+
     res.json({
-        success: true,
-        message: 'Thoughts Radar API is running',
-        timestamp: new Date().toISOString()
+        success: checks.database.status === 'connected',
+        message: 'Thoughts Radar API Health Check',
+        checks
     });
 });
 
@@ -104,13 +140,21 @@ app.use((err, req, res, next) => {
     });
 });
 
-// 启动服务器（包含数据库初始化）
-const initDatabase = require('./init-database');
+// 启动服务器 - 支持两种模式
+// 1. 直接运行 (node server.js) - 需要初始化数据库
+// 2. 被 start-with-init.js 导入 - 数据库已初始化，只需启动服务器
 
-async function startServer() {
+async function startServer(skipInit = false) {
+    console.log('🚀 startServer called, skipInit:', skipInit);
+
     try {
-        // 初始化数据库
-        await initDatabase();
+        if (!skipInit) {
+            console.log('📋 Initializing database...');
+            const initDatabase = require('./init-database');
+            await initDatabase();
+        } else {
+            console.log('✓ Skipping database init (already done by caller)');
+        }
 
         app.listen(PORT, () => {
             console.log(`
@@ -121,32 +165,27 @@ async function startServer() {
 
 Server running on: http://localhost:${PORT}
 Environment: ${process.env.NODE_ENV || 'development'}
-Database: ${process.env.DB_NAME || 'thoughts_radar'}
+Time: ${new Date().toISOString()}
 
-API Documentation:
-→ GET  /health                     - Health check
-→ POST /api/auth/register          - User registration
-→ POST /api/auth/login             - User login
-→ GET  /api/auth/me                - Get current user
-→ GET  /api/radar/today            - Today's radar
-→ GET  /api/radar/:date            - Radar by date
-→ GET  /api/radar/item/:id         - Single item
-→ GET  /api/bands                  - All bands
-→ GET  /api/bands/:id              - Single band
-→ POST /api/user/like              - Like/Unlike
-→ POST /api/user/stance            - Set stance
-→ GET  /api/user/:user_id/likes    - User's likes
-→ GET  /api/user/:user_id/stances  - User's stances
+API Endpoints:
+→ GET  /health - Detailed health check (use this for debugging)
+→ GET  /api/radar/today - Today's radar
 
 Press Ctrl+C to stop
   `);
         });
     } catch (error) {
-        console.error('Failed to start server:', error);
+        console.error('❌ Failed to start server:', error);
         process.exit(1);
     }
 }
 
-startServer();
+// 只在直接运行时自动启动 (node server.js)
+// 被 require 时不自动启动，由调用者控制
+if (require.main === module) {
+    console.log('📌 Running server.js directly');
+    startServer(false);
+}
 
-module.exports = app;
+module.exports = { app, startServer };
+
