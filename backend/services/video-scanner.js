@@ -145,12 +145,14 @@ async function addToQueue(video, channel, details) {
     const publishedAt = video.snippet.publishedAt;
     const duration = details?.contentDetails?.duration || 'PT0S';
 
+    // 注意：collection_log.source_id 是整数类型外键
+    // 这里使用 video_title 而不是 title (匹配现有表结构)
     await pool.query(`
         INSERT INTO collection_log 
-        (video_id, title, channel_title, duration, published_at, source_id, checked_at, analyzed)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW(), false)
+        (video_id, video_title, channel_title, duration, published_at, checked_at, analyzed)
+        VALUES ($1, $2, $3, $4, $5, NOW(), false)
         ON CONFLICT (video_id) DO NOTHING
-    `, [videoId, title, channelTitle, duration, publishedAt, channel.channelId]);
+    `, [videoId, title, channelTitle, duration, publishedAt]);
 }
 
 /**
