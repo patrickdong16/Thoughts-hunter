@@ -420,6 +420,44 @@ router.put('/:id', async (req, res) => {
 });
 
 /**
+ * DELETE /api/radar/by-date/:date
+ * 删除指定日期的所有雷达条目（运维用）
+ */
+router.delete('/by-date/:date', async (req, res) => {
+    try {
+        const { date } = req.params;
+
+        // 验证日期格式
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid date format. Use YYYY-MM-DD'
+            });
+        }
+
+        const result = await pool.query(
+            'DELETE FROM radar_items WHERE date = $1 RETURNING id',
+            [date]
+        );
+
+        console.log(`🗑️ 删除 ${date} 的 ${result.rowCount} 条内容`);
+
+        res.json({
+            success: true,
+            message: `Deleted ${result.rowCount} items for ${date}`,
+            date: date,
+            deletedCount: result.rowCount
+        });
+    } catch (error) {
+        console.error('Error bulk deleting radar items:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete radar items'
+        });
+    }
+});
+
+/**
  * DELETE /api/radar/:id
  * 删除雷达条目（CMS使用）
  */

@@ -5,9 +5,9 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 
+// Railway Postgres 不需要 SSL
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    connectionString: process.env.DATABASE_URL
 });
 
 async function main() {
