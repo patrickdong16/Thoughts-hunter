@@ -236,6 +236,13 @@ async function initDatabase() {
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_radar_items_video_id ON radar_items(video_id) WHERE video_id IS NOT NULL`);
         console.log('✓ YouTube engagement fields ready');
 
+        // ===============================================
+        // 12. source_url 字段迁移 (2026-01-27 复盘新增)
+        // ===============================================
+        await pool.query(`ALTER TABLE radar_items ADD COLUMN IF NOT EXISTS source_url VARCHAR(500)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_radar_items_source_url ON radar_items(source_url) WHERE source_url IS NOT NULL`);
+        console.log('✓ source_url field ready');
+
         console.log('\n✅ Database initialization complete!');
     } catch (error) {
         console.error('Database initialization error:', error);
