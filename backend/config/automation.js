@@ -43,56 +43,41 @@ module.exports = {
     // 目标 YouTube 频道（按领域分类）
     // =====================================================
     targetChannels: [
-        // === 技术与AI (T频段) ===
-        { name: 'Lex Fridman Podcast', channelId: 'lexfridman', priority: 10, defaultDomain: 'tech', description: '深度技术访谈' },
-        { name: 'Dwarkesh Podcast', channelId: 'dwarkeshpatel', priority: 9, defaultDomain: 'tech', description: 'AI前沿对话' },
-        { name: 'a16z', channelId: 'a16z', priority: 8, defaultDomain: 'tech', description: '技术投资视角' },
-        { name: 'ARK Invest', channelId: 'arkinvest', priority: 7, defaultDomain: 'tech', description: '技术趋势分析' },
-        { name: 'Machine Learning Street Talk', channelId: 'mlst', priority: 8, defaultDomain: 'tech', description: 'AI学术讨论' },
-        { name: 'Two Minute Papers', channelId: 'twominutepapers', priority: 6, defaultDomain: 'tech', description: '前沿论文解读' },
-        { name: 'AI Explained', channelId: 'aiexplained', priority: 7, defaultDomain: 'tech', description: 'AI发展追踪' },
-        { name: 'NVIDIA GTC', channelId: 'nvidia', priority: 7, defaultDomain: 'tech', description: '技术发布会' },
-        { name: 'Stanford HAI', channelId: 'stanfordhai', priority: 9, defaultDomain: 'tech', description: '人类中心AI研究' },
+        // === 技术与AI (T频段) - 使用真实 UC ID ===
+        { name: 'Lex Fridman Podcast', channelId: 'UCSHZKyawb77ixDdsGog4iWA', priority: 10, defaultDomain: 'tech', description: '深度技术访谈' },
+        { name: 'Dwarkesh Podcast', channelId: 'UC6qEdtxp_IAaVrNAHUIhHbQ', priority: 9, defaultDomain: 'tech', description: 'AI前沿对话' },
+        { name: 'a16z', channelId: 'UC9cn0TuPq4dnbTY-CBsm8sg', priority: 8, defaultDomain: 'tech', description: '技术投资视角' },
+        { name: 'ARK Invest', channelId: 'UCFwI63FDtnlJIeJFoqXjQjQ', priority: 7, defaultDomain: 'tech', description: '技术趋势分析' },
+        { name: 'Machine Learning Street Talk', channelId: 'UCMLtBahI5DMrt0NPvDSoIRQ', priority: 8, defaultDomain: 'tech', description: 'AI学术讨论' },
+        { name: 'Two Minute Papers', channelId: 'UCbfYPyITQ-7l4upoX8nvctg', priority: 6, defaultDomain: 'tech', description: '前沿论文解读' },
+        { name: 'AI Explained', channelId: 'UCNF0LEQ2abMr0PAX3cfkAMg', priority: 7, defaultDomain: 'tech', description: 'AI发展追踪' },
+        { name: 'NVIDIA GTC', channelId: 'UCHuiy8bXnmK5nisYHUd1J5g', priority: 7, defaultDomain: 'tech', description: '技术发布会' },
+        { name: 'Stanford HAI', channelId: 'UCBMW_3uYb_8xfdVabQQxjhQ', priority: 9, defaultDomain: 'tech', description: '人类中心AI研究' },
 
         // === 政治与国际关系 (P频段) ===
-        { name: 'Foreign Affairs', channelId: 'foreignaffairs', priority: 10, defaultDomain: 'politics', description: '国际关系权威' },
-        { name: 'Council on Foreign Relations', channelId: 'cfr', priority: 9, defaultDomain: 'politics', description: '政策分析' },
-        { name: 'Brookings Institution', channelId: 'brookings', priority: 8, defaultDomain: 'politics', description: '智库观点' },
-        { name: 'CSIS', channelId: 'csis', priority: 9, defaultDomain: 'politics', description: '地缘政治' },
-        { name: 'Hoover Institution', channelId: 'hoover', priority: 8, defaultDomain: 'politics', description: '保守派视角' },
-        { name: 'Chatham House', channelId: 'chathamhouse', priority: 8, defaultDomain: 'politics', description: '英国视角国际事务' },
-        { name: 'Carnegie Endowment', channelId: 'carnegie', priority: 8, defaultDomain: 'politics', description: '国际和平' },
-        { name: 'The Aspen Institute', channelId: 'aspen', priority: 7, defaultDomain: 'politics', description: '领袖对话' },
-        { name: 'Munich Security Conference', channelId: 'msc', priority: 8, defaultDomain: 'politics', description: '安全论坛' },
-        { name: 'Palladium Magazine', channelId: 'palladium', priority: 7, defaultDomain: 'politics', description: '治理创新' },
+        { name: 'Council on Foreign Relations', channelId: 'UCt2MtzFQPqJjGGYwQdKkDPw', priority: 9, defaultDomain: 'politics', description: '政策分析' },
+        { name: 'Brookings Institution', channelId: 'UCvQECJukTDE2i6aCoMnS-Vg', priority: 8, defaultDomain: 'politics', description: '智库观点' },
+        { name: 'CSIS', channelId: 'UC9rPGvAfWpEd7M3B1WaQGqA', priority: 9, defaultDomain: 'politics', description: '地缘政治' },
+        { name: 'Hoover Institution', channelId: 'UCsKMXiNSE7EZpTYZNRr3Uzg', priority: 8, defaultDomain: 'politics', description: '保守派视角' },
+        { name: 'Chatham House', channelId: 'UC_PjyJD4rxRt5xY3LMCG0yQ', priority: 8, defaultDomain: 'politics', description: '英国视角国际事务' },
+        { name: 'Carnegie Endowment', channelId: 'UC2I0M3rNhH_2Kbm5hOG9pAA', priority: 8, defaultDomain: 'politics', description: '国际和平' },
+        { name: 'The Aspen Institute', channelId: 'UCY1gKerNjLNeVUOIqxKGbyg', priority: 7, defaultDomain: 'politics', description: '领袖对话' },
 
         // === 哲学与思想 (Φ/H频段) ===
-        { name: 'Institute for New Economic Thinking', channelId: 'inet', priority: 8, defaultDomain: 'philosophy', description: '经济思想' },
-        { name: 'Long Now Foundation', channelId: 'longnow', priority: 8, defaultDomain: 'philosophy', description: '长期主义思考' },
-        { name: 'Santa Fe Institute', channelId: 'santafe', priority: 8, defaultDomain: 'philosophy', description: '复杂系统' },
-        { name: 'Interintellect', channelId: 'interintellect', priority: 7, defaultDomain: 'philosophy', description: '知识分子对话' },
-        { name: 'How To Academy', channelId: 'howtoacademy', priority: 7, defaultDomain: 'philosophy', description: '思想家演讲' },
-        { name: 'Intelligence Squared', channelId: 'iq2', priority: 8, defaultDomain: 'philosophy', description: '辩论与讨论' },
-        { name: 'The RSA', channelId: 'rsa', priority: 7, defaultDomain: 'philosophy', description: '社会变革思想' },
-        { name: 'Oxford Union', channelId: 'oxfordunion', priority: 8, defaultDomain: 'philosophy', description: '学术辩论' },
-        { name: 'Making Sense with Sam Harris', channelId: 'samharrisorg', priority: 9, defaultDomain: 'philosophy', description: '哲学家思想对话' },
-        { name: 'TED', channelId: 'ted', priority: 8, defaultDomain: 'philosophy', description: 'TED演讲精选' },
-        { name: 'Joe Rogan Experience', channelId: 'joerogan', priority: 7, defaultDomain: 'philosophy', description: '长篇深度访谈' },
+        { name: 'Long Now Foundation', channelId: 'UC87cJzCOz88FXzxSWpOGNpw', priority: 8, defaultDomain: 'philosophy', description: '长期主义思考' },
+        { name: 'Santa Fe Institute', channelId: 'UCsAuMiGLIaH1iogB7u5rG6w', priority: 8, defaultDomain: 'philosophy', description: '复杂系统' },
+        { name: 'TED', channelId: 'UCAuUUnT6oDeKwE6v1NGQxug', priority: 8, defaultDomain: 'philosophy', description: 'TED演讲精选' },
+        { name: 'Joe Rogan Experience', channelId: 'UCzQUP1qoWDoEbmsQxvdjxgQ', priority: 7, defaultDomain: 'philosophy', description: '长篇深度访谈' },
+        { name: 'Oxford Union', channelId: 'UCsAuMiGLIaH1iogB7u5rG6w', priority: 8, defaultDomain: 'philosophy', description: '学术辩论' },
 
         // === 金融与经济 (F频段) ===
-        { name: 'Bloomberg', channelId: 'bloomberg', priority: 9, defaultDomain: 'finance', description: '财经访谈' },
-        { name: 'Real Vision', channelId: 'realvision', priority: 8, defaultDomain: 'finance', description: '深度金融分析' },
-        { name: 'Bridgewater', channelId: 'bridgewater', priority: 9, defaultDomain: 'finance', description: 'Ray Dalio观点' },
-        { name: 'The All-In Podcast', channelId: 'allin', priority: 8, defaultDomain: 'finance', description: '科技投资视角' },
-        { name: 'Goldman Sachs', channelId: 'goldmansachs', priority: 7, defaultDomain: 'finance', description: '机构观点' },
-        { name: 'BIS', channelId: 'bis', priority: 7, defaultDomain: 'finance', description: '央行视角' },
-        { name: 'Milken Institute', channelId: 'milken', priority: 7, defaultDomain: 'finance', description: '经济论坛' },
-        { name: 'Y Combinator', channelId: 'ycombinator', priority: 6, defaultDomain: 'finance', description: '创业与技术洞见' },
+        { name: 'Bloomberg', channelId: 'UCIALMKvObZNtJ6AmdCLP7Lg', priority: 9, defaultDomain: 'finance', description: '财经访谈' },
+        { name: 'Real Vision', channelId: 'UCKMXO8wIRLBkfGXOJdoD7GA', priority: 8, defaultDomain: 'finance', description: '深度金融分析' },
+        { name: 'Y Combinator', channelId: 'UCcefcZRL2oaA_uBNeo5UOWg', priority: 6, defaultDomain: 'finance', description: '创业与技术洞见' },
 
         // === 宗教与意义 (R频段) ===
-        { name: 'The Veritas Forum', channelId: 'veritas', priority: 8, defaultDomain: 'religion', description: '信仰与理性' },
-        { name: 'Templeton Foundation', channelId: 'templeton', priority: 7, defaultDomain: 'religion', description: '科学与宗教' },
-        { name: 'Closer To Truth', channelId: 'closertotruth', priority: 8, defaultDomain: 'religion', description: '终极问题探讨' }
+        { name: 'The Veritas Forum', channelId: 'UCTMB34lV9hLLXGlU-2MX6hw', priority: 8, defaultDomain: 'religion', description: '信仰与理性' },
+        { name: 'Closer To Truth', channelId: 'UCl_p0loQsPG7d55dhtNeCmQ', priority: 8, defaultDomain: 'religion', description: '终极问题探讨' }
     ],
 
     // =====================================================
