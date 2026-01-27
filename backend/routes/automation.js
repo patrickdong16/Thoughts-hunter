@@ -127,6 +127,29 @@ function calculatePriority(video) {
 }
 
 /**
+ * GET /api/automation/content-gap
+ * 获取当日内容缺口（供 workflow 检查）
+ */
+router.get('/content-gap', async (req, res) => {
+    try {
+        const beijingDate = new Date().toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Shanghai'
+        });
+
+        const gap = await multiSourceGenerator.getContentGap(beijingDate);
+
+        res.json({
+            success: true,
+            date: beijingDate,
+            ...gap
+        });
+    } catch (error) {
+        console.error('Get content gap error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
  * POST /api/automation/add-video
  * 手动添加视频到采集队列
  */
@@ -265,13 +288,20 @@ router.post('/generate-daily', async (req, res) => {
             });
         }
 
-        // 3. 按优先级排序，限制分析数量（成本控制：最多5个视频）
+        // 3. 按优先级排序，限制分析数量
         const { dailyQuota, aiAnalysis } = automationConfig;
         eligibleVideos.sort((a, b) => b.priority - a.priority);
-        const maxToAnalyze = dailyQuota.maxVideosToAnalyze || 5;
+
+        // 普通日使用 maxVideos 限制（从 day-config.json 读取）
+        // 主题日不限制视频数量
+        const maxVideos = dayRules.isThemeDay
+            ? (dailyQuota.maxVideosToAnalyze || 20)
+            : (dayRules.rules?.maxVideos || 2);
+        const maxToAnalyze = Math.min(maxVideos, dailyQuota.maxVideosToAnalyze || 5);
         const toAnalyze = eligibleVideos.slice(0, maxToAnalyze);
 
-        console.log(`📊 将分析前 ${toAnalyze.length} 个视频（成本控制上限: ${maxToAnalyze}）`);
+        console.log(`📊 将分析前 ${toAnalyze.length} 个视频（${dayRules.isThemeDay ? '主题日' : '普通日'}上限: ${maxVideos}）`);
+
 
         // 4. 分析并生成内容
         for (const video of toAnalyze) {

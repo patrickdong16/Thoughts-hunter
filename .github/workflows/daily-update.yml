@@ -23,17 +23,47 @@ jobs:
           echo "📥 API Response: $response"
           echo "✅ Content collection completed"
 
-      - name: Auto-generate daily content
+      - name: Auto-generate daily content (video sources)
+        id: generate
         run: |
           echo "🤖 Triggering auto-content generation..."
           
-          # 调用后端API自动筛选、分析和发布内容
+          # 调用后端API自动筛选、分析和发布视频内容
+          # 注意：普通日最多2条视频，主题日不限
           generate_response=$(curl -s -X POST https://thoughts-radar-backend-production.up.railway.app/api/automation/generate-daily \
             -H "Content-Type: application/json" \
             --max-time 900)
           
           echo "📝 Generate Response: $generate_response"
-          echo "✅ Auto-generation completed"
+          
+          # 提取发布数量
+          published=$(echo "$generate_response" | jq -r '.results.published // 0')
+          echo "published=$published" >> $GITHUB_OUTPUT
+          echo "✅ Auto-generation completed: $published items published"
+
+      - name: Check content gap
+        id: gap
+        run: |
+          echo "📊 Checking content gap..."
+          
+          # 检查今日内容缺口
+          gap_response=$(curl -s https://thoughts-radar-backend-production.up.railway.app/api/automation/content-gap \
+            --max-time 30)
+          
+          echo "Gap Response: $gap_response"
+          
+          gap=$(echo "$gap_response" | jq -r '.gap // 0')
+          needs_more=$(echo "$gap_response" | jq -r '.needsMore // false')
+          
+          echo "gap=$gap" >> $GITHUB_OUTPUT
+          echo "needs_more=$needs_more" >> $GITHUB_OUTPUT
+          
+          if [ "$needs_more" = "true" ]; then
+            echo "⚠️ Content gap detected: need $gap more items"
+            echo "💡 Consider using multi-source generation or manual addition"
+          else
+            echo "✅ Content quota met for today"
+          fi
 
       - name: Send push notifications
         run: |
@@ -58,3 +88,12 @@ jobs:
           
           echo "📧 Report Response: $report_response"
           echo "✅ Daily report sent"
+
+      - name: Summary
+        run: |
+          echo "📋 Daily Update Summary"
+          echo "========================"
+          echo "Published items: ${{ steps.generate.outputs.published }}"
+          echo "Content gap: ${{ steps.gap.outputs.gap }}"
+          echo "Needs more content: ${{ steps.gap.outputs.needs_more }}"
+
