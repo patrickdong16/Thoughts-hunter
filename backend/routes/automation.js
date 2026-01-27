@@ -1813,6 +1813,64 @@ router.post('/leaders/sync', async (req, res) => {
     }
 });
 
+// =====================================================
+// RSS Fallback 内容生成
+// Leader RSS Fallback Content Generation
+// =====================================================
+
+const leaderContentFetcher = require('../services/leader-content-fetcher');
+
+/**
+ * POST /api/automation/generate-from-leaders
+ * 从思想领袖的 RSS 源生成内容（作为视频来源的 fallback）
+ * 
+ * 场景：当视频采集无新内容时，使用此端点补充
+ */
+router.post('/generate-from-leaders', async (req, res) => {
+    const startTime = Date.now();
+
+    try {
+        const { date } = req.query;
+        console.log('🔄 启动 RSS Fallback 内容生成...');
+
+        const result = await leaderContentFetcher.generateFallbackContent(date);
+
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        res.json({
+            ...result,
+            duration: `${duration}s`
+        });
+
+    } catch (error) {
+        console.error('❌ Fallback 生成失败:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/automation/leaders-with-rss
+ * 获取有 RSS 源的思想领袖列表（调试用）
+ */
+router.get('/leaders-with-rss', async (req, res) => {
+    try {
+        const leaders = await leaderContentFetcher.getLeadersWithRSS();
+        res.json({
+            success: true,
+            count: leaders.length,
+            leaders: leaders.map(l => ({
+                name: l.name,
+                domain: l.domain,
+                priority: l.priority,
+                rss_url: l.rss_url,
+                blog_url: l.blog_url
+            }))
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
 
 

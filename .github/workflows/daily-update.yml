@@ -62,8 +62,15 @@ jobs:
         run: |
           echo "📊 Checking content gap..."
           
+          # 构建日期参数
+          TARGET_DATE="${{ github.event.inputs.target_date }}"
+          DATE_PARAM=""
+          if [ -n "$TARGET_DATE" ]; then
+            DATE_PARAM="?date=$TARGET_DATE"
+          fi
+          
           # 检查今日内容缺口
-          gap_response=$(curl -s https://thoughts-radar-backend-production.up.railway.app/api/automation/content-gap \
+          gap_response=$(curl -s "https://thoughts-radar-backend-production.up.railway.app/api/automation/content-gap${DATE_PARAM}" \
             --max-time 30)
           
           echo "Gap Response: $gap_response"
@@ -76,10 +83,31 @@ jobs:
           
           if [ "$needs_more" = "true" ]; then
             echo "⚠️ Content gap detected: need $gap more items"
-            echo "💡 Consider using multi-source generation or manual addition"
           else
             echo "✅ Content quota met for today"
           fi
+
+      - name: RSS Fallback (if gap remains)
+        if: steps.gap.outputs.needs_more == 'true'
+        run: |
+          echo "🔄 Content gap detected, triggering RSS fallback..."
+          
+          # 构建日期参数
+          TARGET_DATE="${{ github.event.inputs.target_date }}"
+          DATE_PARAM=""
+          if [ -n "$TARGET_DATE" ]; then
+            DATE_PARAM="?date=$TARGET_DATE"
+          fi
+          
+          # 调用思想领袖 RSS fallback 内容生成
+          fallback_response=$(curl -s -X POST "https://thoughts-radar-backend-production.up.railway.app/api/automation/generate-from-leaders${DATE_PARAM}" \
+            -H "Content-Type: application/json" \
+            --max-time 300)
+          
+          echo "📰 Fallback Response: $fallback_response"
+          
+          inserted=$(echo "$fallback_response" | jq -r '.results.inserted // 0')
+          echo "✅ RSS Fallback completed: $inserted items inserted"
 
       - name: Send push notifications
         run: |
