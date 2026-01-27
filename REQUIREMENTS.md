@@ -274,6 +274,79 @@ Step 3 → 配额检查 (灵活模式)
 - 定时：北京时间 **04:00** (UTC 20:00)
 - 手动触发：支持指定日期
 
+#### 4.5.6 P2 视频扫描机制 🆕
+
+> **状态**：✅ 已实现 (2026-01-27)
+
+##### 扫描架构
+
+```
+┌─────────────────────────────────────────────┐
+│  /api/automation/scan-channels              │
+│  优先 YouTube API，失败自动切换 RSS         │
+└─────────────────────────────────────────────┘
+                     ↓
+┌─────────────────────────────────────────────┐
+│  YouTube API 扫描 (10,000 单位/日配额)      │
+│  - search.list = 100 单位/频道              │
+│  - videos.list = 1 单位/视频详情            │
+└─────────────────────────────────────────────┘
+        ↓ 失败/配额用完             ↓ 成功
+┌───────────────────────┐   ┌─────────────────┐
+│  RSS Fallback         │   │  视频详情获取    │
+│  - 无配额消耗扫描     │   │  (时长筛选)      │
+│  - 每频道最新 15 视频  │   └─────────────────┘
+└───────────────────────┘           ↓
+        ↓                   ┌─────────────────┐
+┌───────────────────────┐   │  添加到队列      │
+│  时长检查 (API)       │   │  (≥40 分钟)     │
+│  1 单位/视频          │   └─────────────────┘
+└───────────────────────┘
+```
+
+##### 配额消耗对比
+
+| 方式 | 扫描 27 频道消耗 | 说明 |
+|------|------------------|------|
+| 纯 YouTube API | ~2,700 单位 | search 100 单位/频道 |
+| RSS + 时长检查 | ~135 单位 | 仅视频详情消耗配额 |
+
+##### 核心函数 (`video-scanner.js`)
+
+| 函数 | 说明 |
+|------|------|
+| `scanAllChannels()` | YouTube API 扫描所有配置频道 |
+| `scanChannelViaRSS()` | 通过 RSS Feed 扫描单个频道 |
+| `scanAllChannelsViaRSS()` | 批量 RSS 扫描（仅 UC 格式频道） |
+| `scanWithFallback()` | 智能切换：API 优先，失败用 RSS |
+| `addToQueue()` | 添加到 `collection_log` 表 |
+
+##### API 端点
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/automation/scan-channels` | POST | 扫描频道（自动 fallback） |
+| `/api/automation/process-video-queue` | POST | 处理队列中的视频 |
+| `/api/automation/search-speaker` | GET | 搜索特定人物视频 |
+
+##### 频道配置 (`automation.js`)
+
+- 位置：`backend/config/automation.js` → `targetChannels`
+- 频道 ID 格式：**必须为 UC 开头**（如 `UCSHZKyawb77ixDdsGog4iWA`）
+- 当前配置：27 个高质量频道（技术/政治/哲学/金融/宗教）
+
+##### Workflow 集成
+
+```yaml
+# .github/workflows/daily-update.yml - P2 步骤
+- name: P2 - Scan channels and collect videos
+  run: |
+    # Step 1: 扫描频道填充队列
+    curl -X POST .../scan-channels -d '{"maxVideosPerChannel": 3, "daysBack": 7}'
+    
+    # Step 2: 处理队列生成内容
+    curl -X POST .../process-video-queue
+```
 
 ### 4.6 YouTube 公众反应数据采集
 
@@ -544,6 +617,7 @@ Step 3 → 配额检查 (灵活模式)
 
 | 日期 | 变更 |
 |------|------|
+| 2026-01-27 | v4.1 - P2 视频扫描机制：RSS fallback + YouTube API 配额优化（4.5.6 章节） |
 | 2026-01-27 | v4.0 - 内容生成 v2.0 框架：P0/P1/P2 优先级体系、普通日非视频配额 5-7 + 视频≥1、频段覆盖强制 |
 | 2026-01-26 | v3.4 - 新增 YouTube 公众反应数据采集需求 (4.5 章节) |
 | 2026-01-26 | v3.3 - 新增来源信息规范 (source + source_url 必填要求) |

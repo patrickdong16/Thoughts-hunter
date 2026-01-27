@@ -113,10 +113,22 @@ curl https://thoughts-radar-backend-production.up.railway.app/api/automation/con
 }
 ```
 
-### 步骤 3：P2 - YouTube 视频采集
+### 步骤 3：P2 - YouTube 视频扫描与采集 🆕
 ```bash
-curl -X POST https://thoughts-radar-backend-production.up.railway.app/api/automation/generate-daily
+# 步骤 3a: 扫描频道填充队列（自动 RSS fallback）
+curl -X POST https://thoughts-radar-backend-production.up.railway.app/api/automation/scan-channels \
+  -H "Content-Type: application/json" \
+  -d '{"maxVideosPerChannel": 3, "daysBack": 7}'
+
+# 返回示例：
+# { "method": "rss", "results": { "videosAdded": 5, "channelsScanned": 11 } }
+
+# 步骤 3b: 处理队列生成内容
+curl -X POST https://thoughts-radar-backend-production.up.railway.app/api/automation/process-video-queue
 ```
+
+> **智能 Fallback**：优先使用 YouTube API，配额用完或失败自动切换 RSS  
+> **配额节省**：RSS 模式扫描 27 频道仅需 ~135 单位（全 API 需 ~2700 单位）
 
 ### 步骤 4：最终验证
 ```bash
@@ -164,6 +176,16 @@ GET /api/automation/search-plan
 # 返回: Web/YouTube/RSS/HN搜索查询列表
 ```
 
+### P2 视频扫描（自动 RSS fallback）🆕
+```bash
+POST /api/automation/scan-channels
+# Body: {"maxVideosPerChannel": 3, "daysBack": 7}
+# 返回: { "method": "rss|api", "videosAdded": N, "channelsScanned": N }
+
+POST /api/automation/process-video-queue
+# 返回: { "processed": N, "failed": N }
+```
+
 ### 每日生成入口
 ```bash
 POST /api/automation/generate-daily-v2
@@ -173,4 +195,4 @@ POST /api/automation/generate-daily-v2
 ---
 
 *本文件仅对思想雷达项目生效*
-*最后更新：2026-01-27（内容生成 v2.0 框架：P0/P1/P2 优先级体系、普通日/主题日配额规则）*
+*最后更新：2026-01-27（P2 视频扫描机制：RSS fallback + 配额优化）*
