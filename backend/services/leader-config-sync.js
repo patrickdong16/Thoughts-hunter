@@ -7,8 +7,9 @@ const fs = require('fs');
 const path = require('path');
 const pool = require('../config/database');
 
-// 配置文件路径
-const CONFIG_PATH = path.join(__dirname, '../../CONTENT_SOURCES.json');
+// 配置文件路径 - 使用 process.cwd() 确保在 Docker 中正确解析
+// 在 Docker 中，process.cwd() = /app，配置文件在 /app/CONTENT_SOURCES.json
+const CONFIG_PATH = path.join(process.cwd(), 'CONTENT_SOURCES.json');
 
 /**
  * 读取配置文件
