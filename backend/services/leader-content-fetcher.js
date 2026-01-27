@@ -8,6 +8,7 @@
 const Parser = require('rss-parser');
 const pool = require('../config/database');
 const { getRulesForDate } = require('../config/day-rules');
+const aiAnalyzer = require('./ai-analyzer');
 
 const parser = new Parser({
     timeout: 15000,
@@ -92,24 +93,50 @@ async function fetchAllLeaderContent() {
 
 /**
  * 将文章转换为 radar_item 格式的草稿
- * 注意：这是简化版，完整版需要 AI 分析
+ * v2: 使用 AI 分析生成中文内容，而非直接使用 RSS 原文
  */
-function articleToRadarDraft(article, freq) {
-    return {
-        freq,
-        stance: 'A',  // 默认，需要 AI 判断
-        title: article.title,
-        author_name: article.author,
-        author_avatar: article.author?.substring(0, 2) || '??',
-        author_bio: article.leader?.role || '',
-        source: `${article.author}, ${new Date(article.pubDate).toLocaleDateString('zh-CN')}`,
-        source_url: article.link,
-        content: article.content,
-        domain: article.domain,
-        tension_q: '',
-        tension_a: '',
-        tension_b: ''
-    };
+async function analyzeArticleWithAI(article, freq) {
+    console.log(`🤖 AI 分析: ${article.title?.substring(0, 40)}...`);
+
+    try {
+        // 构建分析用的元数据
+        const metadata = {
+            title: article.title,
+            channelTitle: article.author,
+            publishedAt: article.pubDate,
+            description: article.content || ''
+        };
+
+        // 调用 AI 分析（使用元数据模式，因为 RSS 没有完整字幕）
+        const analysis = await aiAnalyzer.analyzeMetadata(metadata);
+
+        if (analysis.items && analysis.items.length > 0) {
+            // AI 成功生成了中文内容
+            const item = analysis.items[0];
+            return {
+                success: true,
+                draft: {
+                    freq: item.freq || freq,
+                    stance: item.stance || 'A',
+                    title: item.title,
+                    author_name: item.author_name || article.author,
+                    author_avatar: aiAnalyzer.generateAvatar(item.author_name || article.author),
+                    author_bio: item.author_bio || article.leader?.role || '',
+                    source: item.source || `${article.author}, ${new Date(article.pubDate).toLocaleDateString('zh-CN')}`,
+                    source_url: article.link,
+                    content: item.content,
+                    tension_q: item.tension_q || '',
+                    tension_a: item.tension_a || '',
+                    tension_b: item.tension_b || ''
+                }
+            };
+        }
+
+        return { success: false, reason: 'AI 未生成有效内容' };
+    } catch (error) {
+        console.error(`❌ AI 分析失败: ${error.message}`);
+        return { success: false, reason: error.message };
+    }
 }
 
 /**
@@ -162,7 +189,14 @@ async function generateFallbackContent(date) {
     const allFreqs = ['T1', 'T2', 'P1', 'P2', 'H1', 'Φ1', 'F1', 'R1'];
     const availableFreqs = allFreqs.filter(f => !usedFreqs.has(f));
 
-    // 5. 按领域分配文章 (简化版)
+    // 5. 已有来源检查（防止单一来源）
+    const { rows: existingAuthors } = await pool.query(
+        'SELECT DISTINCT author_name FROM radar_items WHERE date = $1',
+        [beijingDate]
+    );
+    const usedAuthors = new Set(existingAuthors.map(r => r.author_name));
+
+    // 6. 按领域分配文章时确保来源多样性
     const domainToFreq = {
         'tech': 'T',
         'geopolitics': 'P',
@@ -174,12 +208,23 @@ async function generateFallbackContent(date) {
 
     const results = {
         fetched: articles.length,
+        analyzed: 0,
         inserted: 0,
         skipped: 0,
         errors: []
     };
 
-    for (const article of articles.slice(0, gap)) {
+    // 过滤已用作者的文章，优先多样化
+    const diverseArticles = articles.filter(a => !usedAuthors.has(a.author));
+    const articlesToProcess = diverseArticles.length >= gap
+        ? diverseArticles
+        : articles; // 如果多样化不够，回退到全部
+
+    console.log(`📰 待处理文章: ${articlesToProcess.length} (多样化: ${diverseArticles.length}, 需求: ${gap})`);
+
+    for (const article of articlesToProcess.slice(0, gap + 2)) { // 多处理一些留余量
+        if (results.inserted >= gap) break;
+
         // 找到对应频段
         const prefix = domainToFreq[article.domain] || 'T';
         const freq = availableFreqs.find(f => f.startsWith(prefix)) || availableFreqs[0];
@@ -190,16 +235,33 @@ async function generateFallbackContent(date) {
         }
 
         // 内容长度检查
-        if (!article.content || article.content.length < 100) {
+        if (!article.content || article.content.length < 50) {
             console.log(`  ⚠️ 内容太短，跳过: ${article.title?.substring(0, 30)}`);
             results.skipped++;
             continue;
         }
 
         try {
-            const draft = articleToRadarDraft(article, freq);
+            // 使用 AI 分析生成中文内容
+            const aiResult = await analyzeArticleWithAI(article, freq);
+            results.analyzed++;
 
-            // 插入数据库 (radar_items 没有 unique 约束)
+            if (!aiResult.success) {
+                console.log(`  ⚠️ AI 分析失败: ${aiResult.reason}`);
+                results.skipped++;
+                continue;
+            }
+
+            const draft = aiResult.draft;
+
+            // 质量验证
+            if (!draft.content || draft.content.length < 400) {
+                console.log(`  ⚠️ 生成内容太短 (${draft.content?.length || 0} 字)，跳过`);
+                results.skipped++;
+                continue;
+            }
+
+            // 插入数据库
             await pool.query(`
                 INSERT INTO radar_items (
                     date, freq, stance, title,
@@ -214,15 +276,16 @@ async function generateFallbackContent(date) {
                 draft.tension_q, draft.tension_a, draft.tension_b
             ]);
 
-            console.log(`  ✅ [${freq}] ${draft.title?.substring(0, 40)}...`);
+            console.log(`  ✅ [${draft.freq}] ${draft.title?.substring(0, 40)}...`);
             results.inserted++;
+            usedAuthors.add(draft.author_name);
 
             // 从可用列表移除
-            const idx = availableFreqs.indexOf(freq);
+            const idx = availableFreqs.indexOf(draft.freq);
             if (idx > -1) availableFreqs.splice(idx, 1);
 
         } catch (error) {
-            console.error(`  ❌ 插入失败: ${error.message}`);
+            console.error(`  ❌ 处理失败: ${error.message}`);
             results.errors.push(error.message);
         }
     }

@@ -580,6 +580,7 @@ module.exports = {
     analyzeTranscript,
     analyzeMetadata,
     generateRadarItem,
+    generateAvatar,
     createDraftFromVideo,
     BAND_DEFINITIONS
 };
