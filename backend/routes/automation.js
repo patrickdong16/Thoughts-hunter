@@ -238,8 +238,13 @@ router.post('/generate-daily', async (req, res) => {
         }
 
         // 1. 获取未分析的视频
+        // 注意：使用别名将 video_title 映射到 title，以兼容 checkVideoEligibility 函数
         const { rows: pendingVideos } = await pool.query(`
-            SELECT cl.*, cs.name as source_name, cs.default_domain
+            SELECT cl.*, 
+                   cl.video_title AS title,
+                   cs.name as source_name, 
+                   cs.default_domain,
+                   cs.name as channelTitle
             FROM collection_log cl
             LEFT JOIN content_sources cs ON cl.source_id = cs.id
             WHERE cl.analyzed = false
