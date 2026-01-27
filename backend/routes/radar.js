@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const { getRulesForDate, canAddContent, canAddToFreq } = require('../config/day-rules');
 const { validateContentLength, MIN_CONTENT_LENGTH } = require('../utils/char-count');
+const { normalizeUrl } = require('../utils/url-normalizer');
 
 /**
  * GET /api/radar/today
@@ -277,6 +278,25 @@ router.post('/', async (req, res) => {
             });
         }
 
+        // ========== 零重复规则：source_url 全局唯一 ==========
+        if (source_url) {
+            const normalizedUrl = normalizeUrl(source_url);
+            const duplicateCheck = await pool.query(
+                'SELECT id, date, title FROM radar_items WHERE source_url = $1',
+                [normalizedUrl]
+            );
+            if (duplicateCheck.rows.length > 0) {
+                const existing = duplicateCheck.rows[0];
+                return res.status(409).json({
+                    success: false,
+                    error: `内容已存在（ID: ${existing.id}, 日期: ${existing.date}, 标题: ${existing.title.substring(0, 30)}...）`,
+                    existingItem: existing
+                });
+            }
+            // 存储标准化后的 URL
+            req.body.source_url = normalizedUrl;
+        }
+
         const query = `
             INSERT INTO radar_items (
                 date, freq, stance, title, author_name, author_avatar,
@@ -287,7 +307,7 @@ router.post('/', async (req, res) => {
 
         const result = await pool.query(query, [
             date, freq, stance.toUpperCase(), title, author_name, author_avatar || '',
-            author_bio || '', source || '', source_url || null, content, tension_q || '', tension_a || '',
+            author_bio || '', source || '', req.body.source_url || null, content, tension_q || '', tension_a || '',
             tension_b || '', keywords || [], video_id || null
         ]);
 

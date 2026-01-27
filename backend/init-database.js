@@ -243,6 +243,50 @@ async function initDatabase() {
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_radar_items_source_url ON radar_items(source_url) WHERE source_url IS NOT NULL`);
         console.log('✓ source_url field ready');
 
+        // ===============================================
+        // 13. 思想领袖追踪系统表 (2026-01-27 新增)
+        // ===============================================
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS thought_leaders (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(200) NOT NULL UNIQUE,
+                name_cn VARCHAR(200),
+                role VARCHAR(300),
+                domain CHAR(1) NOT NULL CHECK (domain IN ('T', 'P', 'Φ', 'H', 'F', 'R')),
+                priority INTEGER DEFAULT 50,
+                rss_url VARCHAR(500),
+                blog_url VARCHAR(500),
+                twitter_handle VARCHAR(100),
+                youtube_channel VARCHAR(200),
+                notes TEXT,
+                status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'paused', 'retired')),
+                last_checked_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_thought_leaders_domain ON thought_leaders(domain)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_thought_leaders_priority ON thought_leaders(priority)`);
+        console.log('✓ thought_leaders table ready');
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS leader_content_log (
+                id SERIAL PRIMARY KEY,
+                leader_id INTEGER REFERENCES thought_leaders(id) ON DELETE CASCADE,
+                content_url VARCHAR(500) NOT NULL,
+                url_normalized VARCHAR(500) UNIQUE,
+                title VARCHAR(500),
+                published_at TIMESTAMP,
+                discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                ingested BOOLEAN DEFAULT FALSE,
+                radar_item_id INTEGER REFERENCES radar_items(id) ON DELETE SET NULL,
+                skip_reason TEXT
+            )
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_leader_content_log_leader ON leader_content_log(leader_id)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_leader_content_log_ingested ON leader_content_log(ingested)`);
+        console.log('✓ leader_content_log table ready');
+
         console.log('\n✅ Database initialization complete!');
     } catch (error) {
         console.error('Database initialization error:', error);

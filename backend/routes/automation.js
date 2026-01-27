@@ -1656,6 +1656,99 @@ router.post('/set-video-ids', async (req, res) => {
     }
 });
 
+// ===============================================
+// 思想领袖追踪 API
+// ===============================================
+const leaderCollector = require('../services/thought-leader-collector');
+
+/**
+ * GET /api/automation/leaders
+ * 获取所有思想领袖列表
+ */
+router.get('/leaders', async (req, res) => {
+    try {
+        const leaders = await leaderCollector.getActiveLeaders();
+        const stats = await leaderCollector.getLeaderStats();
+
+        res.json({
+            success: true,
+            count: leaders.length,
+            leaders,
+            stats
+        });
+    } catch (error) {
+        console.error('Get leaders error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/automation/leaders
+ * 添加新的思想领袖
+ */
+router.post('/leaders', async (req, res) => {
+    try {
+        const { name, name_cn, role, domain, priority, rss_url, blog_url, twitter_handle, notes } = req.body;
+
+        if (!name || !domain) {
+            return res.status(400).json({
+                success: false,
+                error: 'name 和 domain 是必填字段'
+            });
+        }
+
+        const leader = await leaderCollector.addLeader(req.body);
+
+        res.json({
+            success: true,
+            leader
+        });
+    } catch (error) {
+        console.error('Add leader error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/automation/leaders/check
+ * 检查所有思想领袖的新内容
+ */
+router.post('/leaders/check', async (req, res) => {
+    try {
+        console.log('🎯 手动触发思想领袖内容检查...');
+        const results = await leaderCollector.checkAllLeaders();
+
+        res.json({
+            success: true,
+            message: `检查完成: 发现 ${results.newArticles.length} 篇新文章`,
+            results
+        });
+    } catch (error) {
+        console.error('Check leaders error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/automation/leaders/pending
+ * 获取待处理的高优先级内容
+ */
+router.get('/leaders/pending', async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 10;
+        const pending = await leaderCollector.getPendingHighPriorityContent(limit);
+
+        res.json({
+            success: true,
+            count: pending.length,
+            items: pending
+        });
+    } catch (error) {
+        console.error('Get pending content error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
 
 
