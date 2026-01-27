@@ -280,15 +280,15 @@ router.post('/', async (req, res) => {
         const query = `
             INSERT INTO radar_items (
                 date, freq, stance, title, author_name, author_avatar,
-                author_bio, source, content, tension_q, tension_a, tension_b, keywords
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                author_bio, source, source_url, content, tension_q, tension_a, tension_b, keywords, video_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
         `;
 
         const result = await pool.query(query, [
             date, freq, stance.toUpperCase(), title, author_name, author_avatar || '',
-            author_bio || '', source || '', content, tension_q || '', tension_a || '',
-            tension_b || '', keywords || []
+            author_bio || '', source || '', source_url || null, content, tension_q || '', tension_a || '',
+            tension_b || '', keywords || [], video_id || null
         ]);
 
         res.json({

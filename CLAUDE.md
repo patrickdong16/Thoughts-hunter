@@ -27,6 +27,19 @@
 
 ---
 
+## 🚫 Railway 配置禁区（2026-01-27 复盘新增）
+
+### cronSchedule 陷阱（强制遵守）
+- **禁止**在 Web Service 的 `railway.json` 中添加 `cronSchedule`
+- 原因：`cronSchedule` 会将服务从持续运行的 Web Service 变为一次性定时任务，导致 502 错误
+- 如需定时任务：创建独立的 Cron Service，与 Web Service 分离
+
+### 正确的定时任务方案
+1. 使用 Railway 独立的 Cron Service（与 Web Service 分开部署）
+2. 或使用外部调度服务（如 GitHub Actions）触发 API
+
+---
+
 ## 📋 需求来源
 
 **唯一需求源**：`REQUIREMENTS.md`
@@ -36,7 +49,7 @@
 ## ✅ 内容质检规则
 
 ### 字数要求
-- 正文 **≥ 700 字符**
+- 正文 **≥ 500 字符**
 
 ### 零重复规则
 - **URL 唯一**：同一 URL 不能出现两次
@@ -49,34 +62,53 @@
 
 ---
 
-## 📝 内容生成流程（强制）
+## 📅 每日内容生成流程（强制）
 
-1. **搜索真实来源**
-   - 使用 youtube MCP 搜索真实视频
-   - 使用 youtube-transcript 获取真实字幕
-   - 使用 web search 查找真实报道
+### 步骤 1：调用搜索计划
+```bash
+curl https://thoughts-radar-backend-production.up.railway.app/api/automation/search-plan
+```
 
-2. **验证来源**
-   - URL 必须可访问
-   - 内容必须与来源一致
-   - 引用必须来自原文
+### 步骤 2：执行多源搜索（必须执行）
+根据搜索计划，使用以下 MCP 工具采集内容：
 
-3. **如果找不到真实来源**
-   - **停止生成**
-   - 告知用户
-   - 不要虚构
+| 来源类型 | MCP 工具 | 示例 |
+|----------|----------|------|
+| RSS | `mcp_rss-reader_fetch_feed_entries` | aeon.co/feed.rss, technologyreview.com/feed |
+| HackerNews | `mcp_hackernews_getStories` | top stories |
+| arXiv | `mcp_arxiv_search_papers` | cs.AI 论文 |
+| YouTube | `mcp_youtube-transcript_get_transcript` | 视频字幕 |
+
+### 步骤 3：质检后提交
+每条内容必须通过质检清单后才能提交。
+
+### 步骤 4：验证结果
+```bash
+curl https://thoughts-radar-backend-production.up.railway.app/api/radar/today
+```
 
 ---
 
-## 🛑 生成前自检清单
+## 🛡️ 发布前质检清单（必须全部通过）
 
-每条内容发布前，Claude 必须确认：
-- [ ] source_url 是真实可访问的链接？
-- [ ] 内容是基于真实来源，不是推测？
-- [ ] 引用是来自原文，不是编造？
-- [ ] 作者确实说过这些话？
+### A. 自动验证（由 API 执行）
+- [x] 内容长度 ≥ 500 字符
+- [x] 频段 ID 有效
+- [x] 立场为 A 或 B
 
-**任何一项为否 = 禁止发布**
+### B. 人工验证（Claude 必须确认）
+发布每条内容前，Claude 必须逐条确认：
+
+| 检查项 | 要求 |
+|--------|------|
+| **source_url 有效** | 链接可访问且为原始来源 |
+| **作者权威性** | 是否为该领域公认的思想领袖？ |
+| **频段分散度** | 今日内容是否覆盖 6 大领域（T/P/H/Φ/R/F）各 1 条？ |
+| **视频配额** | 今日是否有 1-2 条 YouTube 视频内容？ |
+| **内容深度** | 是否有结构解释，而非新闻摘要？ |
+
+> ⚠️ **任何一项未通过 = 禁止发布**
+> 如不确定，询问用户而非假设通过
 
 ---
 
@@ -97,14 +129,10 @@ GET /api/automation/search-plan
 ### 每日生成入口
 ```bash
 POST /api/automation/generate-daily-v2
-# 返回: 搜索计划 + 执行指南
+# 返回: 搜索计划 + 执行指南（注意：只返回计划，需手动执行 MCP 调用）
 ```
-
-### 定时任务
-- Cron: `0 20 * * *` (UTC) = 北京时间 04:00
-- 配置文件: `railway.json`
 
 ---
 
 *本文件仅对思想雷达项目生效*
-
+*最后更新：2026-01-27（复盘新增 Railway 禁区、多源执行流程、质检清单）*
