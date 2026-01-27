@@ -238,13 +238,14 @@ router.post('/generate-daily', async (req, res) => {
         }
 
         // 1. 获取未分析的视频
-        // 注意：使用别名将 video_title 映射到 title，以兼容 checkVideoEligibility 函数
+        // 使用 COALESCE 确保兼容旧数据（video_title）和新数据（title）
         const { rows: pendingVideos } = await pool.query(`
             SELECT cl.*, 
-                   cl.video_title AS title,
+                   COALESCE(cl.title, cl.video_title) AS title,
+                   cl.description,
+                   COALESCE(cl.channel_title, cs.name) as channelTitle,
                    cs.name as source_name, 
-                   cs.default_domain,
-                   cs.name as channelTitle
+                   cs.default_domain
             FROM collection_log cl
             LEFT JOIN content_sources cs ON cl.source_id = cs.id
             WHERE cl.analyzed = false

@@ -316,17 +316,19 @@ const checkNewContentForSource = async (sourceId) => {
             const logResult = await pool.query(logQuery, [sourceId, video.videoId]);
 
             if (logResult.rows.length === 0) {
-                // 新视频，记录到日志（包含duration和description用于后续筛选）
+                // 新视频，记录到日志（包含所有筛选所需字段）
                 const insertLogQuery = `
-          INSERT INTO collection_log (source_id, video_id, video_url, video_title, description, duration, published_at, analyzed)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, false)
+          INSERT INTO collection_log (source_id, video_id, video_url, video_title, title, description, channel_title, duration, published_at, analyzed)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)
         `;
                 await pool.query(insertLogQuery, [
                     sourceId,
                     video.videoId,
                     `https://www.youtube.com/watch?v=${video.videoId}`,
-                    video.title,
-                    video.description?.substring(0, 2000) || null, // 截断过长描述
+                    video.title,                                        // video_title (兼容旧代码)
+                    video.title,                                        // title (筛选用)
+                    video.description?.substring(0, 2000) || null,      // description (筛选用)
+                    video.channelTitle || null,                         // channel_title (筛选用)
                     video.duration,
                     video.publishedAt
                 ]);
