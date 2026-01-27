@@ -151,6 +151,37 @@ router.get('/content-gap', async (req, res) => {
 });
 
 /**
+ * GET /api/automation/validate-quota
+ * v2.0 配额质检验证
+ */
+router.get('/validate-quota', async (req, res) => {
+    try {
+        const { validateQuota } = require('../services/content-validator');
+
+        const beijingDate = req.query.date || new Date().toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Shanghai'
+        });
+
+        // 获取当日所有内容
+        const { rows: items } = await pool.query(
+            `SELECT id, freq, source_url, title FROM radar_items WHERE date = $1`,
+            [beijingDate]
+        );
+
+        const result = validateQuota(items, beijingDate);
+
+        res.json({
+            success: true,
+            date: beijingDate,
+            ...result
+        });
+    } catch (error) {
+        console.error('Validate quota error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
  * POST /api/automation/add-video
  * 手动添加视频到采集队列
  */

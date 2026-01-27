@@ -241,7 +241,7 @@ const validateBatch = (items, options = {}) => {
 };
 
 /**
- * 验证是否符合日期规则
+ * 验证是否符合日期规则 (v2.0)
  * @param {Object} item - 内容项
  * @param {string} date - 日期
  * @returns {Object} 验证结果
@@ -272,9 +272,92 @@ const validateDayRules = (item, date) => {
     return results;
 };
 
+/**
+ * v2.0 配额验证 - 验证当日内容是否符合配额规则
+ * @param {Array} items - 当日所有内容项
+ * @param {string} date - 日期
+ * @returns {Object} 配额验证结果
+ */
+const validateQuota = (items, date) => {
+    const dayRules = getRulesForDate(date);
+    const rules = dayRules.rules || {};
+
+    const results = {
+        passed: true,
+        isThemeDay: dayRules.isThemeDay,
+        event: dayRules.event,
+        errors: [],
+        warnings: [],
+        stats: {}
+    };
+
+    // 统计视频和非视频内容
+    const videoItems = items.filter(item =>
+        item.source_url && (
+            item.source_url.includes('youtube.com') ||
+            item.source_url.includes('youtu.be')
+        )
+    );
+    const nonVideoItems = items.filter(item =>
+        !item.source_url || !(
+            item.source_url.includes('youtube.com') ||
+            item.source_url.includes('youtu.be')
+        )
+    );
+
+    // 统计频段覆盖
+    const usedFreqs = new Set(items.map(r => r.freq));
+    const coreFreqs = ['T1', 'P1', 'H1', 'Φ1', 'F1', 'R1'];
+    const missingCoreFreqs = coreFreqs.filter(f => !usedFreqs.has(f));
+
+    // 配额参数
+    const minNonVideo = rules.minNonVideoItems ?? 5;
+    const maxNonVideo = rules.maxNonVideoItems ?? 7;
+    const minVideo = rules.minVideoItems ?? 1;
+    const contentTypeFlex = rules.contentTypeFlex ?? false;
+    const frequencyFlex = rules.frequencyFlex ?? false;
+
+    results.stats = {
+        nonVideo: { count: nonVideoItems.length, min: minNonVideo, max: maxNonVideo },
+        video: { count: videoItems.length, min: minVideo },
+        frequency: { used: [...usedFreqs], missing: missingCoreFreqs }
+    };
+
+    // 非视频配额检查 (非主题日强制)
+    if (!contentTypeFlex) {
+        if (nonVideoItems.length < minNonVideo) {
+            results.passed = false;
+            results.errors.push(`非视频内容不足: ${nonVideoItems.length}/${minNonVideo}`);
+        }
+        if (nonVideoItems.length > maxNonVideo) {
+            results.warnings.push(`非视频内容超额: ${nonVideoItems.length}/${maxNonVideo}`);
+        }
+    }
+
+    // 视频配额检查 (非主题日强制)
+    if (!contentTypeFlex && videoItems.length < minVideo) {
+        results.passed = false;
+        results.errors.push(`视频内容不足: ${videoItems.length}/${minVideo}`);
+    }
+
+    // 频段覆盖检查 (非主题日强制)
+    if (!frequencyFlex && missingCoreFreqs.length > 0) {
+        results.passed = false;
+        results.errors.push(`核心频段未覆盖: ${missingCoreFreqs.join(', ')}`);
+    }
+
+    // 主题日灵活性提示
+    if (dayRules.isThemeDay) {
+        results.warnings.push(`主题日模式: 配额规则已放宽`);
+    }
+
+    return results;
+};
+
 module.exports = {
     validateItem,
     validateBatch,
     validateDayRules,
+    validateQuota,
     VALIDATION_RULES
 };
