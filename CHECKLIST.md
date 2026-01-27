@@ -13,6 +13,48 @@
 
 ---
 
+## ⚙️ 自动化流程检查 (重要!)
+
+> **经验教训**: 新功能实现后，必须检查所有执行入口是否同步更新
+
+### 执行入口检查清单
+
+**GitHub Actions Workflows**
+- [ ] `.github/workflows/daily-update.yml` 是否使用最新 API
+- [ ] 新增的自动化端点是否在 workflow 中调用
+- [ ] workflow 是否有错误处理和摘要输出
+
+**Railway 定时任务**
+- [ ] `railway.json` 中的 cron 配置是否正确
+- [ ] 定时任务调用的端点是否存在
+
+**规则同步检查**
+```bash
+# 检查 day-config.json 中的规则是否被代码引用
+grep -r "maxVideos" backend/routes/
+grep -r "minItems" backend/routes/
+grep -r "minDuration" backend/routes/
+```
+
+### 端到端验证
+
+- [ ] 手动触发一次 GitHub Actions workflow
+- [ ] 检查 workflow 日志输出是否符合预期
+- [ ] 验证 `/api/automation/content-gap` 端点正常工作
+- [ ] 验证 `/api/automation/generate-daily` 遵守规则
+
+### 规则配置与代码一致性
+
+| 规则 | 配置位置 | 代码位置 | 状态 |
+|------|----------|----------|------|
+| `maxVideos` | day-config.json | automation.js L271 | ✅ |
+| `minDuration` | day-config.json | automation.js checkVideoEligibility | ✅ |
+| `minItems` | day-config.json | multi-source-generator.js | ✅ |
+
+---
+
+
+
 ## 🔧 后端检查
 
 ### 基础功能
