@@ -132,7 +132,8 @@ function calculatePriority(video) {
  */
 router.get('/content-gap', async (req, res) => {
     try {
-        const beijingDate = new Date().toLocaleDateString('en-CA', {
+        // 支持 ?date=YYYY-MM-DD 参数，用于查询特定日期的内容缺口
+        const beijingDate = req.query.date || new Date().toLocaleDateString('en-CA', {
             timeZone: 'Asia/Shanghai'
         });
 
@@ -227,10 +228,11 @@ router.post('/generate-daily', async (req, res) => {
     try {
         console.log('🚀 开始每日自动内容生成...');
 
-        // 获取今日日期和规则配置
-        const beijingDate = new Date().toLocaleDateString('en-CA', {
+        // 支持 ?date=YYYY-MM-DD 参数，用于回补历史内容
+        const beijingDate = req.query.date || new Date().toLocaleDateString('en-CA', {
             timeZone: 'Asia/Shanghai'
         });
+        console.log(`📅 目标日期: ${beijingDate}`);
         const dayRules = getRulesForDate(beijingDate);
 
         if (dayRules.isThemeDay) {
@@ -333,12 +335,8 @@ router.post('/generate-daily', async (req, res) => {
                 }
 
                 // 5. 自动发布（如果配置允许）
+                // 使用外层的 beijingDate（支持指定日期回补）
                 if (aiAnalysis.autoPublish && !aiAnalysis.requireReview) {
-                    // 获取北京时间今天日期
-                    const beijingDate = new Date().toLocaleDateString('en-CA', {
-                        timeZone: 'Asia/Shanghai'
-                    });
-
                     for (const item of generatedItems.slice(0, 1)) { // 每个视频最多发布1条
                         try {
                             const insertResult = await pool.query(`
