@@ -199,19 +199,19 @@ async function generateFallbackContent(date) {
         try {
             const draft = articleToRadarDraft(article, freq);
 
-            // 插入数据库
+            // 插入数据库 (注意：radar_items 表没有 domain 列)
             await pool.query(`
                 INSERT INTO radar_items (
                     date, freq, stance, title,
                     author_name, author_avatar, author_bio,
-                    source, source_url, content, domain,
+                    source, source_url, content,
                     tension_q, tension_a, tension_b
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 ON CONFLICT (date, freq) DO NOTHING
             `, [
                 beijingDate, draft.freq, draft.stance, draft.title,
                 draft.author_name, draft.author_avatar, draft.author_bio,
-                draft.source, draft.source_url, draft.content, draft.domain,
+                draft.source, draft.source_url, draft.content,
                 draft.tension_q, draft.tension_a, draft.tension_b
             ]);
 
