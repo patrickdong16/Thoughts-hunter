@@ -6,7 +6,13 @@
         "maxPerFreq": 1,
         "maxVideos": 2,
         "minContentLength": 300,
-        "minDuration": 40
+        "minDuration": 40,
+        "minNonVideoItems": 5,
+        "maxNonVideoItems": 7,
+        "minVideoItems": 1,
+        "minPerFrequency": 1,
+        "contentTypeFlex": false,
+        "frequencyFlex": false
     },
     "themeDays": [
         {
@@ -22,7 +28,12 @@
                 "freqBalance": false,
                 "maxPerFreq": null,
                 "maxVideos": null,
-                "minDuration": 20
+                "minDuration": 20,
+                "minNonVideoItems": 0,
+                "minVideoItems": 0,
+                "minPerFrequency": 0,
+                "contentTypeFlex": true,
+                "frequencyFlex": true
             },
             "focus": {
                 "direction": "政治/科技/金融/经济/宗教/艺术/学术领袖的演讲、访谈与论坛，深度发掘其立场和观点",

@@ -16,28 +16,38 @@ const { getRulesForDate } = require('../config/day-rules');
 const automationConfig = require('../config/automation');
 
 /**
- * 计算当日内容缺口
+ * 计算当日内容缺口 (v2.0)
  * @param {string} date - YYYY-MM-DD格式日期
  * @returns {Promise<Object>} 缺口信息
  */
 async function getContentGap(date) {
     const dayRules = getRulesForDate(date);
+    const rules = dayRules.rules || {};
 
-    const { rows: todayCount } = await pool.query(
-        `SELECT COUNT(*) as count FROM radar_items WHERE date = $1`,
+    // 获取当日所有内容
+    const { rows: items } = await pool.query(
+        `SELECT id, freq, source_url FROM radar_items WHERE date = $1`,
         [date]
     );
 
-    const currentCount = parseInt(todayCount[0].count);
-    const minItems = dayRules.rules?.minItems || automationConfig.dailyQuota.minTotal;
-    const maxItems = dayRules.rules?.maxItems || automationConfig.dailyQuota.maxTotal;
+    const currentCount = items.length;
+
+    // 统计视频和非视频内容
+    const videoItems = items.filter(item =>
+        item.source_url && (
+            item.source_url.includes('youtube.com') ||
+            item.source_url.includes('youtu.be')
+        )
+    );
+    const nonVideoItems = items.filter(item =>
+        !item.source_url || !(
+            item.source_url.includes('youtube.com') ||
+            item.source_url.includes('youtu.be')
+        )
+    );
 
     // 获取已占用的频段
-    const { rows: existingFreqs } = await pool.query(
-        `SELECT freq FROM radar_items WHERE date = $1`,
-        [date]
-    );
-    const usedFreqs = new Set(existingFreqs.map(r => r.freq));
+    const usedFreqs = new Set(items.map(r => r.freq));
 
     // 所有19个频段
     const allFreqs = [
@@ -50,19 +60,65 @@ async function getContentGap(date) {
         'X1', 'X2', 'X3'
     ];
 
+    // 核心频段 (6个领域各一个)
+    const coreFreqs = ['T1', 'P1', 'H1', 'Φ1', 'F1', 'R1'];
+    const missingCoreFreqs = coreFreqs.filter(f => !usedFreqs.has(f));
+
     const availableFreqs = allFreqs.filter(f => !usedFreqs.has(f));
+
+    // v2.0 配额计算
+    const minItems = rules.minItems || automationConfig.dailyQuota.minTotal;
+    const maxItems = rules.maxItems || automationConfig.dailyQuota.maxTotal;
+    const minNonVideoItems = rules.minNonVideoItems || 5;
+    const minVideoItems = rules.minVideoItems || 1;
+    const minPerFrequency = rules.minPerFrequency || 1;
+
+    // 计算各类型缺口
+    const nonVideoGap = Math.max(0, minNonVideoItems - nonVideoItems.length);
+    const videoGap = Math.max(0, minVideoItems - videoItems.length);
+    const totalGap = Math.max(0, minItems - currentCount);
+    const frequencyGap = rules.frequencyFlex ? 0 : missingCoreFreqs.length;
 
     return {
         date,
         isThemeDay: dayRules.isThemeDay,
         event: dayRules.event || null,
+
+        // 总体统计
         currentCount,
         minItems,
         maxItems,
-        gap: Math.max(0, minItems - currentCount),
+        gap: totalGap,
+        needsMore: currentCount < minItems,
+
+        // v2.0 详细统计
+        stats: {
+            video: {
+                count: videoItems.length,
+                min: minVideoItems,
+                gap: videoGap
+            },
+            nonVideo: {
+                count: nonVideoItems.length,
+                min: minNonVideoItems,
+                max: rules.maxNonVideoItems || 7,
+                gap: nonVideoGap
+            },
+            frequency: {
+                used: [...usedFreqs],
+                missing: missingCoreFreqs,
+                gap: frequencyGap
+            }
+        },
+
+        // 配额灵活性
+        flex: {
+            contentType: rules.contentTypeFlex || false,
+            frequency: rules.frequencyFlex || false
+        },
+
         usedFreqs: [...usedFreqs],
-        availableFreqs,
-        needsMore: currentCount < minItems
+        availableFreqs
     };
 }
 

@@ -17,22 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Trigger daily content fetch
+      # =====================================================
+      # Step 1: P0 - 思想领袖 RSS/博客优先采集
+      # =====================================================
+      - name: P0 - Collect from thought leaders (RSS/Blog)
+        id: p0_rss
         run: |
-          echo "🚀 Triggering content update at $(date)"
-          
-          # 调用后端API检查所有活跃来源的新内容
-          response=$(curl -s -X POST https://thoughts-radar-backend-production.up.railway.app/api/collection/check-all \
-            -H "Content-Type: application/json" \
-            --max-time 300)
-          
-          echo "📥 API Response: $response"
-          echo "✅ Content collection completed"
-
-      - name: Auto-generate daily content (video sources)
-        id: generate
-        run: |
-          echo "🤖 Triggering auto-content generation..."
+          echo "� P0: Starting RSS/Blog collection from thought leaders..."
           
           # 构建日期参数
           TARGET_DATE="${{ github.event.inputs.target_date }}"
@@ -44,70 +35,107 @@ jobs:
             echo "📅 Using current date"
           fi
           
-          # 调用后端API自动筛选、分析和发布视频内容
-          # 注意：普通日最多2条视频，主题日不限
-          generate_response=$(curl -s -X POST "https://thoughts-radar-backend-production.up.railway.app/api/automation/generate-daily${DATE_PARAM}" \
+          # 调用思想领袖 RSS 内容采集
+          rss_response=$(curl -s -X POST "https://thoughts-radar-backend-production.up.railway.app/api/automation/generate-from-leaders${DATE_PARAM}" \
             -H "Content-Type: application/json" \
-            --max-time 900)
+            --max-time 300)
           
-          echo "📝 Generate Response: $generate_response"
+          echo "� P0 RSS Response: $rss_response"
           
-          # 提取发布数量
-          published=$(echo "$generate_response" | jq -r '.results.published // 0')
-          echo "published=$published" >> $GITHUB_OUTPUT
-          echo "✅ Auto-generation completed: $published items published"
+          inserted=$(echo "$rss_response" | jq -r '.results.inserted // 0')
+          echo "p0_inserted=$inserted" >> $GITHUB_OUTPUT
+          echo "✅ P0 completed: $inserted items from RSS/Blog"
 
-      - name: Check content gap
-        id: gap
+      # =====================================================
+      # Step 2: 检查非视频配额（5-7条）
+      # =====================================================
+      - name: Check non-video quota
+        id: quota_check
         run: |
-          echo "📊 Checking content gap..."
+          echo "📊 Checking content gap after P0/P1..."
           
-          # 构建日期参数
           TARGET_DATE="${{ github.event.inputs.target_date }}"
           DATE_PARAM=""
           if [ -n "$TARGET_DATE" ]; then
             DATE_PARAM="?date=$TARGET_DATE"
           fi
           
-          # 检查今日内容缺口
           gap_response=$(curl -s "https://thoughts-radar-backend-production.up.railway.app/api/automation/content-gap${DATE_PARAM}" \
             --max-time 30)
           
           echo "Gap Response: $gap_response"
           
-          gap=$(echo "$gap_response" | jq -r '.gap // 0')
-          needs_more=$(echo "$gap_response" | jq -r '.needsMore // false')
+          # 解析详细统计
+          non_video_count=$(echo "$gap_response" | jq -r '.stats.nonVideo.count // 0')
+          non_video_gap=$(echo "$gap_response" | jq -r '.stats.nonVideo.gap // 0')
+          video_gap=$(echo "$gap_response" | jq -r '.stats.video.gap // 0')
+          freq_missing=$(echo "$gap_response" | jq -r '.stats.frequency.missing | length // 0')
           
-          echo "gap=$gap" >> $GITHUB_OUTPUT
-          echo "needs_more=$needs_more" >> $GITHUB_OUTPUT
+          echo "non_video_count=$non_video_count" >> $GITHUB_OUTPUT
+          echo "non_video_gap=$non_video_gap" >> $GITHUB_OUTPUT
+          echo "video_gap=$video_gap" >> $GITHUB_OUTPUT
+          echo "freq_missing=$freq_missing" >> $GITHUB_OUTPUT
           
-          if [ "$needs_more" = "true" ]; then
-            echo "⚠️ Content gap detected: need $gap more items"
-          else
-            echo "✅ Content quota met for today"
-          fi
+          echo "📊 Non-video: $non_video_count (gap: $non_video_gap)"
+          echo "📊 Video gap: $video_gap"
+          echo "📊 Missing frequencies: $freq_missing"
 
-      - name: RSS Fallback (if gap remains)
-        if: steps.gap.outputs.needs_more == 'true'
+      # =====================================================
+      # Step 3: P2 - YouTube 视频采集（配额至少1条）
+      # =====================================================
+      - name: P2 - Collect from YouTube
+        id: p2_youtube
         run: |
-          echo "🔄 Content gap detected, triggering RSS fallback..."
+          echo "🎬 P2: Starting YouTube collection..."
           
-          # 构建日期参数
           TARGET_DATE="${{ github.event.inputs.target_date }}"
           DATE_PARAM=""
           if [ -n "$TARGET_DATE" ]; then
             DATE_PARAM="?date=$TARGET_DATE"
           fi
           
-          # 调用思想领袖 RSS fallback 内容生成
-          fallback_response=$(curl -s -X POST "https://thoughts-radar-backend-production.up.railway.app/api/automation/generate-from-leaders${DATE_PARAM}" \
+          # 调用视频内容生成
+          generate_response=$(curl -s -X POST "https://thoughts-radar-backend-production.up.railway.app/api/automation/generate-daily${DATE_PARAM}" \
             -H "Content-Type: application/json" \
-            --max-time 300)
+            --max-time 900)
           
-          echo "📰 Fallback Response: $fallback_response"
+          echo "🎬 P2 YouTube Response: $generate_response"
           
-          inserted=$(echo "$fallback_response" | jq -r '.results.inserted // 0')
-          echo "✅ RSS Fallback completed: $inserted items inserted"
+          published=$(echo "$generate_response" | jq -r '.results.published // 0')
+          echo "p2_published=$published" >> $GITHUB_OUTPUT
+          echo "✅ P2 completed: $published video items"
+
+      # =====================================================
+      # Step 4: 最终配额检查
+      # =====================================================
+      - name: Final quota check
+        id: final_check
+        run: |
+          echo "📊 Final content status check..."
+          
+          TARGET_DATE="${{ github.event.inputs.target_date }}"
+          DATE_PARAM=""
+          if [ -n "$TARGET_DATE" ]; then
+            DATE_PARAM="?date=$TARGET_DATE"
+          fi
+          
+          gap_response=$(curl -s "https://thoughts-radar-backend-production.up.railway.app/api/automation/content-gap${DATE_PARAM}" \
+            --max-time 30)
+          
+          echo "Final Gap Response: $gap_response"
+          
+          current=$(echo "$gap_response" | jq -r '.currentCount // 0')
+          min=$(echo "$gap_response" | jq -r '.minItems // 6')
+          gap=$(echo "$gap_response" | jq -r '.gap // 0')
+          
+          if [ "$gap" -eq 0 ]; then
+            echo "✅ Content quota met: $current items (min: $min)"
+          else
+            echo "⚠️ Content gap remains: $gap items short ($current/$min)"
+          fi
+          
+          echo "final_count=$current" >> $GITHUB_OUTPUT
+          echo "final_gap=$gap" >> $GITHUB_OUTPUT
 
       - name: Send push notifications
         run: |
@@ -137,7 +165,8 @@ jobs:
         run: |
           echo "📋 Daily Update Summary"
           echo "========================"
-          echo "Published items: ${{ steps.generate.outputs.published }}"
-          echo "Content gap: ${{ steps.gap.outputs.gap }}"
-          echo "Needs more content: ${{ steps.gap.outputs.needs_more }}"
+          echo "P0 RSS items: ${{ steps.p0_rss.outputs.p0_inserted }}"
+          echo "P2 Video items: ${{ steps.p2_youtube.outputs.p2_published }}"
+          echo "Final count: ${{ steps.final_check.outputs.final_count }}"
+          echo "Final gap: ${{ steps.final_check.outputs.final_gap }}"
 
