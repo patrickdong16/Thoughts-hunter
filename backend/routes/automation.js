@@ -12,6 +12,7 @@ const automationConfig = require('../config/automation');
 const aiAnalyzer = require('../services/ai-analyzer');
 const contentCollector = require('../services/content-collector');
 const contentValidator = require('../services/content-validator');
+const videoScanner = require('../services/video-scanner');
 const { getRulesForDate } = require('../config/day-rules');
 const { notifyFailure } = require('../utils/api-utils');
 
@@ -177,6 +178,58 @@ router.get('/validate-quota', async (req, res) => {
         });
     } catch (error) {
         console.error('Validate quota error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/automation/scan-channels
+ * 扫描所有配置频道的新视频并添加到采集队列
+ */
+router.post('/scan-channels', async (req, res) => {
+    try {
+        const { maxVideosPerChannel = 5, daysBack = 7 } = req.body;
+
+        console.log('Starting channel scan...');
+        const results = await videoScanner.scanAllChannels({
+            maxVideosPerChannel,
+            daysBack
+        });
+
+        res.json({
+            success: true,
+            message: `扫描完成: ${results.videosAdded} 个视频已添加到队列`,
+            results
+        });
+    } catch (error) {
+        console.error('Scan channels error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/automation/search-speaker
+ * 搜索特定人物的视频
+ */
+router.get('/search-speaker', async (req, res) => {
+    try {
+        const { name, maxResults = 5, daysBack = 30 } = req.query;
+
+        if (!name) {
+            return res.status(400).json({ success: false, error: 'name parameter required' });
+        }
+
+        const results = await videoScanner.searchSpeakerVideos(name, {
+            maxResults: parseInt(maxResults),
+            daysBack: parseInt(daysBack)
+        });
+
+        res.json({
+            success: true,
+            ...results
+        });
+    } catch (error) {
+        console.error('Search speaker error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
