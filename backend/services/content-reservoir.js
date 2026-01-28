@@ -148,23 +148,24 @@ async function publishFromReservoir(date, gap) {
 
         try {
 
-            // 插入到 radar_items
+            // 插入到 radar_items (匹配实际表结构)
             await pool.query(`
                 INSERT INTO radar_items 
-                    (date, freq, title, content, tension_question, tension_a, tension_b, 
-                     source_url, speaker, tti, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+                    (date, freq, stance, title, author_name, author_avatar, content, 
+                     tension_q, tension_a, tension_b, source_url, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
             `, [
                 date,
                 item.freq,
+                content.stance || 'A',
                 content.title,
+                content.author_name || content.speaker || 'Unknown',
+                content.author_avatar || '🔭',
                 content.content,
                 content.tension_question || content.tension_q || '',
                 content.tension_a || '',
                 content.tension_b || '',
-                content.source_url,
-                content.author_name || content.speaker,
-                (Number.isFinite(Number(content.tti)) ? Number(content.tti) : 50)
+                content.source_url
             ]);
 
             // 更新储备状态

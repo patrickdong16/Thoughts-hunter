@@ -377,24 +377,25 @@ async function publishCandidates(date, candidates, gap) {
             continue;
         }
 
-        // 发布到 radar_items (单一通道)
+        // 发布到 radar_items (单一通道，匹配实际表结构)
         try {
             const content = candidate.content;
             await pool.query(`
-                INSERT INTO radar_items (date, freq, title, content, tension_question,
-                    tension_a, tension_b, source_url, speaker, tti, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+                INSERT INTO radar_items (date, freq, stance, title, author_name, author_avatar,
+                    content, tension_q, tension_a, tension_b, source_url, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
             `, [
                 date,
                 targetFreq,
+                content.stance || 'A',
                 content.title,
+                content.author_name || candidate.sourceName || 'Unknown',
+                content.author_avatar || '🔭',
                 content.content,
-                content.tension_question || '',
+                content.tension_question || content.tension_q || '',
                 content.tension_a || '',
                 content.tension_b || '',
-                candidate.sourceUrl,
-                candidate.sourceName,
-                (Number.isFinite(Number(content.tti)) ? Number(content.tti) : 50)
+                candidate.sourceUrl
             ]);
 
             // 如果来自储备库，标记为已发布
