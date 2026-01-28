@@ -108,11 +108,19 @@ async function publishFromReservoir(date, gap) {
           AND expires_at > NOW()
         ORDER BY priority ASC, created_at ASC
         LIMIT $1
-    `, [gap.gap + 5]); // 多取几条以便筛选
+    `, [gap.gap + 10]); // 多取几条以便筛选
 
     console.log(`📦 储备库有 ${reservoirItems.length} 条待发布内容`);
 
     const usedFreqs = new Set(gap.usedFreqs || []);
+
+    // 获取今天已发布的 URL，避免重复发布
+    const { rows: existingUrls } = await pool.query(`
+        SELECT source_url FROM radar_items 
+        WHERE date = $1 AND source_url IS NOT NULL
+    `, [date]);
+    const publishedUrls = new Set(existingUrls.map(r => r.source_url));
+    console.log(`   已发布 URL: ${publishedUrls.size} 条`);
 
     for (const item of reservoirItems) {
         // 检查频段是否可用
@@ -120,10 +128,23 @@ async function publishFromReservoir(date, gap) {
             continue;
         }
 
+        const content = typeof item.content === 'string'
+            ? JSON.parse(item.content)
+            : item.content;
+
+        // 检查 URL 是否已发布（去重）
+        if (content.source_url && publishedUrls.has(content.source_url)) {
+            console.log(`   ⏭️ 跳过重复: ${content.title?.substring(0, 30)}...`);
+            // 标记为已发布（避免重复处理）
+            await pool.query(`
+                UPDATE content_reservoir
+                SET status = 'published', published_date = $1, published_at = NOW()
+                WHERE id = $2
+            `, [date, item.id]);
+            continue;
+        }
+
         try {
-            const content = typeof item.content === 'string'
-                ? JSON.parse(item.content)
-                : item.content;
 
             // 插入到 radar_items
             await pool.query(`
@@ -152,6 +173,7 @@ async function publishFromReservoir(date, gap) {
             `, [date, item.id]);
 
             usedFreqs.add(item.freq);
+            if (content.source_url) publishedUrls.add(content.source_url);
             result.published++;
             result.items.push({ id: item.id, freq: item.freq, title: content.title?.substring(0, 30) });
             console.log(`✅ 发布储备: ${content.title?.substring(0, 30)}... → ${item.freq}`);
