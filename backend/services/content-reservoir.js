@@ -114,13 +114,15 @@ async function publishFromReservoir(date, gap) {
 
     const usedFreqs = new Set(gap.usedFreqs || []);
 
-    // 获取今天已发布的 URL，避免重复发布
-    const { rows: existingUrls } = await pool.query(`
-        SELECT source_url FROM radar_items 
-        WHERE date = $1 AND source_url IS NOT NULL
+    // 获取今天已发布的 URL 和频段，避免重复发布
+    const { rows: existingItems } = await pool.query(`
+        SELECT source_url, freq FROM radar_items 
+        WHERE date = $1
     `, [date]);
-    const publishedUrls = new Set(existingUrls.map(r => r.source_url));
-    console.log(`   已发布 URL: ${publishedUrls.size} 条`);
+    const publishedUrls = new Set(existingItems.filter(r => r.source_url).map(r => r.source_url));
+    // 将已发布的频段也加入 usedFreqs（强制 maxPerFreq: 1）
+    existingItems.forEach(r => { if (r.freq) usedFreqs.add(r.freq); });
+    console.log(`   已发布: ${existingItems.length} 条, 频段: ${usedFreqs.size}, URL: ${publishedUrls.size}`);
 
     for (const item of reservoirItems) {
         // 检查频段是否可用
