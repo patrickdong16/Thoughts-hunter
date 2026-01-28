@@ -62,90 +62,47 @@
 
 ---
 
-## 📅 每日内容生成流程 v2.0（强制）
+## 📅 每日内容生成流程 v3.0（强制）
 
-> **核心原则**：以人为本 — 思想跟踪体系驱动采集，非平台驱动
+> **核心原则**：配置驱动 + 以人为本  
+> **配置中心**：`CONTENT_SOURCES.json` (修改即自动生效)
 
-### 采集优先级体系
+### 采集优先级
 
-| 优先级 | 来源 | 渠道 | 说明 |
-|--------|------|------|------|
-| **P0** | 跟踪名单内人物 | RSS/博客/Google | 最高优先级 |
-| **P1** | 同级别思想者 | RSS/博客/Google | 补充层 |
-| **P2** | YouTube 视频 | 跟踪频道优先 | 视频补充 |
+| 内容类型 | 优先级顺序 |
+|----------|------------|
+| **非视频** | Tier1 RSS → Tier2 RSS → Tier3 Substack → Leader RSS → Google |
+| **视频** | YouTube 频道扫描 → YouTube 搜索 |
 
-### 普通日配额（强制）
+### 配额要求
 
-| 配额项 | 要求 |
-|--------|------|
-| 非视频（RSS/博客） | **5-7 条** |
-| 视频（YouTube） | **≥1 条** |
-| 频段覆盖 | **T1/P1/H1/Φ1/F1/R1 各≥1** |
+| 类型 | 普通日 | 主题日 |
+|------|--------|--------|
+| 非视频 | 5-7 条 | 不限 |
+| 视频 | ≥1 条 | 不限 |
+| 频段覆盖 | T1/P1/H1/Φ1/F1/R1 各≥1 | 尽量涉猎 |
+| 总数 | 6-8 条 | 10-20 条 |
 
-### 主题日配额（灵活）
+### 推荐流程：一键扫描
 
-| 配额项 | 要求 |
-|--------|------|
-| 总数量 | 10-20 条 |
-| 内容类型 | **不限** |
-| 频段覆盖 | **尽量涉猎** |
-
-### 🆕 推荐：统一扫描入口 (v3.0)
 ```bash
-# 一键扫描：RSS 优先 + 频段平衡 + 配额检查
+# Step 1: 统一扫描入口（RSS 优先 + 频段平衡）
 curl -X POST https://thoughts-radar-backend-production.up.railway.app/api/automation/daily-radar
-```
 
-配置驱动：`CONTENT_SOURCES.json` 包含 35 个 RSS 源（Tier 1-3），修改即自动生效。
-
----
-
-### 步骤 1：P0 - 思想领袖 RSS/博客采集
-```bash
-# 扫描跟踪名单内人物的最新发布
-curl -X POST https://thoughts-radar-backend-production.up.railway.app/api/automation/generate-from-leaders
-```
-
-### 步骤 2：配额检查
-```bash
-# 检查非视频/视频配额和频段覆盖
-curl https://thoughts-radar-backend-production.up.railway.app/api/automation/content-gap
-```
-
-返回示例：
-```json
-{
-  "stats": {
-    "nonVideo": { "count": 5, "min": 5, "gap": 0 },
-    "video": { "count": 0, "min": 1, "gap": 1 },
-    "frequency": { "missing": ["R1"], "gap": 1 }
-  }
-}
-```
-
-### 步骤 3：P2 - YouTube 视频扫描与采集 🆕
-```bash
-# 步骤 3a: 扫描频道填充队列（自动 RSS fallback）
+# Step 2: 视频补充（如视频配额未满）
 curl -X POST https://thoughts-radar-backend-production.up.railway.app/api/automation/scan-channels \
   -H "Content-Type: application/json" \
   -d '{"maxVideosPerChannel": 3, "daysBack": 7}'
 
-# 返回示例：
-# { "method": "rss", "results": { "videosAdded": 5, "channelsScanned": 11 } }
-
-# 步骤 3b: 处理队列生成内容
+# Step 3: 处理视频队列
 curl -X POST https://thoughts-radar-backend-production.up.railway.app/api/automation/process-video-queue
-```
 
-> **智能 Fallback**：优先使用 YouTube API，配额用完或失败自动切换 RSS  
-> **配额节省**：RSS 模式扫描 27 频道仅需 ~135 单位（全 API 需 ~2700 单位）
-
-### 步骤 4：最终验证
-```bash
+# Step 4: 最终验证
 curl https://thoughts-radar-backend-production.up.railway.app/api/radar/today
 ```
 
-
+> **配置驱动**：35 个 RSS 源 (Tier 1-3) 在 `CONTENT_SOURCES.json` 中配置  
+> **智能 Fallback**：YouTube API 配额用完自动切换 RSS
 
 ---
 
@@ -172,35 +129,17 @@ curl https://thoughts-radar-backend-production.up.railway.app/api/radar/today
 
 ---
 
-## 🤖 自动化API端点
+## 🤖 自动化 API 端点汇总
 
-### 内容缺口检查
-```bash
-GET /api/automation/content-gap
-# 返回: 当前内容数量、目标数量、可用频段
-```
-
-### 多来源搜索计划
-```bash
-GET /api/automation/search-plan
-# 返回: Web/YouTube/RSS/HN搜索查询列表
-```
-
-### P2 视频扫描（自动 RSS fallback）🆕
-```bash
-POST /api/automation/scan-channels
-# Body: {"maxVideosPerChannel": 3, "daysBack": 7}
-# 返回: { "method": "rss|api", "videosAdded": N, "channelsScanned": N }
-
-POST /api/automation/process-video-queue
-# 返回: { "processed": N, "failed": N }
-```
-
-### 每日生成入口
-```bash
-POST /api/automation/generate-daily-v2
-# 返回: 搜索计划 + 执行指南（注意：只返回计划，需手动执行 MCP 调用）
-```
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/automation/daily-radar` | POST | **统一入口**：RSS 优先扫描 + 频段平衡 |
+| `/api/automation/content-gap` | GET | 配额缺口检查 |
+| `/api/automation/generate-from-leaders` | POST | P0 思想领袖 RSS 扫描 |
+| `/api/automation/scan-channels` | POST | P2 视频扫描（自动 RSS fallback） |
+| `/api/automation/process-video-queue` | POST | 处理视频队列 |
+| `/api/automation/search-plan` | GET | 多来源搜索计划 |
+| `/api/radar/today` | GET | 今日内容验证 |
 
 ---
 

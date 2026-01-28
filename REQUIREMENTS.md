@@ -253,26 +253,20 @@
 }
 ```
 
-#### 4.5.4 每日执行流程
+#### 4.5.4 每日执行流程 v3.0 🔄
+
+> ⚠️ **2026-01-28 更新**：统一入口，配置驱动
 
 ```
-普通日:
-Step 1 → P0 (跟踪名单 RSS/博客)
-Step 2 → 配额检查 (非视频 5-7, 频段覆盖)
-Step 3 → P2 (YouTube 视频, ≥1)
-Step 4 → 最终配额验证
+推荐流程（一键执行）:
+Step 1 → POST /api/automation/daily-radar  # RSS 优先 + 频段平衡
+Step 2 → 配额检查 + 视频补充（如需）
+Step 3 → 最终验证
 
-主题日:
-Step 1 → P0 (跟踪名单 全渠道 + 主题关键词)
-Step 2 → P1 (同级别 全渠道 + 主题关键词)
-Step 3 → 配额检查 (灵活模式)
+详细流程（见 §4.5.7 配置驱动架构）
 ```
 
-#### 4.5.5 GitHub Actions Workflow
-
-- 文件：`.github/workflows/daily-update.yml`
-- 定时：北京时间 **04:00** (UTC 20:00)
-- 手动触发：支持指定日期
+> **配置中心**：`CONTENT_SOURCES.json` (35 RSS 源 + 27 YouTube 频道)
 
 #### 4.5.6 P2 视频扫描机制 🆕
 
@@ -386,21 +380,13 @@ CONTENT_SOURCES.json (v2.0)
 | `tiered-rss-fetcher.js` | 分层 RSS 抓取，按优先级排序 |
 | `multi-source-generator.js` | 配额计算，搜索查询生成 |
 
-##### API 端点
+##### 统一入口 API
 
 | 端点 | 方法 | 说明 |
 |------|------|------|
-| `/api/automation/daily-radar` | POST | 每日统一扫描（RSS 优先 + 频段平衡） |
+| `/api/automation/daily-radar` | POST | 统一入口（RSS 优先 + 频段平衡） |
 
-##### 每日执行流程 (v3.0)
-
-```bash
-# 统一扫描入口（RSS 优先 + 配额检查 + 频段平衡）
-curl -X POST .../api/automation/daily-radar
-
-# 视频补充（如视频配额未满）
-curl -X POST .../api/automation/scan-channels
-```
+> 视频扫描端点详见 §4.5.6
 
 ---
 
