@@ -148,8 +148,12 @@ async function dailyScan(date) {
     console.log(`\n🔬 Phase 2: Lead 处理 → 储备池`);
     await leadsManager.purgeOldLeads();
 
-    const pendingLeads = await leadsManager.getPendingLeads(30);
-    console.log(`   待处理 leads: ${pendingLeads.length} 条`);
+    const allPendingLeads = await leadsManager.getPendingLeads(50);
+    // 过滤：只处理可以分析的 leads（暂时跳过 Google News）
+    const pendingLeads = allPendingLeads.filter(lead => leadsManager.isReadyForAnalysis(lead));
+    const skippedGoogle = allPendingLeads.filter(lead => lead.source_type === 'google').length;
+
+    console.log(`   待处理 leads: ${pendingLeads.length} 条 (${skippedGoogle} 条 Google 暂跳过)`);
 
     for (const lead of pendingLeads) {
         try {

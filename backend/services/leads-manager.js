@@ -96,15 +96,30 @@ async function updateLeadStatus(id, status, enrichedContent = null) {
 
 /**
  * 判断 lead 是否需要深挖
+ * 注意：Google News URL 需要特殊解码，暂时跳过
  */
 function needsEnrichment(lead) {
-    // Google News 通常只有摘要，需要深挖
-    if (lead.source_type === 'google') return true;
+    // Google News 暂时跳过（URL 解码复杂，需要 JS 执行）
+    // 这些 leads 会保持 pending 状态，等待后续处理
+    if (lead.source_type === 'google') return false;
 
     // RSS 内容不足也需要深挖
     if (!lead.snippet || lead.snippet.length < 500) return true;
 
     return false;
+}
+
+/**
+ * 判断 lead 是否可以直接用于 AI 分析（内容足够丰富）
+ */
+function isReadyForAnalysis(lead) {
+    // Google News 摘要太短，暂时无法分析
+    if (lead.source_type === 'google') {
+        return false; // 暂时跳过，等待 URL 解码器实现
+    }
+
+    // RSS 有足够内容才能分析
+    return lead.snippet && lead.snippet.length >= 200;
 }
 
 /**
@@ -275,6 +290,7 @@ module.exports = {
     getPendingLeads,
     updateLeadStatus,
     needsEnrichment,
+    isReadyForAnalysis,
     enrichLead,
     getLeadsStats,
     purgeOldLeads
