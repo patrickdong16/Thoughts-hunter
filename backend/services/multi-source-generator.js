@@ -250,29 +250,34 @@ function generateYouTubeQueries(gap) {
 }
 
 /**
- * 生成RSS订阅源列表
+ * 生成RSS订阅源列表 (配置驱动 v3.0)
+ * 从 CONTENT_SOURCES.json 读取，不再硬编码
+ * @param {Array} targetDomains - 可选，目标频段前缀 (如 ['P', 'H'])
  * @returns {Array} RSS源列表
  */
-function getRSSSources() {
-    // 思想类杂志和博客的RSS源
-    return [
-        // 政治/国际
-        { name: 'Foreign Affairs', url: 'https://www.foreignaffairs.com/rss.xml', domain: 'politics' },
-        { name: 'The Atlantic', url: 'https://www.theatlantic.com/feed/all/', domain: 'politics' },
-        { name: 'Project Syndicate', url: 'https://www.project-syndicate.org/rss', domain: 'politics' },
+function getRSSSources(targetDomains = null) {
+    // 从 tiered-rss-fetcher 获取配置驱动的 RSS 源
+    const tieredRSSFetcher = require('./tiered-rss-fetcher');
+    const allFeeds = tieredRSSFetcher.getAllFeeds(targetDomains);
 
-        // 技术/AI
-        { name: 'MIT Technology Review', url: 'https://www.technologyreview.com/feed/', domain: 'tech' },
-        { name: 'Wired', url: 'https://www.wired.com/feed/rss', domain: 'tech' },
+    // 转换为兼容格式
+    const domainMapping = {
+        'T': 'tech',
+        'P': 'politics',
+        'H': 'history',
+        'Φ': 'philosophy',
+        'R': 'religion',
+        'F': 'finance',
+        'X': 'culture'
+    };
 
-        // 经济/金融
-        { name: 'The Economist', url: 'https://www.economist.com/rss', domain: 'finance' },
-        { name: 'Financial Times', url: 'https://www.ft.com/rss/home', domain: 'finance' },
-
-        // 哲学/思想
-        { name: 'Aeon', url: 'https://aeon.co/feed.rss', domain: 'philosophy' },
-        { name: 'The New Yorker', url: 'https://www.newyorker.com/feed/everything', domain: 'philosophy' }
-    ];
+    return allFeeds.map(feed => ({
+        name: feed.name,
+        url: feed.url,
+        domain: domainMapping[feed.domains[0]] || 'general',
+        tier: feed.tier,
+        priority: feed.priority
+    }));
 }
 
 /**

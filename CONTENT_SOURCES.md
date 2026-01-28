@@ -1,6 +1,47 @@
-# 思想雷达 - 内容来源体系
+# 思想雷达 - 内容来源体系 v2.0
 
 > 本文件记录所有内容来源，由 REQUIREMENTS.md 引用
+
+---
+
+## 零、RSS 订阅源 (22 源, 2026-01-28)
+
+### Tier 1: 知识枢纽 (每日必扫)
+
+| 源名称 | 领域 | 特色 |
+|--------|------|------|
+| **Arts & Letters Daily** | 全频段 | 知识分子晨报 |
+| **The Browser** | 全频段 | 手工挑选跨学科长文 |
+| **Project Syndicate** | P,Φ,F | 全球政要+诺奖得主专栏 |
+
+### Tier 2: 领域深耕 (13 源)
+
+| 分类 | 源名称 | 领域 |
+|------|--------|------|
+| AI | Quanta Magazine | T,Φ |
+| AI | CSET Georgetown | T,P |
+| AI | AI Supremacy | T |
+| Politics | Atlantic Council | P |
+| Politics | Foreign Affairs | P,H |
+| Philosophy | Aeon | Φ,H |
+| Philosophy | Daily Nous | Φ |
+| Philosophy | JHI Blog | H,Φ |
+| Books | London Review of Books | H,Φ,P |
+| Books | NY Review of Books | H,Φ,P |
+| Culture | The Atlantic | P,Φ,H |
+| Culture | Observer Art | X |
+| Culture | New Left Review | P,Φ |
+| Economics | Marginal Revolution | Φ,P,F |
+| Religion | The Public Discourse | R,Φ |
+
+### Tier 3: Substack 顶尖作者 (4 源)
+
+| 作者 | 领域 | 特色 |
+|------|------|------|
+| Adam Tooze (Chartbook) | H,F,P | 经济史+全球政治 |
+| Matt Yglesias (Slow Boring) | P | 政策分析 |
+| Noah Smith (Noahpinion) | F,P,T | 经济学+科技政策 |
+| Yascha Mounk (Persuasion) | P | 自由民主研究 |
 
 ---
 

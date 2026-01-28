@@ -183,6 +183,34 @@ router.get('/validate-quota', async (req, res) => {
 });
 
 /**
+ * POST /api/automation/daily-radar
+ * 每日雷达扫描 - 统一入口 (配置驱动 v3.0)
+ * 
+ * 优先级策略:
+ * - 非视频内容: RSS 优先 (Tier1 → Tier2 → Tier3)
+ * - 视频内容: YouTube 优先 (由 scan-channels 处理)
+ * 
+ * 配置来源: CONTENT_SOURCES.json
+ */
+router.post('/daily-radar', async (req, res) => {
+    try {
+        const { date } = req.body;
+        const contentRadar = require('../services/content-radar');
+
+        console.log('🛰️ Starting daily radar scan...');
+        const result = await contentRadar.dailyScan(date);
+
+        res.json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        console.error('Daily radar error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
  * POST /api/automation/scan-channels
  * 扫描所有配置频道的新视频并添加到采集队列
  * 优先使用 YouTube API，配额用完自动切换到 RSS
