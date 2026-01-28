@@ -27,7 +27,7 @@ const aiAnalyzer = require('./ai-analyzer');
  * 从 CONTENT_SOURCES.json 加载完整配置
  */
 function loadConfig() {
-    const configPath = path.join(__dirname, '../../CONTENT_SOURCES.json');
+    const configPath = path.resolve(__dirname, '../../CONTENT_SOURCES.json');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     return config;
 }

@@ -409,8 +409,20 @@ router.post('/reset-all', async (req, res) => {
  * 3. 按优先级排序，选取前N个
  * 4. 调用 AI 分析生成内容
  * 5. 直接发布到 radar_items (或进入草稿审核)
+ * 
+ * ⚠️ 已废弃 - 请使用 POST /api/automation/daily-radar
  */
 router.post('/generate-daily', async (req, res) => {
+    // v3.0 废弃：返回迁移指引
+    return res.status(410).json({
+        success: false,
+        deprecated: true,
+        message: '⚠️ 此端点已废弃（视频优先流程）',
+        migration: 'POST /api/automation/daily-radar',
+        reason: 'daily-radar 使用 RSS 优先 + 视频补充的配置驱动流程'
+    });
+
+    // 以下为遗留代码，保留以备回滚
     const startTime = Date.now();
     const results = {
         scanned: 0,
@@ -869,8 +881,20 @@ router.post('/batch-publish', async (req, res) => {
  * 2. 预筛选视频队列
  * 3. 按需逐条分析（每次只调1次Claude）
  * 4. 质量验证循环（失败则尝试下一个）
+ * 
+ * ⚠️ 已废弃 - 请使用 POST /api/automation/daily-radar
  */
 router.post('/smart-generate', async (req, res) => {
+    // v3.0 废弃：返回迁移指引
+    return res.status(410).json({
+        success: false,
+        deprecated: true,
+        message: '⚠️ 此端点已废弃（视频优先流程）',
+        migration: 'POST /api/automation/daily-radar',
+        reason: 'daily-radar 使用 RSS 优先 + 视频补充的配置驱动流程'
+    });
+
+    // 以下为遗留代码
     const { maxRetries = 5, dryRun = false } = req.body;
     const startTime = Date.now();
 
@@ -1503,8 +1527,20 @@ router.post('/smart-discover', async (req, res) => {
 /**
  * POST /api/automation/full-pipeline
  * 完整智能流程：发现 → 评分 → 分析 → 发布
+ * 
+ * ⚠️ 已废弃 - 请使用 POST /api/automation/daily-radar
  */
 router.post('/full-pipeline', async (req, res) => {
+    // v3.0 废弃：返回迁移指引
+    return res.status(410).json({
+        success: false,
+        deprecated: true,
+        message: '⚠️ 此端点已废弃（视频优先流程）',
+        migration: 'POST /api/automation/daily-radar',
+        reason: 'daily-radar 使用 RSS 优先 + 视频补充的配置驱动流程'
+    });
+
+    // 以下为遗留代码
     const startTime = Date.now();
     const { keywords, maxAnalyze = 5 } = req.body;
     const results = { discovery: null, analyzed: 0, published: 0, errors: [] };
@@ -1630,8 +1666,20 @@ router.get('/content-gap', async (req, res) => {
  * 3. 返回搜索计划供客户端/Claude执行
  * 
  * 注意：此端点返回搜索计划，实际执行需要外部调用MCP
+ * 
+ * ⚠️ 已废弃 - 请使用 POST /api/automation/daily-radar
  */
 router.post('/generate-daily-v2', async (req, res) => {
+    // v3.0 废弃：返回迁移指引
+    return res.status(410).json({
+        success: false,
+        deprecated: true,
+        message: '⚠️ 此端点已废弃（视频优先流程）',
+        migration: 'POST /api/automation/daily-radar',
+        reason: 'daily-radar 使用 RSS 优先 + 视频补充的配置驱动流程'
+    });
+
+    // 以下为遗留代码
     const startTime = Date.now();
 
     try {

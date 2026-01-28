@@ -20,7 +20,7 @@ const parser = new Parser({
 
 // 加载配置
 function loadRSSConfig() {
-    const configPath = path.join(__dirname, '../../CONTENT_SOURCES.json');
+    const configPath = path.resolve(__dirname, '../../CONTENT_SOURCES.json');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     return config.rssFeeds || {};
 }
