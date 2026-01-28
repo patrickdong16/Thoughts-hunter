@@ -48,7 +48,8 @@ async function addToReservoir(content, options = {}) {
 }
 
 /**
- * 计算内容优先级
+ * 计算内容优先级 (1=最高, 10=最低)
+ * 优先顺序: 权威源 > TTI 高 > 核心频段
  * @param {Object} content - 内容对象
  * @param {string} freq - 频段
  * @returns {number} 优先级 1-10
@@ -56,19 +57,27 @@ async function addToReservoir(content, options = {}) {
 function calculatePriority(content, freq) {
     let priority = 5; // 默认
 
-    // 核心频段优先 (T1, P1, H1, Φ1, F1, R1)
-    if (freq && freq.endsWith('1')) {
-        priority -= 2;
+    // 1. 权威来源优先 (最重要 -3)
+    const authorityAuthors = [
+        'Ray Dalio', 'Tyler Cowen', 'Yuval Harari', 'Jonathan Haidt',
+        'Naval Ravikant', 'Paul Graham', 'Ben Thompson', 'Andrej Karpathy',
+        'Lex Fridman', 'Sam Altman', 'Jensen Huang', 'Mark Carney'
+    ];
+    if (content.author_name && authorityAuthors.some(a =>
+        content.author_name.toLowerCase().includes(a.toLowerCase())
+    )) {
+        priority -= 3;
     }
 
-    // TTI 高分优先
+    // 2. TTI 高分优先 (-2 for 80+, -1 for 70+)
     if (content.tti && content.tti >= 80) {
+        priority -= 2;
+    } else if (content.tti && content.tti >= 70) {
         priority -= 1;
     }
 
-    // 权威来源优先
-    const authorityAuthors = ['Ray Dalio', 'Tyler Cowen', 'Yuval Harari', 'Jonathan Haidt'];
-    if (content.author_name && authorityAuthors.some(a => content.author_name.includes(a))) {
+    // 3. 核心频段优先 (x1 bands get -1)
+    if (freq && freq.endsWith('1')) {
         priority -= 1;
     }
 

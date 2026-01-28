@@ -131,7 +131,22 @@ async function dailyScan(date) {
         console.log(`\n✅ 视频内容已达标，跳过 YouTube 扫描`);
     }
 
-    // 5. 最终配额状态
+    // 5. 自动从储备库补充 (v4.0)
+    const preReservoirGap = await multiSourceGenerator.getContentGap(beijingDate);
+    if (preReservoirGap.gap > 0) {
+        console.log(`\n📦 Phase 3: 从储备库补充 (缺口: ${preReservoirGap.gap})`);
+        await contentReservoir.purgeExpired(); // 先清理过期
+        const reservoirResult = await contentReservoir.publishFromReservoir(beijingDate, preReservoirGap);
+        result.reservoir = {
+            published: reservoirResult.published,
+            items: reservoirResult.items
+        };
+    } else {
+        console.log(`\n✅ 配额已满，跳过储备库补充`);
+        result.reservoir = { published: 0, items: [] };
+    }
+
+    // 6. 最终配额状态
     const finalGap = await multiSourceGenerator.getContentGap(beijingDate);
     result.quotaAfter = finalGap.currentCount;
     result.endTime = new Date().toISOString();
