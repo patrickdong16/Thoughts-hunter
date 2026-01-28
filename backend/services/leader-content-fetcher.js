@@ -239,14 +239,18 @@ async function generateFallbackContent(date, options = {}) {
 
     // 过滤已用作者的文章，优先多样化
     const diverseArticles = articles.filter(a => !usedAuthors.has(a.author));
-    const articlesToProcess = diverseArticles.length >= gap
+
+    // 确定目标数量：强制生成时使用 maxItems，否则使用 gap
+    const targetCount = forceGenerate ? Math.min(maxItems, missingCoreFreqs.length) : gap;
+
+    const articlesToProcess = diverseArticles.length >= targetCount
         ? diverseArticles
         : articles; // 如果多样化不够，回退到全部
 
-    console.log(`📰 待处理文章: ${articlesToProcess.length} (多样化: ${diverseArticles.length}, 需求: ${gap})`);
+    console.log(`📰 待处理文章: ${articlesToProcess.length} (多样化: ${diverseArticles.length}, 目标: ${targetCount})`);
 
-    for (const article of articlesToProcess.slice(0, gap + 2)) { // 多处理一些留余量
-        if (results.inserted >= gap) break;
+    for (const article of articlesToProcess.slice(0, targetCount + 2)) { // 多处理一些留余量
+        if (results.inserted >= targetCount) break;
 
         // 找到对应频段
         const prefix = domainToFreq[article.domain] || 'T';
