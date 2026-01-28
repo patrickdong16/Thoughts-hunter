@@ -100,6 +100,9 @@ async function publishFromReservoir(date, gap) {
         return result;
     }
 
+    // 验证 gap.gap 是有效数字，避免 NaN 导致 SQL 错误
+    const limitCount = Number.isFinite(gap.gap) ? gap.gap + 10 : 20;
+
     // 获取可用的储备内容 (按优先级排序)
     const { rows: reservoirItems } = await pool.query(`
         SELECT id, content, freq, priority
@@ -108,7 +111,7 @@ async function publishFromReservoir(date, gap) {
           AND expires_at > NOW()
         ORDER BY priority ASC, created_at ASC
         LIMIT $1
-    `, [gap.gap + 10]); // 多取几条以便筛选
+    `, [limitCount]);
 
     console.log(`📦 储备库有 ${reservoirItems.length} 条待发布内容`);
 

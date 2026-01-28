@@ -46,6 +46,34 @@
 
 ---
 
+## 📦 v5.1 双池管道架构（2026-01-28 新增）
+
+### 数据流
+
+```
+Phase 1: Google News + RSS → leads_pool
+Phase 2: AI分析 + 深挖 → content_reservoir  
+Phase 3: 配额发布 → radar_items
+```
+
+### 核心规则（强制执行）
+
+| 规则 | 说明 |
+|------|------|
+| URL 去重 | 发布前检查 `radar_items` 中已有的 `source_url` |
+| 频段去重 | 发布前从 `radar_items` 同步已用频段，maxPerFreq=1 |
+| 参数验证 | SQL LIMIT 参数必须使用 `Number.isFinite()` 验证 |
+
+### 核心服务文件
+
+| 文件 | 功能 |
+|------|------|
+| `leads-manager.js` | 候选池管理 + Lead 深挖 |
+| `content-reservoir.js` | 储备池管理 + 发布逻辑 |
+| `content-radar.js` | 统一扫描入口（dailyScan） |
+
+---
+
 ## ✅ 内容质检规则
 
 ### 字数要求（场景分级）
@@ -185,5 +213,31 @@ curl https://thoughts-radar-backend-production.up.railway.app/api/radar/today
 
 ---
 
+## 🔧 已知 Bug 修复记录（2026-01-28 复盘）
+
+### 修复清单
+
+| 问题 | 根因 | 修复 |
+|------|------|------|
+| 内容重复发布 | `publishFromReservoir` 缺少 URL 检查 | 发布前查询 `radar_items` 已有 URL |
+| 频段分布违规 | `usedFreqs` 未与数据库同步 | 发布前从 `radar_items` 加载已用频段 |
+| INSERT 失败 | 代码列名与表结构不匹配 | 修正为 stance/author_name/tension_q |
+| NaN bigint 错误 | `gap.gap + 10` 未验证 | 使用 `Number.isFinite()` 防护 |
+
+### radar_items 表实际结构（重要）
+
+```sql
+radar_items (
+  id, date, freq, stance,  -- 注意：stance 不是 speaker/tti
+  title, author_name, author_avatar, author_bio,
+  source, source_url, content,
+  tension_q,  -- 注意：不是 tension_question  
+  tension_a, tension_b,
+  keywords, video_id, yt_view_count...
+)
+```
+
+---
+
 *本文件仅对思想雷达项目生效*
-*最后更新：2026-01-28（新增测试规范 - RSS fallback 教训）*
+*最后更新：2026-01-28（v5.1 双池架构 + Bug修复记录）*
