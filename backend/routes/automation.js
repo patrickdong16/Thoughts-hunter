@@ -16,6 +16,38 @@ const videoScanner = require('../services/video-scanner');
 const { getRulesForDate } = require('../config/day-rules');
 const { notifyFailure } = require('../utils/api-utils');
 
+// ============================================
+// 临时迁移端点 (创建 content_reservoir 表)
+// ============================================
+router.post('/run-init-reservoir', async (req, res) => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS content_reservoir (
+                id SERIAL PRIMARY KEY,
+                content JSONB NOT NULL,
+                freq VARCHAR(10),
+                priority INTEGER DEFAULT 5,
+                source_url TEXT,
+                source_name VARCHAR(255),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                expires_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '7 days'),
+                published_date DATE,
+                published_at TIMESTAMP WITH TIME ZONE,
+                status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'published', 'expired', 'rejected'))
+            )
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_reservoir_status ON content_reservoir(status)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_reservoir_priority ON content_reservoir(priority, created_at)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_reservoir_freq ON content_reservoir(freq)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_reservoir_expires ON content_reservoir(expires_at)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_reservoir_source_url ON content_reservoir(source_url)`);
+
+        res.json({ success: true, message: 'content_reservoir table created' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 /**
  * 解析 ISO 8601 时长字符串为分钟数
  * @param {string} duration - 如 "PT1H23M45S"
