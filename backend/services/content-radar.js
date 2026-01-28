@@ -26,10 +26,15 @@ const aiAnalyzer = require('./ai-analyzer');
 /**
  * 从 CONTENT_SOURCES.json 加载完整配置
  * 使用 require 确保在所有环境下路径正确解析
+ * 注意：Railway 从 backend/ 构建，所以配置文件需要在 backend/ 目录下
  */
 function loadConfig() {
-    // require 比 fs.readFileSync 更可靠，能正确处理相对路径
-    return require('../../CONTENT_SOURCES.json');
+    // 尝试 backend 目录（Railway）或 项目根目录（本地开发）
+    try {
+        return require('../CONTENT_SOURCES.json');
+    } catch (e) {
+        return require('../../CONTENT_SOURCES.json');
+    }
 }
 
 /**

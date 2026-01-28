@@ -18,9 +18,14 @@ const parser = new Parser({
     }
 });
 
-// 加载配置 - 使用 require 确保路径正确
+// 加载配置 - 支持 Railway (backend/) 和本地开发 (project root)
 function loadRSSConfig() {
-    const config = require('../../CONTENT_SOURCES.json');
+    let config;
+    try {
+        config = require('../CONTENT_SOURCES.json');
+    } catch (e) {
+        config = require('../../CONTENT_SOURCES.json');
+    }
     return config.rssFeeds || {};
 }
 

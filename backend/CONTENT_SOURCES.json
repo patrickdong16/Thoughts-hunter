@@ -1,7 +1,457 @@
 {
-    "version": "1.0",
-    "lastUpdated": "2026-01-27",
+    "version": "2.0",
+    "lastUpdated": "2026-01-28",
     "description": "思想雷达内容来源配置 - 机器可读版本",
+    "rssFeeds": {
+        "tier1": [
+            {
+                "name": "Arts & Letters Daily",
+                "name_cn": "艺术与文学日报",
+                "url": "https://www.aldaily.com/feed/",
+                "domains": [
+                    "T",
+                    "P",
+                    "Φ",
+                    "H",
+                    "F",
+                    "R"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "知识分子晨报，全球深度文章精选"
+            },
+            {
+                "name": "The Browser",
+                "name_cn": "浏览器精选",
+                "url": "https://thebrowser-feed.nfshost.com/thebrowser.xml",
+                "domains": [
+                    "T",
+                    "P",
+                    "Φ",
+                    "H",
+                    "F",
+                    "R"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "手工挑选跨学科长文"
+            },
+            {
+                "name": "Project Syndicate",
+                "name_cn": "报业辛迪加",
+                "url": "https://www.project-syndicate.org/rss",
+                "domains": [
+                    "P",
+                    "Φ",
+                    "F"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "全球政要+诺奖得主专栏"
+            }
+        ],
+        "tier2_ai": [
+            {
+                "name": "Quanta Magazine",
+                "name_cn": "量子杂志",
+                "url": "https://www.quantamagazine.org/feed/",
+                "domains": [
+                    "T",
+                    "Φ"
+                ],
+                "priority": 2,
+                "scanFrequency": "daily",
+                "description": "科学与哲学交汇"
+            },
+            {
+                "name": "CSET Georgetown",
+                "name_cn": "乔治城CSET",
+                "url": "https://cset.georgetown.edu/feed/",
+                "domains": [
+                    "T",
+                    "P"
+                ],
+                "priority": 2,
+                "scanFrequency": "weekly",
+                "description": "AI政策金字塔尖"
+            }
+        ],
+        "tier2_politics": [
+            {
+                "name": "Atlantic Council",
+                "name_cn": "大西洋理事会",
+                "url": "https://www.atlanticcouncil.org/feed/",
+                "domains": [
+                    "P"
+                ],
+                "priority": 2,
+                "scanFrequency": "daily",
+                "description": "AI主权+多极化权力"
+            },
+            {
+                "name": "Foreign Affairs",
+                "name_cn": "外交事务",
+                "url": "https://www.foreignaffairs.com/rss.xml",
+                "domains": [
+                    "P",
+                    "H"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "预测3-5年国际秩序"
+            }
+        ],
+        "tier2_philosophy": [
+            {
+                "name": "Aeon",
+                "name_cn": "永恒杂志",
+                "url": "https://aeon.co/feed.rss",
+                "domains": [
+                    "Φ",
+                    "H"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "全球最佳深度思想杂志"
+            },
+            {
+                "name": "Daily Nous",
+                "name_cn": "每日心灵",
+                "url": "https://dailynous.com/feed/",
+                "domains": [
+                    "Φ"
+                ],
+                "priority": 2,
+                "scanFrequency": "daily",
+                "description": "哲学界动态汇总"
+            },
+            {
+                "name": "JHI Blog",
+                "name_cn": "观念史博客",
+                "url": "https://www.jhiblog.org/feed/",
+                "domains": [
+                    "H",
+                    "Φ"
+                ],
+                "priority": 2,
+                "scanFrequency": "weekly",
+                "description": "观念史专攻"
+            }
+        ],
+        "tier2_finance": [
+            {
+                "name": "London Review of Books",
+                "name_cn": "伦敦书评",
+                "url": "https://www.lrb.co.uk/feeds/rss",
+                "domains": [
+                    "H",
+                    "Φ",
+                    "P"
+                ],
+                "priority": 1,
+                "scanFrequency": "weekly",
+                "description": "全球最有思想浓度书评"
+            },
+            {
+                "name": "New York Review of Books",
+                "name_cn": "纽约书评",
+                "url": "https://www.nybooks.com/feed/",
+                "domains": [
+                    "H",
+                    "Φ",
+                    "P"
+                ],
+                "priority": 1,
+                "scanFrequency": "weekly",
+                "description": "政治/历史/文学风向标"
+            },
+            {
+                "name": "Financial Times Books",
+                "name_cn": "金融时报书评",
+                "url": "https://www.ft.com/books?format=rss",
+                "domains": [
+                    "F",
+                    "P",
+                    "H"
+                ],
+                "priority": 1,
+                "scanFrequency": "weekly",
+                "description": "FT年度商业书+地缘经济书评"
+            },
+            {
+                "name": "NY Times Books",
+                "name_cn": "纽约时报书评",
+                "url": "https://rss.nytimes.com/services/xml/rss/nyt/Books.xml",
+                "domains": [
+                    "H",
+                    "Φ",
+                    "P"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "年度10 Best+日常书评"
+            }
+        ],
+        "tier2_religion": [
+            {
+                "name": "The Public Discourse",
+                "name_cn": "公共话语",
+                "url": "https://www.thepublicdiscourse.com/feed/",
+                "domains": [
+                    "R",
+                    "Φ"
+                ],
+                "priority": 2,
+                "scanFrequency": "daily",
+                "description": "宗教+自然法+生命伦理"
+            }
+        ],
+        "tier2_culture": [
+            {
+                "name": "The Atlantic",
+                "name_cn": "大西洋月刊",
+                "url": "https://www.theatlantic.com/feed/all/",
+                "domains": [
+                    "P",
+                    "Φ",
+                    "H"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "文化趋势+社会心理分析"
+            },
+            {
+                "name": "Observer Art",
+                "name_cn": "观察者艺术",
+                "url": "https://observer.com/arts/feed/",
+                "domains": [
+                    "X"
+                ],
+                "priority": 2,
+                "scanFrequency": "weekly",
+                "description": "策展动态 (惠特尼/卡塞尔)"
+            },
+            {
+                "name": "New Left Review",
+                "name_cn": "新左派评论",
+                "url": "https://newleftreview.org/feed",
+                "domains": [
+                    "P",
+                    "Φ"
+                ],
+                "priority": 2,
+                "scanFrequency": "weekly",
+                "description": "深度社会理论+左翼批判"
+            }
+        ],
+        "tier2_economics": [
+            {
+                "name": "Marginal Revolution",
+                "name_cn": "边际革命",
+                "url": "https://marginalrevolution.com/feed",
+                "domains": [
+                    "Φ",
+                    "P",
+                    "F"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "Tyler Cowen 制度观察"
+            },
+            {
+                "name": "AI Supremacy",
+                "name_cn": "AI至上",
+                "url": "https://www.ai-supremacy.com/feed",
+                "domains": [
+                    "T"
+                ],
+                "priority": 2,
+                "scanFrequency": "daily",
+                "description": "大模型宏观趋势"
+            }
+        ],
+        "tier3_substack": [
+            {
+                "name": "Adam Tooze - Chartbook",
+                "name_cn": "Adam Tooze 图表册",
+                "url": "https://adamtooze.substack.com/feed",
+                "domains": [
+                    "H",
+                    "F",
+                    "P"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "经济史+全球政治"
+            },
+            {
+                "name": "Matt Yglesias - Slow Boring",
+                "name_cn": "Matt Yglesias 慢磨",
+                "url": "https://www.slowboring.com/feed",
+                "domains": [
+                    "P"
+                ],
+                "priority": 2,
+                "scanFrequency": "daily",
+                "description": "政策分析"
+            },
+            {
+                "name": "Noah Smith - Noahpinion",
+                "name_cn": "Noah Smith 诺亚观点",
+                "url": "https://noahpinion.substack.com/feed",
+                "domains": [
+                    "F",
+                    "P",
+                    "T"
+                ],
+                "priority": 2,
+                "scanFrequency": "daily",
+                "description": "经济学+科技政策"
+            },
+            {
+                "name": "Yascha Mounk - Persuasion",
+                "name_cn": "说服力",
+                "url": "https://www.persuasion.community/feed",
+                "domains": [
+                    "P"
+                ],
+                "priority": 2,
+                "scanFrequency": "daily",
+                "description": "自由民主研究"
+            },
+            {
+                "name": "Niall Ferguson - Time Machine",
+                "name_cn": "Niall Ferguson 时光机",
+                "url": "https://niallferguson.substack.com/feed",
+                "domains": [
+                    "H",
+                    "P",
+                    "F"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "历史学家视角的当代分析"
+            },
+            {
+                "name": "Slavoj Žižek",
+                "name_cn": "齐泽克",
+                "url": "https://zizek.substack.com/feed",
+                "domains": [
+                    "Φ",
+                    "P"
+                ],
+                "priority": 1,
+                "scanFrequency": "weekly",
+                "description": "当代最具影响力哲学家"
+            },
+            {
+                "name": "Glenn Loury",
+                "name_cn": "Glenn Loury",
+                "url": "https://glennloury.substack.com/feed",
+                "domains": [
+                    "P",
+                    "Φ"
+                ],
+                "priority": 2,
+                "scanFrequency": "daily",
+                "description": "种族/不平等/经济学"
+            },
+            {
+                "name": "Heather Cox Richardson - Letters",
+                "name_cn": "美国来信",
+                "url": "https://heathercoxrichardson.substack.com/feed",
+                "domains": [
+                    "H",
+                    "P"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "美国政治史+当代解读 (百万订阅)"
+            },
+            {
+                "name": "Robert Reich",
+                "name_cn": "Robert Reich",
+                "url": "https://robertreich.substack.com/feed",
+                "domains": [
+                    "P",
+                    "F"
+                ],
+                "priority": 2,
+                "scanFrequency": "daily",
+                "description": "前劳工部长 经济不平等"
+            },
+            {
+                "name": "Paul Krugman",
+                "name_cn": "Paul Krugman",
+                "url": "https://paulkrugman.substack.com/feed",
+                "domains": [
+                    "F",
+                    "P"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "诺贝尔经济学奖得主"
+            },
+            {
+                "name": "The Free Press (Bari Weiss)",
+                "name_cn": "自由报",
+                "url": "https://www.thefp.com/feed",
+                "domains": [
+                    "P",
+                    "Φ"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "独立调查新闻+言论自由"
+            },
+            {
+                "name": "John Cochrane - Grumpy Economist",
+                "name_cn": "暴躁经济学家",
+                "url": "https://johnhcochrane.substack.com/feed",
+                "domains": [
+                    "F"
+                ],
+                "priority": 2,
+                "scanFrequency": "daily",
+                "description": "胡佛研究所 货币/金融政策"
+            },
+            {
+                "name": "Scott Alexander - Astral Codex Ten",
+                "name_cn": "星界十杰",
+                "url": "https://www.astralcodexten.com/feed",
+                "domains": [
+                    "Φ",
+                    "T"
+                ],
+                "priority": 1,
+                "scanFrequency": "weekly",
+                "description": "理性主义+科技哲学 (传奇博主)"
+            },
+            {
+                "name": "Andrew Sullivan - The Weekly Dish",
+                "name_cn": "每周一菜",
+                "url": "https://andrewsullivan.substack.com/feed",
+                "domains": [
+                    "P",
+                    "Φ"
+                ],
+                "priority": 2,
+                "scanFrequency": "weekly",
+                "description": "保守主义批判+社会议题"
+            },
+            {
+                "name": "Nate Silver - Silver Bulletin",
+                "name_cn": "银色公报",
+                "url": "https://natesilver.substack.com/feed",
+                "domains": [
+                    "P"
+                ],
+                "priority": 2,
+                "scanFrequency": "daily",
+                "description": "数据分析+政治预测 (538创始人)"
+            }
+        ]
+    },
     "leaders": [
         {
             "name": "Elon Musk",
