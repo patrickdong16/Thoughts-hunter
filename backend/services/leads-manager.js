@@ -108,6 +108,73 @@ function needsEnrichment(lead) {
 }
 
 /**
+ * 解码 Google News RSS 文章 URL
+ * Google News RSS 返回的是加密的重定向链接，需要解码获取真实 URL
+ * @param {string} googleUrl - Google News RSS article URL
+ * @returns {string} 真实文章 URL
+ */
+async function resolveGoogleNewsUrl(googleUrl) {
+    if (!googleUrl.includes('news.google.com/rss/articles/')) {
+        return googleUrl; // 不是 Google News URL，直接返回
+    }
+
+    try {
+        // 方法1: 尝试从 URL 中提取 base64 编码的真实 URL
+        const urlMatch = googleUrl.match(/articles\/([^?]+)/);
+        if (urlMatch) {
+            const encoded = urlMatch[1];
+            // Google News 使用多层编码，尝试解码
+            try {
+                // 尝试 base64 解码
+                const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+                // 在解码内容中查找 http URL
+                const urlInDecoded = decoded.match(/https?:\/\/[^\s"<>]+/);
+                if (urlInDecoded) {
+                    console.log(`      🔗 解码成功: ${urlInDecoded[0].substring(0, 50)}...`);
+                    return urlInDecoded[0];
+                }
+            } catch (e) {
+                // base64 解码失败，继续尝试方法2
+            }
+        }
+
+        // 方法2: 通过 HTTP 跟踪重定向获取真实 URL
+        console.log(`      🔗 跟踪重定向...`);
+        const response = await fetch(googleUrl, {
+            method: 'HEAD',
+            redirect: 'follow',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+            }
+        });
+
+        if (response.url && response.url !== googleUrl) {
+            console.log(`      🔗 重定向到: ${response.url.substring(0, 50)}...`);
+            return response.url;
+        }
+
+        // 方法3: GET 请求并检查最终 URL
+        const getResponse = await fetch(googleUrl, {
+            redirect: 'follow',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                'Accept': 'text/html'
+            }
+        });
+
+        if (getResponse.url && getResponse.url !== googleUrl) {
+            console.log(`      🔗 最终URL: ${getResponse.url.substring(0, 50)}...`);
+            return getResponse.url;
+        }
+
+        return googleUrl; // 无法解析，返回原 URL
+    } catch (error) {
+        console.log(`      ⚠️ URL解析失败: ${error.message}`);
+        return googleUrl; // 出错时返回原 URL
+    }
+}
+
+/**
  * 深挖 lead - 抓取原文内容
  * @param {Object} lead - lead 对象
  */
@@ -115,13 +182,19 @@ async function enrichLead(lead) {
     console.log(`   🔍 深挖: ${lead.title?.substring(0, 40)}...`);
 
     try {
+        // 解析真实 URL (处理 Google News 重定向)
+        let targetUrl = lead.source_url;
+        if (lead.source_type === 'google' || targetUrl.includes('news.google.com')) {
+            targetUrl = await resolveGoogleNewsUrl(targetUrl);
+        }
+
         // 抓取原始网页
-        const response = await fetch(lead.source_url, {
+        const response = await fetch(targetUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
                 'Accept': 'text/html,application/xhtml+xml'
             },
-            timeout: 15000
+            redirect: 'follow'
         });
 
         if (!response.ok) {
@@ -132,7 +205,7 @@ async function enrichLead(lead) {
         const html = await response.text();
 
         // 使用 Readability 提取正文
-        const dom = new JSDOM(html, { url: lead.source_url });
+        const dom = new JSDOM(html, { url: targetUrl });
         const reader = new Readability(dom.window.document);
         const article = reader.parse();
 
@@ -150,7 +223,8 @@ async function enrichLead(lead) {
             byline: article.byline,
             siteName: article.siteName,
             leader: lead.leader_name,
-            sourceUrl: lead.source_url
+            sourceUrl: targetUrl, // 使用解析后的真实 URL
+            originalUrl: lead.source_url // 保留原始 Google URL
         };
     } catch (error) {
         console.log(`      ❌ 深挖失败: ${error.message}`);
