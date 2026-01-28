@@ -86,7 +86,8 @@ function getYouTubeChannels() {
 // ============================================
 
 /**
- * 每日雷达扫描主函数
+ * 每日雷达扫描主函数 v4.1
+ * 统一发布管道: 候选池 → 合并 → 质检 → 发布 → 剩余储备
  * @param {string} date - YYYY-MM-DD 格式日期
  * @returns {Object} 扫描结果
  */
@@ -95,7 +96,7 @@ async function dailyScan(date) {
         timeZone: 'Asia/Shanghai'
     });
 
-    console.log(`\n🛰️ ========== 每日雷达扫描 ${beijingDate} ==========\n`);
+    console.log(`\n🛰️ ========== 每日雷达扫描 ${beijingDate} (v4.1 统一管道) ==========\n`);
 
     // 1. 获取当前配额状态
     const gap = await multiSourceGenerator.getContentGap(beijingDate);
@@ -105,48 +106,59 @@ async function dailyScan(date) {
     const result = {
         date: beijingDate,
         startTime: new Date().toISOString(),
-        rss: { scanned: 0, articles: 0, inserted: 0 },
-        youtube: { scanned: 0, videos: 0, queued: 0 },
+        pipeline: { rssCandidates: 0, reservoirCandidates: 0, merged: 0, published: 0, toReservoir: 0 },
+        youtube: { suggestion: null },
         quotaBefore: gap.currentCount,
         quotaAfter: gap.currentCount,
         missingFreqs: gap.stats.frequency.missing
     };
 
-    // 2. RSS 全量扫描 (配额检查后置)
-    // v4.0: 始终扫描所有 RSS 源，分析后再决定发布/储备
-    console.log(`\n📰 Phase 1: RSS 全量扫描 (配额检查后置)`);
-    const rssResult = await scanRSSFeeds(beijingDate, gap, { unlimited: true });
-    result.rss = rssResult;
+    // ==========================================
+    // Phase 1: 收集候选 (不直接发布)
+    // ==========================================
+    console.log(`\n📰 Phase 1: RSS 扫描 → 候选池`);
+    const rssCandidates = await collectRSSCandidates(beijingDate);
+    result.pipeline.rssCandidates = rssCandidates.length;
+    console.log(`   RSS 候选: ${rssCandidates.length} 条`);
 
-    // 3. 刷新配额状态
+    // ==========================================
+    // Phase 2: 从储备库获取候选
+    // ==========================================
+    console.log(`\n📦 Phase 2: 储备库 → 候选池`);
+    await contentReservoir.purgeExpired();
+    const reservoirCandidates = await contentReservoir.getCandidates(gap.gap + 5);
+    result.pipeline.reservoirCandidates = reservoirCandidates.length;
+    console.log(`   储备候选: ${reservoirCandidates.length} 条`);
+
+    // ==========================================
+    // Phase 3: 合并 + 排序
+    // ==========================================
+    console.log(`\n🔀 Phase 3: 合并候选池 + 优先级排序`);
+    const allCandidates = [...rssCandidates, ...reservoirCandidates]
+        .sort((a, b) => a.priority - b.priority);
+    result.pipeline.merged = allCandidates.length;
+    console.log(`   合并总数: ${allCandidates.length} 条`);
+
+    // ==========================================
+    // Phase 4: 统一质检 + 发布 (单一通道)
+    // ==========================================
+    console.log(`\n✅ Phase 4: 统一质检 → 发布`);
+    const publishResult = await publishCandidates(beijingDate, allCandidates, gap);
+    result.pipeline.published = publishResult.published;
+    result.pipeline.toReservoir = publishResult.toReservoir;
+    console.log(`   发布: ${publishResult.published}, 存储备: ${publishResult.toReservoir}`);
+
+    // ==========================================
+    // Phase 5: YouTube 建议
+    // ==========================================
     const midGap = await multiSourceGenerator.getContentGap(beijingDate);
-
-    // 4. YouTube 扫描 (视频内容)
     if (midGap.stats.video.gap > 0) {
-        console.log(`\n🎬 Phase 2: YouTube 扫描 (视频优先)`);
-        // YouTube 扫描由 video-scanner.js 处理
-        // 这里只返回建议
         result.youtube.suggestion = '调用 /api/automation/scan-channels 进行视频扫描';
-    } else {
-        console.log(`\n✅ 视频内容已达标，跳过 YouTube 扫描`);
     }
 
-    // 5. 自动从储备库补充 (v4.0)
-    const preReservoirGap = await multiSourceGenerator.getContentGap(beijingDate);
-    if (preReservoirGap.gap > 0) {
-        console.log(`\n📦 Phase 3: 从储备库补充 (缺口: ${preReservoirGap.gap})`);
-        await contentReservoir.purgeExpired(); // 先清理过期
-        const reservoirResult = await contentReservoir.publishFromReservoir(beijingDate, preReservoirGap);
-        result.reservoir = {
-            published: reservoirResult.published,
-            items: reservoirResult.items
-        };
-    } else {
-        console.log(`\n✅ 配额已满，跳过储备库补充`);
-        result.reservoir = { published: 0, items: [] };
-    }
-
-    // 6. 最终配额状态
+    // ==========================================
+    // Phase 6: 最终配额状态
+    // ==========================================
     const finalGap = await multiSourceGenerator.getContentGap(beijingDate);
     result.quotaAfter = finalGap.currentCount;
     result.endTime = new Date().toISOString();
@@ -159,72 +171,29 @@ async function dailyScan(date) {
 }
 
 /**
- * 扫描 RSS 订阅源 (v4.0 全量扫描)
+ * 收集 RSS 候选内容 (不直接发布)
  * @param {string} date - 目标日期
- * @param {Object} gap - 配额缺口信息
- * @param {Object} options - 扫描选项
+ * @returns {Array} 候选列表
  */
-async function scanRSSFeeds(date, gap, options = {}) {
-    const result = { scanned: 0, articles: 0, inserted: 0, reserved: 0, sources: [] };
+async function collectRSSCandidates(date) {
+    const candidates = [];
 
-    // v4.0: 全量扫描所有源，不再限制
-    console.log(`   扫描所有 RSS 源 (全量模式)`);
+    // 获取所有 RSS 文章
+    const fetchResult = await tieredRSSFetcher.fetchByMissingFreqs([]);
+    console.log(`   扫描 ${fetchResult.feedsScanned} 个源，获取 ${fetchResult.articles.length} 篇文章`);
 
-    // 使用 tiered-rss-fetcher 抓取所有源
-    const fetchResult = await tieredRSSFetcher.fetchByMissingFreqs(
-        options.unlimited ? [] : gap.stats.frequency.missing
-    );
-    result.scanned = fetchResult.feedsScanned;
-    result.articles = fetchResult.articles.length;
-
-    console.log(`   扫描 ${result.scanned} 个源，获取 ${result.articles} 篇文章`);
-
-    // 处理文章 (AI 分析 + 入库/储备)
-    if (fetchResult.articles.length > 0) {
-        const insertResult = await processRSSArticles(fetchResult.articles, date, gap, options);
-        result.inserted = insertResult.inserted;
-        result.reserved = insertResult.reserved;
-        result.sources = insertResult.sources;
-    }
-
-    return result;
-}
-
-/**
- * 处理 RSS 文章 (v4.0 全量处理 + 储备)
- * @param {Array} articles - 文章列表
- * @param {string} date - 目标日期
- * @param {Object} gap - 配额缺口
- * @param {Object} options - 处理选项
- */
-async function processRSSArticles(articles, date, gap, options = {}) {
-    const result = { inserted: 0, reserved: 0, sources: [] };
-    const usedFreqs = new Set(gap.usedFreqs);
-    const maxItems = gap.maxItems || 10;
-    let currentCount = gap.currentCount;
-
-    // v4.0: 处理所有文章，不再限制数量
-    const maxToProcess = options.unlimited ? articles.length : Math.min(articles.length, gap.gap + 5);
-    console.log(`   处理 ${maxToProcess} 篇文章 (全量模式: ${options.unlimited})`);
-
-    for (const article of articles.slice(0, maxToProcess)) {
-        // 跳过已处理的 URL
+    for (const article of fetchResult.articles) {
+        // 跳过已发布的 URL
         const exists = await checkUrlExists(article.link);
-        if (exists) {
-            continue; // 静默跳过
-        }
+        if (exists) continue;
 
-        // 检查是否已在储备库
+        // 跳过已在储备库的 URL
         const inReservoir = await contentReservoir.isUrlInReservoir(article.link);
-        if (inReservoir) {
-            continue;
-        }
+        if (inReservoir) continue;
 
-        // 确定目标频段 (基于源的 domains)
+        // 确定目标频段
         const domain = article.source.domains?.[0] || 'T';
-        const potentialFreqs = [`${domain}1`, `${domain}2`, `${domain}3`];
-        const availableFreq = potentialFreqs.find(f => !usedFreqs.has(f));
-        const targetFreq = availableFreq || potentialFreqs[0];
+        const targetFreq = `${domain}1`;
 
         try {
             console.log(`   🔍 分析: ${article.title?.substring(0, 40)}...`);
@@ -238,64 +207,126 @@ async function processRSSArticles(articles, date, gap, options = {}) {
                 targetFreq
             });
 
+            // 质检: 内容长度
             if (!analyzed || !analyzed.content || analyzed.content.length < 500) {
                 console.log(`   ⚠️ 内容不符合要求`);
                 continue;
             }
 
-            // v4.0 配额检查后置: 决定发布还是储备
-            const canPublish = currentCount < maxItems &&
-                !usedFreqs.has(targetFreq);
+            // 计算优先级
+            const priority = contentReservoir.calculatePriority(analyzed, targetFreq);
 
-            if (canPublish) {
-                // 直接发布
-                await pool.query(`
-                    INSERT INTO radar_items (date, freq, title, content, tension_question, 
-                        tension_a, tension_b, source_url, speaker, tti, created_at)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
-                `, [
-                    date,
-                    targetFreq,
-                    analyzed.title,
-                    analyzed.content,
-                    analyzed.tension_question || '',
-                    analyzed.tension_a || '',
-                    analyzed.tension_b || '',
-                    article.link,
-                    article.source.name_cn || article.source.name,
-                    analyzed.tti || 50
-                ]);
+            candidates.push({
+                content: analyzed,
+                source: article,
+                freq: targetFreq,
+                priority,
+                sourceType: 'rss',
+                sourceUrl: article.link,
+                sourceName: article.source.name_cn || article.source.name
+            });
 
-                usedFreqs.add(targetFreq);
-                currentCount++;
-                result.inserted++;
-                result.sources.push(article.source.name);
-                console.log(`   ✅ 发布: ${targetFreq}`);
-            } else {
-                // 存入储备库
-                const reserveResult = await contentReservoir.addToReservoir({
-                    ...analyzed,
-                    source_url: article.link,
-                    source_name: article.source.name_cn || article.source.name
-                }, {
-                    freq: targetFreq,
-                    sourceUrl: article.link,
-                    sourceName: article.source.name_cn || article.source.name
-                });
-
-                if (reserveResult.success) {
-                    result.reserved++;
-                    console.log(`   📦 储备: ${targetFreq} (优先级 ${reserveResult.priority})`);
-                }
-            }
+            console.log(`   ✅ 候选: ${targetFreq} (优先级 ${priority})`);
         } catch (error) {
-            console.log(`   ❌ 处理失败: ${error.message}`);
+            console.log(`   ❌ 分析失败: ${error.message}`);
         }
     }
 
-    console.log(`   📊 结果: 发布 ${result.inserted}, 储备 ${result.reserved}`);
+    return candidates;
+}
+
+/**
+ * 统一发布候选内容 (单一发布通道)
+ * @param {string} date - 目标日期
+ * @param {Array} candidates - 排序后的候选列表
+ * @param {Object} gap - 配额信息
+ * @returns {Object} 发布结果
+ */
+async function publishCandidates(date, candidates, gap) {
+    const result = { published: 0, toReservoir: 0, items: [] };
+    const usedFreqs = new Set(gap.usedFreqs || []);
+    const maxItems = gap.maxItems || 10;
+    let currentCount = gap.currentCount;
+
+    for (const candidate of candidates) {
+        // 频段冲突检查
+        let targetFreq = candidate.freq;
+        if (usedFreqs.has(targetFreq)) {
+            // 尝试找替代频段
+            const domain = targetFreq.charAt(0);
+            const alternatives = [`${domain}2`, `${domain}3`];
+            const available = alternatives.find(f => !usedFreqs.has(f));
+            if (available) {
+                targetFreq = available;
+            } else {
+                // 无可用频段，存储备
+                if (candidate.sourceType === 'rss') {
+                    await contentReservoir.addToReservoir(candidate.content, {
+                        freq: candidate.freq,
+                        sourceUrl: candidate.sourceUrl,
+                        sourceName: candidate.sourceName
+                    });
+                    result.toReservoir++;
+                }
+                continue;
+            }
+        }
+
+        // 配额检查
+        if (currentCount >= maxItems) {
+            // 超配额，存储备
+            if (candidate.sourceType === 'rss') {
+                await contentReservoir.addToReservoir(candidate.content, {
+                    freq: candidate.freq,
+                    sourceUrl: candidate.sourceUrl,
+                    sourceName: candidate.sourceName
+                });
+                result.toReservoir++;
+            }
+            continue;
+        }
+
+        // 发布到 radar_items (单一通道)
+        try {
+            const content = candidate.content;
+            await pool.query(`
+                INSERT INTO radar_items (date, freq, title, content, tension_question,
+                    tension_a, tension_b, source_url, speaker, tti, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+            `, [
+                date,
+                targetFreq,
+                content.title,
+                content.content,
+                content.tension_question || '',
+                content.tension_a || '',
+                content.tension_b || '',
+                candidate.sourceUrl,
+                candidate.sourceName,
+                content.tti || 50
+            ]);
+
+            // 如果来自储备库，标记为已发布
+            if (candidate.sourceType === 'reservoir' && candidate.reservoirId) {
+                await pool.query(
+                    `UPDATE content_reservoir SET status = 'published', published_date = $1, published_at = NOW() WHERE id = $2`,
+                    [date, candidate.reservoirId]
+                );
+            }
+
+            usedFreqs.add(targetFreq);
+            currentCount++;
+            result.published++;
+            result.items.push({ freq: targetFreq, title: content.title?.substring(0, 30) });
+            console.log(`   ✅ 发布: ${targetFreq} - ${content.title?.substring(0, 30)}...`);
+        } catch (error) {
+            console.log(`   ❌ 发布失败: ${error.message}`);
+        }
+    }
+
     return result;
 }
+
 
 
 /**
@@ -319,6 +350,6 @@ module.exports = {
     getAllRSSSources,
     getYouTubeChannels,
     dailyScan,
-    scanRSSFeeds,
-    processRSSArticles
+    collectRSSCandidates,
+    publishCandidates
 };

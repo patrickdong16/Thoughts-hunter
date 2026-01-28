@@ -224,6 +224,37 @@ async function isUrlInReservoir(url) {
     return rows.length > 0;
 }
 
+/**
+ * 获取储备库候选内容 (用于统一发布管道)
+ * @param {number} limit - 最大数量
+ * @returns {Array} 候选列表
+ */
+async function getCandidates(limit = 10) {
+    const { rows } = await pool.query(`
+        SELECT id, content, freq, priority, source_url, source_name
+        FROM content_reservoir
+        WHERE status = 'pending'
+          AND expires_at > NOW()
+        ORDER BY priority ASC, created_at ASC
+        LIMIT $1
+    `, [limit]);
+
+    return rows.map(row => {
+        const content = typeof row.content === 'string'
+            ? JSON.parse(row.content)
+            : row.content;
+        return {
+            content,
+            freq: row.freq,
+            priority: row.priority,
+            sourceType: 'reservoir',
+            sourceUrl: row.source_url || content.source_url,
+            sourceName: row.source_name || content.author_name,
+            reservoirId: row.id
+        };
+    });
+}
+
 // ============================================
 // 导出
 // ============================================
@@ -234,5 +265,6 @@ module.exports = {
     getReservoirStats,
     purgeExpired,
     isUrlInReservoir,
+    getCandidates,
     calculatePriority
 };
