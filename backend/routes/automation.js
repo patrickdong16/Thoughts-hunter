@@ -2069,15 +2069,19 @@ const leaderContentFetcher = require('../services/leader-content-fetcher');
  * 从思想领袖的 RSS 源生成内容（作为视频来源的 fallback）
  * 
  * 场景：当视频采集无新内容时，使用此端点补充
+ * body: { date, forceGenerate, maxItems }
  */
 router.post('/generate-from-leaders', async (req, res) => {
     const startTime = Date.now();
 
     try {
-        const { date } = req.query;
-        console.log('🔄 启动 RSS Fallback 内容生成...');
+        const { date, forceGenerate = false, maxItems = 4 } = req.body;
+        console.log(`🔄 启动 RSS Fallback 内容生成 (force=${forceGenerate}, max=${maxItems})...`);
 
-        const result = await leaderContentFetcher.generateFallbackContent(date);
+        const result = await leaderContentFetcher.generateFallbackContent(date, {
+            forceGenerate,
+            maxItems
+        });
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 

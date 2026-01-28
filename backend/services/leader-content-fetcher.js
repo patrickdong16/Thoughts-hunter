@@ -142,13 +142,18 @@ async function analyzeArticleWithAI(article, freq) {
 
 /**
  * 基于内容缺口生成补充内容
+ * @param {string} date - 日期
+ * @param {Object} options - 可选参数
+ * @param {boolean} options.forceGenerate - 强制生成（即使配额已满）用于填补频段缺口
+ * @param {number} options.maxItems - 最多生成数量
  */
-async function generateFallbackContent(date) {
+async function generateFallbackContent(date, options = {}) {
+    const { forceGenerate = false, maxItems = 4 } = options;
     const beijingDate = date || new Date().toLocaleDateString('en-CA', {
         timeZone: 'Asia/Shanghai'
     });
 
-    console.log(`\n🔄 Fallback 内容生成: ${beijingDate}`);
+    console.log(`\n🔄 Fallback 内容生成: ${beijingDate} (force=${forceGenerate})`);
 
     // 1. 检查当前内容状态
     const { rows: existing } = await pool.query(
@@ -162,15 +167,32 @@ async function generateFallbackContent(date) {
     const minItems = dayRules.minItems || 6;
     const gap = Math.max(0, minItems - existing.length);
 
-    console.log(`📊 当前: ${existing.length} 条 | 目标: ${minItems} 条 | 缺口: ${gap} 条`);
+    // 3. 计算缺失的核心频段
+    const coreFreqs = ['T1', 'P1', 'Φ1', 'H1', 'F1', 'R1'];
+    const missingCoreFreqs = coreFreqs.filter(f => !usedFreqs.has(f));
 
-    if (gap === 0) {
+    console.log(`📊 当前: ${existing.length} 条 | 目标: ${minItems} 条 | 缺口: ${gap} 条`);
+    console.log(`📊 缺失核心频段: ${missingCoreFreqs.join(', ') || '无'}`);
+
+    // 如果配额已满且不强制生成，检查是否需要填补频段
+    if (gap === 0 && !forceGenerate) {
+        if (missingCoreFreqs.length === 0) {
+            return {
+                success: true,
+                message: '内容已达标，无需补充',
+                date: beijingDate,
+                currentCount: existing.length,
+                gap: 0
+            };
+        }
+        // 有缺失频段但未强制生成，提示用户
         return {
             success: true,
-            message: '内容已达标，无需补充',
+            message: '配额已满但存在频段缺口，建议使用 forceGenerate=true',
             date: beijingDate,
             currentCount: existing.length,
-            gap: 0
+            gap: 0,
+            missingFreqs: missingCoreFreqs
         };
     }
 
