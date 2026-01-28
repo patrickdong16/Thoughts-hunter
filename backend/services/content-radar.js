@@ -86,8 +86,11 @@ function getYouTubeChannels() {
 // ============================================
 
 /**
- * 每日雷达扫描主函数 v4.1
- * 统一发布管道: 候选池 → 合并 → 质检 → 发布 → 剩余储备
+ * 每日雷达扫描主函数 v5.1
+ * 双池架构: 
+ *   Phase 1: 多源采集 → leads_pool (候选池)
+ *   Phase 2: AI 分析 + 深挖 → content_reservoir (储备池)
+ *   Phase 3: 配额发布 → radar_items
  * @param {string} date - YYYY-MM-DD 格式日期
  * @returns {Object} 扫描结果
  */
@@ -96,68 +99,118 @@ async function dailyScan(date) {
         timeZone: 'Asia/Shanghai'
     });
 
-    console.log(`\n🛰️ ========== 每日雷达扫描 ${beijingDate} (v4.1 统一管道) ==========\n`);
+    console.log(`\n🛰️ ========== 每日雷达扫描 ${beijingDate} (v5.1 双池架构) ==========\n`);
 
-    // 1. 获取当前配额状态
+    // 获取当前配额状态
     const gap = await multiSourceGenerator.getContentGap(beijingDate);
     console.log(`📊 当前配额: ${gap.currentCount}/${gap.minItems} (缺 ${gap.gap})`);
-    console.log(`   缺失频段: ${gap.stats.frequency.missing.join(', ') || '无'}`);
 
     const result = {
         date: beijingDate,
         startTime: new Date().toISOString(),
-        pipeline: { rssCandidates: 0, reservoirCandidates: 0, merged: 0, published: 0, toReservoir: 0 },
-        youtube: { suggestion: null },
+        leadsCollected: { google: 0, rss: 0, total: 0 },
+        leadsProcessed: { enriched: 0, toReservoir: 0, failed: 0 },
+        published: 0,
         quotaBefore: gap.currentCount,
-        quotaAfter: gap.currentCount,
-        missingFreqs: gap.stats.frequency.missing
+        quotaAfter: gap.currentCount
     };
 
-    // ==========================================
-    // Phase 1: 收集候选 (不直接发布)
-    // ==========================================
-    console.log(`\n📰 Phase 1: RSS 扫描 → 候选池`);
-    const rssCandidates = await collectRSSCandidates(beijingDate);
-    result.pipeline.rssCandidates = rssCandidates.length;
-    console.log(`   RSS 候选: ${rssCandidates.length} 条`);
+    const leadsManager = require('./leads-manager');
+    const leaderHotspotScanner = require('./leader-hotspot-scanner');
 
     // ==========================================
-    // Phase 2: 从储备库获取候选
+    // Phase 1: 多源采集 → 候选池 (leads_pool)
     // ==========================================
-    console.log(`\n📦 Phase 2: 储备库 → 候选池`);
-    await contentReservoir.purgeExpired();
-    const reservoirCandidates = await contentReservoir.getCandidates(gap.gap + 5);
-    result.pipeline.reservoirCandidates = reservoirCandidates.length;
-    console.log(`   储备候选: ${reservoirCandidates.length} 条`);
+    console.log(`\n📥 Phase 1: 多源采集 → 候选池`);
+
+    // 1a. Google News - 全部领袖
+    console.log(`   🔥 Google News 扫描...`);
+    const config = await loadConfig();
+    const googleLeads = await leaderHotspotScanner.scanLeaderHotTopics(config.leaders, {
+        maxArticlesPerLeader: 3,
+        hoursBack: 24
+    });
+    result.leadsCollected.google = googleLeads.length;
+
+    // 1b. RSS 扫描
+    console.log(`   📰 RSS 扫描...`);
+    const rssLeads = await collectRSSLeads(beijingDate);
+    result.leadsCollected.rss = rssLeads.length;
+
+    // 1c. 插入候选池
+    const allLeads = [...googleLeads, ...rssLeads];
+    result.leadsCollected.total = allLeads.length;
+    await leadsManager.insertLeads(allLeads);
 
     // ==========================================
-    // Phase 3: 合并 + 排序
+    // Phase 2: AI 分析 + 深挖 → 储备池
     // ==========================================
-    console.log(`\n🔀 Phase 3: 合并候选池 + 优先级排序`);
-    const allCandidates = [...rssCandidates, ...reservoirCandidates]
-        .sort((a, b) => a.priority - b.priority);
-    result.pipeline.merged = allCandidates.length;
-    console.log(`   合并总数: ${allCandidates.length} 条`);
+    console.log(`\n🔬 Phase 2: Lead 处理 → 储备池`);
+    await leadsManager.purgeOldLeads();
+
+    const pendingLeads = await leadsManager.getPendingLeads(30);
+    console.log(`   待处理 leads: ${pendingLeads.length} 条`);
+
+    for (const lead of pendingLeads) {
+        try {
+            // 深挖补全内容
+            let enrichedContent = lead.snippet;
+            if (leadsManager.needsEnrichment(lead)) {
+                const enriched = await leadsManager.enrichLead(lead);
+                if (enriched) {
+                    enrichedContent = enriched.content;
+                    result.leadsProcessed.enriched++;
+                }
+            }
+
+            // AI 分析生成内容
+            const analyzed = await aiAnalyzer.analyzeRSSArticle({
+                title: lead.title,
+                content: enrichedContent || lead.snippet,
+                source: lead.source_name,
+                url: lead.source_url,
+                targetFreq: lead.raw_data?.leader?.domain ? `${lead.raw_data.leader.domain}1` : 'T1'
+            });
+
+            if (analyzed && analyzed.content && analyzed.content.length >= 400) {
+                // 合格 → 储备池
+                await contentReservoir.addToReservoir(analyzed, {
+                    contentType: lead.source_type,
+                    sourceUrl: lead.source_url,
+                    sourceName: lead.leader_name || lead.source_name
+                });
+                await leadsManager.updateLeadStatus(lead.id, 'enriched', enrichedContent);
+                result.leadsProcessed.toReservoir++;
+            } else {
+                await leadsManager.updateLeadStatus(lead.id, 'failed');
+                result.leadsProcessed.failed++;
+            }
+        } catch (error) {
+            console.log(`   ❌ Lead ${lead.id}: ${error.message}`);
+            await leadsManager.updateLeadStatus(lead.id, 'failed');
+            result.leadsProcessed.failed++;
+        }
+    }
+
+    console.log(`   ✅ 储备池: +${result.leadsProcessed.toReservoir}, ❌ 失败: ${result.leadsProcessed.failed}`);
 
     // ==========================================
-    // Phase 4: 统一质检 + 发布 (单一通道)
+    // Phase 3: 储备池 → 发布
     // ==========================================
-    console.log(`\n✅ Phase 4: 统一质检 → 发布`);
-    const publishResult = await publishCandidates(beijingDate, allCandidates, gap);
-    result.pipeline.published = publishResult.published;
-    result.pipeline.toReservoir = publishResult.toReservoir;
-    console.log(`   发布: ${publishResult.published}, 存储备: ${publishResult.toReservoir}`);
+    console.log(`\n📤 Phase 3: 储备池 → 发布`);
+    const currentGap = await multiSourceGenerator.getContentGap(beijingDate);
 
-    // ==========================================
-    // Phase 5: YouTube 建议
-    // ==========================================
-    const midGap = await multiSourceGenerator.getContentGap(beijingDate);
-    if (midGap.stats.video.gap > 0) {
-        result.youtube.suggestion = '调用 /api/automation/scan-channels 进行视频扫描';
+    if (currentGap.needsMore) {
+        await contentReservoir.purgeExpired();
+        const publishResult = await contentReservoir.publishFromReservoir(beijingDate, currentGap.gap + 3);
+        result.published = publishResult.published;
+        console.log(`   发布: ${publishResult.published} 条`);
+    } else {
+        console.log(`   配额已满，无需发布`);
     }
 
     // ==========================================
-    // Phase 6: 最终配额状态
+    // 最终状态
     // ==========================================
     const finalGap = await multiSourceGenerator.getContentGap(beijingDate);
     result.quotaAfter = finalGap.currentCount;
@@ -168,6 +221,40 @@ async function dailyScan(date) {
     console.log(`   配额状态: ${result.quotaPassed ? '✅ 达标' : '⚠️ 未达标'}`);
 
     return result;
+}
+
+/**
+ * 收集 RSS leads (不直接分析)
+ */
+async function collectRSSLeads(date) {
+    const config = await loadConfig();
+    const leads = [];
+
+    // 从 tiered-rss-fetcher 获取所有 feeds
+    const allFeeds = tieredRSSFetcher.getAllFeeds().slice(0, 20);
+
+    for (const feed of allFeeds) {
+        try {
+            const items = await tieredRSSFetcher.fetchSingleFeed(feed, 5);
+
+            for (const item of items) {
+                leads.push({
+                    sourceType: 'rss',
+                    sourceUrl: item.link,
+                    sourceName: feed.name,
+                    title: item.title,
+                    snippet: item.content || '',
+                    rawData: { source: feed, pubDate: item.pubDate }
+                });
+            }
+        } catch (error) {
+            // 静默失败
+        }
+    }
+
+
+    console.log(`   RSS leads: ${leads.length} 条`);
+    return leads;
 }
 
 /**

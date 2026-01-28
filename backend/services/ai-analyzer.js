@@ -576,9 +576,145 @@ const createDraftFromVideo = async (videoId, sourceId) => {
     }
 };
 
+/**
+ * 分析 RSS 文章内容
+ * @param {Object} article - 文章对象
+ * @returns {Promise<Object>} 分析结果
+ */
+async function analyzeRSSArticle(article) {
+    const { title, content, source, url, targetFreq = 'T1' } = article;
+
+    try {
+        const response = await withRetry(
+            async () => {
+                return await withTimeout(
+                    anthropic.messages.create({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 2000,
+                        messages: [{
+                            role: 'user',
+                            content: `你是"思想雷达"的内容分析师。分析以下文章，生成符合要求的中文内容条目。
+
+**文章标题**: ${title}
+**来源**: ${source}
+**原文URL**: ${url}
+**目标频段**: ${targetFreq}
+
+**文章内容**:
+${content?.substring(0, 8000) || '(无正文)'}
+
+**输出要求** (JSON格式):
+{
+    "title": "中文标题 (20-40字，体现核心张力)",
+    "content": "中文正文 (500-800字，深度分析，避免泛泛而谈)",
+    "tension_question": "核心张力问题 (一句话)",
+    "tension_a": "立场A (3-5字)",
+    "tension_b": "立场B (3-5字)",
+    "tti": 思想张力指数(50-100),
+    "freq": "${targetFreq}",
+    "author_name": "${source}"
+}
+
+**注意**:
+1. 内容必须深度分析，不要简单总结
+2. 张力问题必须是开放性辩论话题
+3. TTI >= 70 表示高质量内容
+4. 只输出JSON，不要其他文字`
+                        }]
+                    }),
+                    TIMEOUTS.AI_ANALYSIS
+                );
+            },
+            RETRY_CONFIGS.API_CALL
+        );
+
+        const text = response.content[0]?.text || '';
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+
+        if (!jsonMatch) {
+            console.log('   ⚠️ 无法解析 AI 响应');
+            return null;
+        }
+
+        const result = JSON.parse(jsonMatch[0]);
+        return result;
+    } catch (error) {
+        console.error('   ❌ RSS 分析失败:', error.message);
+        return null;
+    }
+}
+
+/**
+ * 分析新闻文章 (Google News 热点)
+ * @param {Object} article - 新闻对象
+ * @returns {Promise<Object>} 分析结果
+ */
+async function analyzeNewsArticle(article) {
+    const { title, content, source, url, leader, targetFreq = 'T1' } = article;
+
+    try {
+        const response = await withRetry(
+            async () => {
+                return await withTimeout(
+                    anthropic.messages.create({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 2000,
+                        messages: [{
+                            role: 'user',
+                            content: `你是"思想雷达"的热点分析师。分析以下关于 **${leader}** 的新闻热点。
+
+**新闻标题**: ${title}
+**来源**: ${source}
+**关注人物**: ${leader}
+**目标频段**: ${targetFreq}
+
+**新闻摘要**:
+${content?.substring(0, 4000) || title}
+
+**输出要求** (JSON格式):
+{
+    "title": "中文标题 (包含${leader}的核心观点/行动)",
+    "content": "中文正文 (400-600字，分析此热点的思想意义)",
+    "tension_question": "此热点引发的核心辩论问题",
+    "tension_a": "立场A (3-5字)",
+    "tension_b": "立场B (3-5字)",
+    "tti": 思想张力指数(60-100),
+    "freq": "${targetFreq}",
+    "author_name": "${leader}"
+}
+
+**注意**:
+1. 突出新闻的思想性意义
+2. 关联 ${leader} 的一贯观点
+3. 只输出JSON`
+                        }]
+                    }),
+                    TIMEOUTS.AI_ANALYSIS
+                );
+            },
+            RETRY_CONFIGS.API_CALL
+        );
+
+        const text = response.content[0]?.text || '';
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+
+        if (!jsonMatch) {
+            console.log('   ⚠️ 无法解析热点分析响应');
+            return null;
+        }
+
+        return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+        console.error('   ❌ 热点分析失败:', error.message);
+        return null;
+    }
+}
+
 module.exports = {
     analyzeTranscript,
     analyzeMetadata,
+    analyzeRSSArticle,
+    analyzeNewsArticle,
     generateRadarItem,
     generateAvatar,
     createDraftFromVideo,

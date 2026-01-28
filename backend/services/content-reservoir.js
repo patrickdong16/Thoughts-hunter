@@ -22,24 +22,26 @@ async function addToReservoir(content, options = {}) {
         freq = content.freq || 'T1',
         priority = calculatePriority(content, freq),
         sourceUrl = content.source_url,
-        sourceName = content.source_name || content.author_name
+        sourceName = content.source_name || content.author_name,
+        contentType = 'rss'  // 'rss' | 'video' | 'google'
     } = options;
 
     try {
         const { rows } = await pool.query(`
             INSERT INTO content_reservoir 
-                (content, freq, priority, source_url, source_name)
-            VALUES ($1, $2, $3, $4, $5)
+                (content, freq, priority, source_url, source_name, content_type)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING id
         `, [
             JSON.stringify(content),
             freq,
             priority,
             sourceUrl,
-            sourceName
+            sourceName,
+            contentType
         ]);
 
-        console.log(`📦 储备: ${content.title?.substring(0, 30)}... → 优先级 ${priority}`);
+        console.log(`📦 储备 [${contentType}]: ${content.title?.substring(0, 30)}... → 优先级 ${priority}`);
         return { success: true, id: rows[0].id, priority };
     } catch (error) {
         console.error('❌ 储备失败:', error.message);
