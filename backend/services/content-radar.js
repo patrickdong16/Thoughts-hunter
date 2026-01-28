@@ -25,11 +25,11 @@ const aiAnalyzer = require('./ai-analyzer');
 
 /**
  * 从 CONTENT_SOURCES.json 加载完整配置
+ * 使用 require 确保在所有环境下路径正确解析
  */
 function loadConfig() {
-    const configPath = path.resolve(__dirname, '../../CONTENT_SOURCES.json');
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    return config;
+    // require 比 fs.readFileSync 更可靠，能正确处理相对路径
+    return require('../../CONTENT_SOURCES.json');
 }
 
 /**

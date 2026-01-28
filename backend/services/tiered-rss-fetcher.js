@@ -18,10 +18,9 @@ const parser = new Parser({
     }
 });
 
-// 加载配置
+// 加载配置 - 使用 require 确保路径正确
 function loadRSSConfig() {
-    const configPath = path.resolve(__dirname, '../../CONTENT_SOURCES.json');
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const config = require('../../CONTENT_SOURCES.json');
     return config.rssFeeds || {};
 }
 
