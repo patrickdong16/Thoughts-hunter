@@ -16,6 +16,7 @@ const path = require('path');
 const tieredRSSFetcher = require('./tiered-rss-fetcher');
 const leaderContentFetcher = require('./leader-content-fetcher');
 const multiSourceGenerator = require('./multi-source-generator');
+const contentReservoir = require('./content-reservoir');
 const pool = require('../config/database');
 const aiAnalyzer = require('./ai-analyzer');
 
@@ -111,14 +112,11 @@ async function dailyScan(date) {
         missingFreqs: gap.stats.frequency.missing
     };
 
-    // 2. RSS 优先扫描 (非视频内容)
-    if (gap.stats.nonVideo.gap > 0 || gap.stats.frequency.gap > 0) {
-        console.log(`\n📰 Phase 1: RSS 扫描 (非视频优先)`);
-        const rssResult = await scanRSSFeeds(beijingDate, gap);
-        result.rss = rssResult;
-    } else {
-        console.log(`\n✅ 非视频内容已达标，跳过 RSS 扫描`);
-    }
+    // 2. RSS 全量扫描 (配额检查后置)
+    // v4.0: 始终扫描所有 RSS 源，分析后再决定发布/储备
+    console.log(`\n📰 Phase 1: RSS 全量扫描 (配额检查后置)`);
+    const rssResult = await scanRSSFeeds(beijingDate, gap, { unlimited: true });
+    result.rss = rssResult;
 
     // 3. 刷新配额状态
     const midGap = await multiSourceGenerator.getContentGap(beijingDate);
@@ -146,28 +144,31 @@ async function dailyScan(date) {
 }
 
 /**
- * 扫描 RSS 订阅源
+ * 扫描 RSS 订阅源 (v4.0 全量扫描)
  * @param {string} date - 目标日期
  * @param {Object} gap - 配额缺口信息
+ * @param {Object} options - 扫描选项
  */
-async function scanRSSFeeds(date, gap) {
-    const result = { scanned: 0, articles: 0, inserted: 0, sources: [] };
+async function scanRSSFeeds(date, gap, options = {}) {
+    const result = { scanned: 0, articles: 0, inserted: 0, reserved: 0, sources: [] };
 
-    // 获取缺失的频段前缀
-    const missingDomains = [...new Set(gap.stats.frequency.missing.map(f => f[0]))];
-    console.log(`   目标频段: ${missingDomains.join(', ') || '全部'}`);
+    // v4.0: 全量扫描所有源，不再限制
+    console.log(`   扫描所有 RSS 源 (全量模式)`);
 
-    // 使用 tiered-rss-fetcher 按优先级抓取
-    const fetchResult = await tieredRSSFetcher.fetchByMissingFreqs(gap.stats.frequency.missing);
+    // 使用 tiered-rss-fetcher 抓取所有源
+    const fetchResult = await tieredRSSFetcher.fetchByMissingFreqs(
+        options.unlimited ? [] : gap.stats.frequency.missing
+    );
     result.scanned = fetchResult.feedsScanned;
     result.articles = fetchResult.articles.length;
 
     console.log(`   扫描 ${result.scanned} 个源，获取 ${result.articles} 篇文章`);
 
-    // 处理文章 (AI 分析 + 入库)
+    // 处理文章 (AI 分析 + 入库/储备)
     if (fetchResult.articles.length > 0) {
-        const insertResult = await processRSSArticles(fetchResult.articles, date, gap);
+        const insertResult = await processRSSArticles(fetchResult.articles, date, gap, options);
         result.inserted = insertResult.inserted;
+        result.reserved = insertResult.reserved;
         result.sources = insertResult.sources;
     }
 
@@ -175,43 +176,43 @@ async function scanRSSFeeds(date, gap) {
 }
 
 /**
- * 处理 RSS 文章 (AI 分析 + 入库)
+ * 处理 RSS 文章 (v4.0 全量处理 + 储备)
  * @param {Array} articles - 文章列表
  * @param {string} date - 目标日期
  * @param {Object} gap - 配额缺口
+ * @param {Object} options - 处理选项
  */
-async function processRSSArticles(articles, date, gap) {
-    const result = { inserted: 0, sources: [] };
+async function processRSSArticles(articles, date, gap, options = {}) {
+    const result = { inserted: 0, reserved: 0, sources: [] };
     const usedFreqs = new Set(gap.usedFreqs);
+    const maxItems = gap.maxItems || 10;
+    let currentCount = gap.currentCount;
 
-    // 按优先级处理文章
-    for (const article of articles.slice(0, gap.gap + 2)) {
+    // v4.0: 处理所有文章，不再限制数量
+    const maxToProcess = options.unlimited ? articles.length : Math.min(articles.length, gap.gap + 5);
+    console.log(`   处理 ${maxToProcess} 篇文章 (全量模式: ${options.unlimited})`);
+
+    for (const article of articles.slice(0, maxToProcess)) {
         // 跳过已处理的 URL
         const exists = await checkUrlExists(article.link);
         if (exists) {
-            console.log(`   ⏭️ 跳过已存在: ${article.title?.substring(0, 30)}...`);
+            continue; // 静默跳过
+        }
+
+        // 检查是否已在储备库
+        const inReservoir = await contentReservoir.isUrlInReservoir(article.link);
+        if (inReservoir) {
             continue;
         }
 
-        // 确定频段 (基于源的 domains)
-        const availableDomains = article.source.domains.filter(d => {
-            const freqs = [`${d}1`, `${d}2`, `${d}3`];
-            return freqs.some(f => !usedFreqs.has(f));
-        });
-
-        if (availableDomains.length === 0) {
-            console.log(`   ⏭️ 无可用频段: ${article.title?.substring(0, 30)}...`);
-            continue;
-        }
-
-        // 选择一个可用频段
-        const domain = availableDomains[0];
-        const availableFreqs = [`${domain}1`, `${domain}2`, `${domain}3`]
-            .filter(f => !usedFreqs.has(f));
-        const targetFreq = availableFreqs[0];
+        // 确定目标频段 (基于源的 domains)
+        const domain = article.source.domains?.[0] || 'T';
+        const potentialFreqs = [`${domain}1`, `${domain}2`, `${domain}3`];
+        const availableFreq = potentialFreqs.find(f => !usedFreqs.has(f));
+        const targetFreq = availableFreq || potentialFreqs[0];
 
         try {
-            console.log(`   🔍 分析: ${article.title?.substring(0, 40)}... → ${targetFreq}`);
+            console.log(`   🔍 分析: ${article.title?.substring(0, 40)}...`);
 
             // AI 分析
             const analyzed = await aiAnalyzer.analyzeRSSArticle({
@@ -222,12 +223,21 @@ async function processRSSArticles(articles, date, gap) {
                 targetFreq
             });
 
-            if (analyzed && analyzed.content && analyzed.content.length >= 500) {
-                // 入库
+            if (!analyzed || !analyzed.content || analyzed.content.length < 500) {
+                console.log(`   ⚠️ 内容不符合要求`);
+                continue;
+            }
+
+            // v4.0 配额检查后置: 决定发布还是储备
+            const canPublish = currentCount < maxItems &&
+                !usedFreqs.has(targetFreq);
+
+            if (canPublish) {
+                // 直接发布
                 await pool.query(`
                     INSERT INTO radar_items (date, freq, title, content, tension_question, 
-                        tension_a, tension_b, source_url, speaker, created_at)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+                        tension_a, tension_b, source_url, speaker, tti, created_at)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
                 `, [
                     date,
                     targetFreq,
@@ -237,29 +247,41 @@ async function processRSSArticles(articles, date, gap) {
                     analyzed.tension_a || '',
                     analyzed.tension_b || '',
                     article.link,
-                    article.source.name_cn || article.source.name
+                    article.source.name_cn || article.source.name,
+                    analyzed.tti || 50
                 ]);
 
                 usedFreqs.add(targetFreq);
+                currentCount++;
                 result.inserted++;
                 result.sources.push(article.source.name);
-                console.log(`   ✅ 入库成功: ${targetFreq}`);
+                console.log(`   ✅ 发布: ${targetFreq}`);
             } else {
-                console.log(`   ⚠️ 内容不符合要求 (长度: ${analyzed?.content?.length || 0})`);
+                // 存入储备库
+                const reserveResult = await contentReservoir.addToReservoir({
+                    ...analyzed,
+                    source_url: article.link,
+                    source_name: article.source.name_cn || article.source.name
+                }, {
+                    freq: targetFreq,
+                    sourceUrl: article.link,
+                    sourceName: article.source.name_cn || article.source.name
+                });
+
+                if (reserveResult.success) {
+                    result.reserved++;
+                    console.log(`   📦 储备: ${targetFreq} (优先级 ${reserveResult.priority})`);
+                }
             }
         } catch (error) {
             console.log(`   ❌ 处理失败: ${error.message}`);
         }
-
-        // 检查是否已达标
-        if (result.inserted >= gap.gap) {
-            console.log(`   🎯 已填补缺口，停止处理`);
-            break;
-        }
     }
 
+    console.log(`   📊 结果: 发布 ${result.inserted}, 储备 ${result.reserved}`);
     return result;
 }
+
 
 /**
  * 检查 URL 是否已存在

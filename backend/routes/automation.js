@@ -2119,6 +2119,69 @@ router.get('/leaders-with-rss', async (req, res) => {
     }
 });
 
+// ============================================
+// 内容储备库 API (v4.0)
+// ============================================
+
+const contentReservoir = require('../services/content-reservoir');
+
+/**
+ * POST /api/automation/publish-reservoir
+ * 从储备库发布内容到指定日期
+ */
+router.post('/publish-reservoir', async (req, res) => {
+    try {
+        const { date } = req.body;
+        const beijingDate = date || new Date().toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Shanghai'
+        });
+
+        console.log(`📦 从储备库发布内容到 ${beijingDate}...`);
+
+        // 先清理过期内容
+        await contentReservoir.purgeExpired();
+
+        // 获取配额缺口
+        const gap = await multiSourceGenerator.getContentGap(beijingDate);
+
+        if (gap.gap <= 0) {
+            return res.json({
+                success: true,
+                message: '配额已满，无需从储备补充',
+                date: beijingDate,
+                published: 0
+            });
+        }
+
+        // 从储备发布
+        const result = await contentReservoir.publishFromReservoir(beijingDate, gap);
+
+        res.json({
+            success: true,
+            date: beijingDate,
+            published: result.published,
+            items: result.items,
+            remaining: await contentReservoir.getReservoirStats()
+        });
+    } catch (error) {
+        console.error('❌ 储备发布失败:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/automation/reservoir-stats
+ * 获取储备库统计信息
+ */
+router.get('/reservoir-stats', async (req, res) => {
+    try {
+        const stats = await contentReservoir.getReservoirStats();
+        res.json({ success: true, ...stats });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
 
 
