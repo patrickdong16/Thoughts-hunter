@@ -394,7 +394,7 @@ async function publishCandidates(date, candidates, gap) {
                 content.tension_b || '',
                 candidate.sourceUrl,
                 candidate.sourceName,
-                content.tti || 50
+                (Number.isFinite(Number(content.tti)) ? Number(content.tti) : 50)
             ]);
 
             // 如果来自储备库，标记为已发布

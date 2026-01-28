@@ -164,7 +164,7 @@ async function publishFromReservoir(date, gap) {
                 content.tension_b || '',
                 content.source_url,
                 content.author_name || content.speaker,
-                content.tti || 50
+                (Number.isFinite(Number(content.tti)) ? Number(content.tti) : 50)
             ]);
 
             // 更新储备状态
