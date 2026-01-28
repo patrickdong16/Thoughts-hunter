@@ -90,6 +90,16 @@
 | 内容类型 | **不限** |
 | 频段覆盖 | **尽量涉猎** |
 
+### 🆕 推荐：统一扫描入口 (v3.0)
+```bash
+# 一键扫描：RSS 优先 + 频段平衡 + 配额检查
+curl -X POST https://thoughts-radar-backend-production.up.railway.app/api/automation/daily-radar
+```
+
+配置驱动：`CONTENT_SOURCES.json` 包含 35 个 RSS 源（Tier 1-3），修改即自动生效。
+
+---
+
 ### 步骤 1：P0 - 思想领袖 RSS/博客采集
 ```bash
 # 扫描跟踪名单内人物的最新发布
