@@ -190,6 +190,28 @@
                 "priority": 1,
                 "scanFrequency": "daily",
                 "description": "年度10 Best+日常书评"
+            },
+            {
+                "name": "Grumpy Economist",
+                "name_cn": "暴躁经济学家",
+                "url": "https://johnhcochrane.substack.com/feed",
+                "domains": [
+                    "F"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "John Cochrane - 胡佛研究所货币/金融政策"
+            },
+            {
+                "name": "Matt Levine - Money Stuff",
+                "name_cn": "金融趣闻",
+                "url": "https://www.bloomberg.com/opinion/authors/ARbTQlRLRjE/matthew-s-levine.rss",
+                "domains": [
+                    "F"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "华尔街+金融科技最佳专栏"
             }
         ],
         "tier2_religion": [
@@ -204,6 +226,42 @@
                 "priority": 2,
                 "scanFrequency": "daily",
                 "description": "宗教+自然法+生命伦理"
+            },
+            {
+                "name": "First Things",
+                "name_cn": "首要之事",
+                "url": "https://www.firstthings.com/rss",
+                "domains": [
+                    "R",
+                    "Φ"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "宗教与公共生活评论 (天主教/犹太教/新教)"
+            },
+            {
+                "name": "After Babel",
+                "name_cn": "巴别塔之后",
+                "url": "https://www.afterbabel.com/feed",
+                "domains": [
+                    "R",
+                    "Φ"
+                ],
+                "priority": 1,
+                "scanFrequency": "daily",
+                "description": "Jonathan Haidt - 道德心理学/社交媒体危机"
+            },
+            {
+                "name": "Ross Douthat",
+                "name_cn": "Ross Douthat",
+                "url": "https://rossdouthat.substack.com/feed",
+                "domains": [
+                    "R",
+                    "P"
+                ],
+                "priority": 2,
+                "scanFrequency": "weekly",
+                "description": "NYT宗教专栏作家 保守主义基督教视角"
             }
         ],
         "tier2_culture": [
