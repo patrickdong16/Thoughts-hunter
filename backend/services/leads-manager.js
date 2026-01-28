@@ -29,11 +29,11 @@ async function insertLeads(leads) {
 
     for (const lead of leads) {
         try {
+            // 简单插入，依赖 UNIQUE INDEX 自动去重
             await pool.query(`
                 INSERT INTO leads_pool 
                     (source_type, source_url, source_name, title, snippet, leader_name, raw_data)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
-                ON CONFLICT ON CONSTRAINT idx_leads_url_daily DO NOTHING
             `, [
                 lead.sourceType,
                 lead.sourceUrl,
@@ -45,10 +45,13 @@ async function insertLeads(leads) {
             ]);
             inserted++;
         } catch (error) {
-            if (error.code !== '23505') { // 非重复错误
+            // 23505 = unique_violation (重复)
+            if (error.code === '23505') {
+                skipped++;
+            } else {
                 console.log(`   ⚠️ Lead 插入失败: ${error.message}`);
+                skipped++;
             }
-            skipped++;
         }
     }
 
