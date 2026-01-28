@@ -9,6 +9,7 @@ const Parser = require('rss-parser');
 const pool = require('../config/database');
 const { getRulesForDate } = require('../config/day-rules');
 const aiAnalyzer = require('./ai-analyzer');
+const multiSourceGenerator = require('./multi-source-generator');
 
 const parser = new Parser({
     timeout: 15000,
@@ -290,12 +291,34 @@ async function generateFallbackContent(date) {
         }
     }
 
-    return {
+    // 配额验证：检查是否达标
+    const gapResult = await multiSourceGenerator.getContentGap(beijingDate);
+
+    const response = {
         success: true,
         message: `Fallback 完成: 插入 ${results.inserted} 条`,
         date: beijingDate,
-        results
+        results,
+        quotaPassed: !gapResult.needsMore,
+        quotaStatus: null,
+        searchQueries: []
     };
+
+    // 如果配额未满，返回搜索建议
+    if (gapResult.needsMore) {
+        response.quotaStatus = {
+            current: gapResult.currentCount,
+            target: gapResult.minItems,
+            gap: gapResult.gap,
+            missingFreqs: gapResult.stats.frequency.missing
+        };
+        response.searchQueries = multiSourceGenerator.generateWebSearchQueries(gapResult);
+        response.warning = `配额未满: ${gapResult.currentCount}/${gapResult.minItems}, 缺${gapResult.stats.frequency.missing.join(',')}频段`;
+        console.log(`⚠️ ${response.warning}`);
+        console.log(`🔍 建议搜索: ${response.searchQueries.length} 条查询`);
+    }
+
+    return response;
 }
 
 module.exports = {
