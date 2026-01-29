@@ -117,15 +117,16 @@ async function publishFromReservoir(date, gap) {
 
     const usedFreqs = new Set(gap.usedFreqs || []);
 
-    // 获取今天已发布的 URL 和频段，避免重复发布
+    // 获取今天已发布的 URL、频段和作者，避免重复发布
     const { rows: existingItems } = await pool.query(`
-        SELECT source_url, freq FROM radar_items 
+        SELECT source_url, freq, author_name FROM radar_items 
         WHERE date = $1
     `, [date]);
     const publishedUrls = new Set(existingItems.filter(r => r.source_url).map(r => r.source_url));
+    const publishedAuthors = new Set(existingItems.filter(r => r.author_name).map(r => r.author_name));
     // 将已发布的频段也加入 usedFreqs（强制 maxPerFreq: 1）
     existingItems.forEach(r => { if (r.freq) usedFreqs.add(r.freq); });
-    console.log(`   已发布: ${existingItems.length} 条, 频段: ${usedFreqs.size}, URL: ${publishedUrls.size}`);
+    console.log(`   已发布: ${existingItems.length} 条, 频段: ${usedFreqs.size}, URL: ${publishedUrls.size}, 作者: ${publishedAuthors.size}`);
 
     for (const item of reservoirItems) {
         // 检查频段是否可用
@@ -139,13 +140,20 @@ async function publishFromReservoir(date, gap) {
 
         // 检查 URL 是否已发布（去重）
         if (content.source_url && publishedUrls.has(content.source_url)) {
-            console.log(`   ⏭️ 跳过重复: ${content.title?.substring(0, 30)}...`);
+            console.log(`   ⏭️ 跳过重复 URL: ${content.title?.substring(0, 30)}...`);
             // 标记为已发布（避免重复处理）
             await pool.query(`
                 UPDATE content_reservoir
                 SET status = 'published', published_date = $1, published_at = NOW()
                 WHERE id = $2
             `, [date, item.id]);
+            continue;
+        }
+
+        // 检查作者是否已发布（同一天同作者去重）
+        const authorName = content.author_name || content.speaker;
+        if (authorName && publishedAuthors.has(authorName)) {
+            console.log(`   ⏭️ 跳过重复作者: ${authorName} - ${content.title?.substring(0, 25)}...`);
             continue;
         }
 
@@ -180,6 +188,8 @@ async function publishFromReservoir(date, gap) {
 
             usedFreqs.add(item.freq);
             if (content.source_url) publishedUrls.add(content.source_url);
+            const authorName = content.author_name || content.speaker;
+            if (authorName) publishedAuthors.add(authorName);
             result.published++;
             result.items.push({ id: item.id, freq: item.freq, title: content.title?.substring(0, 30) });
             console.log(`✅ 发布储备: ${content.title?.substring(0, 30)}... → ${item.freq}`);

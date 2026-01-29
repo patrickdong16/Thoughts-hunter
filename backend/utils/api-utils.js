@@ -185,6 +185,7 @@ const safeAsync = (fn, context = 'unknown') => {
 // 常用超时配置
 const TIMEOUTS = {
     CLAUDE_API: 120000,     // Claude API 120秒（长视频分析需要更长时间）
+    AI_ANALYSIS: 120000,    // AI 分析 120秒（与 CLAUDE_API 相同）
     YOUTUBE_API: 30000,     // YouTube API 30秒
     PUSH_NOTIFICATION: 30000, // 推送通知 30秒
     EMAIL: 30000,           // 邮件发送 30秒
@@ -195,6 +196,7 @@ const TIMEOUTS = {
 // 常用重试配置
 const RETRY_CONFIGS = {
     CLAUDE_API: { maxRetries: 3, delay: 3000, backoff: 2 },  // 增加重试次数和延迟
+    API_CALL: { maxRetries: 3, delay: 3000, backoff: 2 },    // 通用 API 调用重试
     YOUTUBE_API: { maxRetries: 3, delay: 1000, backoff: 2 },
     PUSH_NOTIFICATION: { maxRetries: 2, delay: 1000, backoff: 2 },
     EMAIL: { maxRetries: 2, delay: 2000, backoff: 2 },

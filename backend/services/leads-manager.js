@@ -9,6 +9,7 @@ const pool = require('../config/database');
 const Parser = require('rss-parser');
 const { JSDOM } = require('jsdom');
 const { Readability } = require('@mozilla/readability');
+const { decodeGoogleNewsUrl, isGoogleNewsUrl } = require('../utils/google-news-decoder');
 
 const parser = new Parser({
     timeout: 15000,
@@ -113,9 +114,9 @@ function needsEnrichment(lead) {
  * 判断 lead 是否可以直接用于 AI 分析（内容足够丰富）
  */
 function isReadyForAnalysis(lead) {
-    // Google News 摘要太短，暂时无法分析
+    // Google News leads: URL 解码器已实现，可以通过深挖获取内容
     if (lead.source_type === 'google') {
-        return false; // 暂时跳过，等待 URL 解码器实现
+        return true; // 允许进入处理流程（会先解码 URL 再深挖内容）
     }
 
     // RSS 有足够内容才能分析
@@ -124,65 +125,26 @@ function isReadyForAnalysis(lead) {
 
 /**
  * 解码 Google News RSS 文章 URL
- * Google News RSS 返回的是加密的重定向链接，需要解码获取真实 URL
+ * 使用 Google batchexecute API 解码加密的重定向链接
  * @param {string} googleUrl - Google News RSS article URL
  * @returns {string} 真实文章 URL
  */
 async function resolveGoogleNewsUrl(googleUrl) {
-    if (!googleUrl.includes('news.google.com/rss/articles/')) {
+    if (!isGoogleNewsUrl(googleUrl)) {
         return googleUrl; // 不是 Google News URL，直接返回
     }
 
     try {
-        // 方法1: 尝试从 URL 中提取 base64 编码的真实 URL
-        const urlMatch = googleUrl.match(/articles\/([^?]+)/);
-        if (urlMatch) {
-            const encoded = urlMatch[1];
-            // Google News 使用多层编码，尝试解码
-            try {
-                // 尝试 base64 解码
-                const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
-                // 在解码内容中查找 http URL
-                const urlInDecoded = decoded.match(/https?:\/\/[^\s"<>]+/);
-                if (urlInDecoded) {
-                    console.log(`      🔗 解码成功: ${urlInDecoded[0].substring(0, 50)}...`);
-                    return urlInDecoded[0];
-                }
-            } catch (e) {
-                // base64 解码失败，继续尝试方法2
-            }
+        console.log(`      🔗 解码 Google News URL...`);
+        const result = await decodeGoogleNewsUrl(googleUrl, { timeout: 30000 });
+
+        if (result.status && result.decodedUrl) {
+            console.log(`      ✅ 解码成功: ${result.decodedUrl.substring(0, 60)}...`);
+            return result.decodedUrl;
         }
 
-        // 方法2: 通过 HTTP 跟踪重定向获取真实 URL
-        console.log(`      🔗 跟踪重定向...`);
-        const response = await fetch(googleUrl, {
-            method: 'HEAD',
-            redirect: 'follow',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-            }
-        });
-
-        if (response.url && response.url !== googleUrl) {
-            console.log(`      🔗 重定向到: ${response.url.substring(0, 50)}...`);
-            return response.url;
-        }
-
-        // 方法3: GET 请求并检查最终 URL
-        const getResponse = await fetch(googleUrl, {
-            redirect: 'follow',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                'Accept': 'text/html'
-            }
-        });
-
-        if (getResponse.url && getResponse.url !== googleUrl) {
-            console.log(`      🔗 最终URL: ${getResponse.url.substring(0, 50)}...`);
-            return getResponse.url;
-        }
-
-        return googleUrl; // 无法解析，返回原 URL
+        console.log(`      ⚠️ 解码失败: ${result.message}`);
+        return googleUrl; // 解码失败，返回原 URL
     } catch (error) {
         console.log(`      ⚠️ URL解析失败: ${error.message}`);
         return googleUrl; // 出错时返回原 URL

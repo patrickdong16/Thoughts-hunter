@@ -5,6 +5,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const pool = require('../config/database');
 const { withTimeout, withRetry, TIMEOUTS, RETRY_CONFIGS } = require('../utils/api-utils');
+const { safeParseAiJson } = require('../utils/safe-json-parse');
 
 // Claude API配置 - 优先使用环境变量，fallback到配置文件（开发环境）
 const getApiKey = (key) => {
@@ -612,14 +613,16 @@ ${content?.substring(0, 8000) || '(无正文)'}
     "tension_b": "立场B (3-5字)",
     "tti": 思想张力指数(50-100),
     "freq": "${targetFreq}",
-    "author_name": "${source}"
+    "author_name": "文章作者/发言者真实姓名 (从正文或标题中提取，禁止使用来源名称如Google News)",
+    "source": "发布场合信息 (格式：YYYY年M月D日 · 媒体名称/会议名称)"
 }
 
 **注意**:
-1. 内容必须深度分析，不要简单总结
-2. 张力问题必须是开放性辩论话题
-3. TTI >= 70 表示高质量内容
-4. 只输出JSON，不要其他文字`
+1. author_name 必须是真实人名，不能是机构名或来源名
+2. source 必须包含准确的日期和发布场合
+3. 内容必须深度分析，不要简单总结
+4. 张力问题必须是开放性辩论话题
+5. 只输出JSON，不要其他文字`
                         }]
                     }),
                     TIMEOUTS.AI_ANALYSIS
@@ -629,14 +632,7 @@ ${content?.substring(0, 8000) || '(无正文)'}
         );
 
         const text = response.content[0]?.text || '';
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-        if (!jsonMatch) {
-            console.log('   ⚠️ 无法解析 AI 响应');
-            return null;
-        }
-
-        const result = JSON.parse(jsonMatch[0]);
+        const result = safeParseAiJson(text, { isArray: false });
         return result;
     } catch (error) {
         console.error('   ❌ RSS 分析失败:', error.message);
@@ -680,13 +676,15 @@ ${content?.substring(0, 4000) || title}
     "tension_b": "立场B (3-5字)",
     "tti": 思想张力指数(60-100),
     "freq": "${targetFreq}",
-    "author_name": "${leader}"
+    "author_name": "${leader}",
+    "source": "发布场合信息 (格式：YYYY年M月D日 · 媒体名称/会议名称)"
 }
 
 **注意**:
-1. 突出新闻的思想性意义
-2. 关联 ${leader} 的一贯观点
-3. 只输出JSON`
+1. author_name 优先使用 ${leader}，如有更具体人物则使用真实姓名
+2. source 必须包含准确的日期和发布场合
+3. 突出新闻的思想性意义
+4. 只输出JSON`
                         }]
                     }),
                     TIMEOUTS.AI_ANALYSIS
@@ -696,14 +694,7 @@ ${content?.substring(0, 4000) || title}
         );
 
         const text = response.content[0]?.text || '';
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-        if (!jsonMatch) {
-            console.log('   ⚠️ 无法解析热点分析响应');
-            return null;
-        }
-
-        return JSON.parse(jsonMatch[0]);
+        return safeParseAiJson(text, { isArray: false });
     } catch (error) {
         console.error('   ❌ 热点分析失败:', error.message);
         return null;
