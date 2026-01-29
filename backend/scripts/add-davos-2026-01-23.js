@@ -1,10 +1,16 @@
 // 达沃斯 2026 主题日补充内容脚本
 // 添加重点人物的高质量内容
+// 用法: DATABASE_URL="..." node backend/scripts/add-davos-2026-01-23.js
 
 const { Pool } = require('pg');
 
+if (!process.env.DATABASE_URL) {
+    console.error('❌ 请设置 DATABASE_URL 环境变量');
+    process.exit(1);
+}
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:CYQfbxwPrPCCnNBVnNNvLZKCxdUMDJxh@autorack.proxy.rlwy.net:30270/railway',
+    connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 

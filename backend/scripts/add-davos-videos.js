@@ -1,10 +1,16 @@
 // 手动添加达沃斯视频到 collection_log 进行分析
 // 这些是真实的达沃斯 2026 视频
+// 用法: DATABASE_URL="..." node backend/scripts/add-davos-videos.js
 
 const { Pool } = require('pg');
 
+if (!process.env.DATABASE_URL) {
+    console.error('❌ 请设置 DATABASE_URL 环境变量');
+    process.exit(1);
+}
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:CYQfbxwPrPCCnNBVnNNvLZKCxdUMDJxh@autorack.proxy.rlwy.net:30270/railway',
+    connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
