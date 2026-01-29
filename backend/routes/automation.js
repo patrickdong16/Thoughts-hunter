@@ -2245,6 +2245,51 @@ router.post('/cleanup-reservoir', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/automation/list-reservoir
+ * 获取储备库详细列表
+ */
+router.get('/list-reservoir', async (req, res) => {
+    try {
+        const { freq, limit = 30 } = req.query;
+
+        let query = `
+            SELECT id, freq, priority, status, created_at,
+                   content->>'title' as title,
+                   content->>'author_name' as author_name,
+                   content->>'source_url' as source_url
+            FROM content_reservoir
+            WHERE status = 'pending' AND expires_at > NOW()
+        `;
+
+        const params = [];
+        if (freq) {
+            query += ` AND freq = $1`;
+            params.push(freq);
+        }
+
+        query += ` ORDER BY priority ASC, created_at DESC LIMIT $${params.length + 1}`;
+        params.push(parseInt(limit));
+
+        const { rows } = await pool.query(query, params);
+
+        res.json({
+            success: true,
+            count: rows.length,
+            items: rows.map(r => ({
+                id: r.id,
+                freq: r.freq,
+                priority: r.priority,
+                author: r.author_name,
+                title: r.title,
+                source_url: r.source_url
+            }))
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
 
 
