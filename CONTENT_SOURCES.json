@@ -1,6 +1,6 @@
 {
     "version": "2.0",
-    "lastUpdated": "2026-01-28",
+    "lastUpdated": "2026-01-29",
     "description": "思想雷达内容来源配置 - 机器可读版本",
     "rssFeeds": {
         "tier1": [
@@ -1196,10 +1196,406 @@
         {
             "name": "Daron Acemoglu",
             "name_cn": "达龙·阿西莫格鲁",
-            "domain": "H",
+            "domain": "P",
             "priority": 1,
             "role": "诺贝尔经济学奖 2024",
-            "focus": "制度与国家兴衰",
+            "focus": "制度经济学/包容性制度与长期繁荣",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "包刚升",
+            "name_cn": "包刚升",
+            "domain": "P",
+            "priority": 2,
+            "role": "复旦大学",
+            "focus": "比较政治学/政体转型与民主崩溃",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "施展",
+            "name_cn": "施展",
+            "domain": "H",
+            "priority": 2,
+            "role": "外交学院",
+            "focus": "历史地缘政治/中国制造与全球供应链",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Chris Miller",
+            "name_cn": "克里斯·米勒",
+            "domain": "T",
+            "priority": 2,
+            "role": "塔夫茨大学",
+            "focus": "芯片地缘政治/《芯片战争》作者",
+            "twitter": "caboris",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Walter Russell Mead",
+            "name_cn": "沃尔特·拉塞尔·米德",
+            "domain": "P",
+            "priority": 2,
+            "role": "《华尔街日报》专栏作家",
+            "focus": "美国外交政策流派",
+            "twitter": "waboris",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Samuel Huntington",
+            "name_cn": "塞缪尔·亨廷顿",
+            "domain": "P",
+            "priority": 1,
+            "role": "哈佛大学（1927-2008）",
+            "focus": "文明冲突论/文化断层线预测",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Parag Khanna",
+            "name_cn": "帕拉格·康纳",
+            "domain": "P",
+            "priority": 2,
+            "role": "地缘战略家",
+            "focus": "亚洲世纪/全球连接性与基础设施",
+            "twitter": "paragkhanna",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "赵鼎新",
+            "name_cn": "赵鼎新",
+            "domain": "P",
+            "priority": 2,
+            "role": "芝加哥大学/浙江大学",
+            "focus": "社会政治学/国家权力与社会运动",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Vaclav Smil",
+            "name_cn": "瓦茨拉夫·斯米尔",
+            "domain": "T",
+            "priority": 1,
+            "role": "曼尼托巴大学",
+            "focus": "能源与材料史/文明的物理底座",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Benjamin Bratton",
+            "name_cn": "本杰明·布拉顿",
+            "domain": "T",
+            "priority": 2,
+            "role": "加州大学圣地亚哥分校",
+            "focus": "计算地缘政治/The Stack模型",
+            "twitter": "bratton",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "张笑宇",
+            "name_cn": "张笑宇",
+            "domain": "T",
+            "priority": 2,
+            "role": "华东师范大学",
+            "focus": "技术与文明/技术演化与政治商贸兴衰",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Kevin Kelly",
+            "name_cn": "凯文·凯利",
+            "domain": "T",
+            "priority": 2,
+            "role": "《连线》创始主编",
+            "focus": "科技趋势预测/《失控》作者/AI生态乐观派",
+            "twitter": "kevin2kelly",
+            "rss_url": null,
+            "blog_url": "https://kk.org"
+        },
+        {
+            "name": "Nick Bostrom",
+            "name_cn": "尼克·博斯特罗姆",
+            "domain": "T",
+            "priority": 1,
+            "role": "牛津大学人类未来研究所",
+            "focus": "AI超智能/生存性风险（X-Risk）",
+            "twitter": "nickbostrom",
+            "rss_url": null,
+            "blog_url": "https://nickbostrom.com"
+        },
+        {
+            "name": "Jill Lepore",
+            "name_cn": "吉尔·莱波尔",
+            "domain": "H",
+            "priority": 2,
+            "role": "哈佛大学",
+            "focus": "媒介史/统计学与数据如何重构政治叙事",
+            "twitter": "jaboris",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "James Gleick",
+            "name_cn": "詹姆斯·格雷克",
+            "domain": "T",
+            "priority": 2,
+            "role": "科学作家",
+            "focus": "信息简史/信息如何驱动文明",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "江晓原",
+            "name_cn": "江晓原",
+            "domain": "Φ",
+            "priority": 2,
+            "role": "上海交通大学",
+            "focus": "科学社会史/科学主义批判",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "吴军",
+            "name_cn": "吴军",
+            "domain": "T",
+            "priority": 2,
+            "role": "硅谷投资人/作家",
+            "focus": "科技工业史/工程学与工业演进",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "David Chalmers",
+            "name_cn": "大卫·查尔默斯",
+            "domain": "Φ",
+            "priority": 1,
+            "role": "纽约大学",
+            "focus": "意识/模拟理论",
+            "twitter": "davidchalmers42",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Byung-Chul Han",
+            "name_cn": "韩炳哲",
+            "domain": "Φ",
+            "priority": 2,
+            "role": "柏林艺术大学",
+            "focus": "倦怠社会/数字化批判",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Daniel Dennett",
+            "name_cn": "丹尼尔·丹尼特",
+            "domain": "Φ",
+            "priority": 2,
+            "role": "塔夫茨大学（1942-2024）",
+            "focus": "进化与意识/自由意志",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Thomas Pogge",
+            "name_cn": "托马斯·波格",
+            "domain": "Φ",
+            "priority": 2,
+            "role": "耶鲁大学",
+            "focus": "全球正义与贫困伦理",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Judith Butler",
+            "name_cn": "朱迪斯·巴特勒",
+            "domain": "Φ",
+            "priority": 2,
+            "role": "加州大学伯克利分校",
+            "focus": "身体与身份政治",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "何怀宏",
+            "name_cn": "何怀宏",
+            "domain": "Φ",
+            "priority": 2,
+            "role": "北京大学",
+            "focus": "道德与生命伦理",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "徐贲",
+            "name_cn": "徐贲",
+            "domain": "Φ",
+            "priority": 2,
+            "role": "圣玛丽学院",
+            "focus": "公共理性与启蒙反思",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Ezra Klein",
+            "name_cn": "以斯拉·克莱因",
+            "domain": "P",
+            "priority": 1,
+            "role": "《纽约时报》专栏作家",
+            "focus": "制度/政策评论/美国政治极化",
+            "twitter": "ezraklein",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Samuel Moyn",
+            "name_cn": "塞缪尔·莫恩",
+            "domain": "P",
+            "priority": 2,
+            "role": "耶鲁大学",
+            "focus": "法律/人权史评论/自由主义批判",
+            "twitter": "samuelmoyn",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Martin Wolf",
+            "name_cn": "马丁·沃尔夫",
+            "domain": "F",
+            "priority": 1,
+            "role": "《金融时报》首席评论员",
+            "focus": "经济政治评论/民主与市场经济的平衡",
+            "twitter": "martinwolf_",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Bret Stephens",
+            "name_cn": "布雷特·斯蒂芬斯",
+            "domain": "P",
+            "priority": 2,
+            "role": "《纽约时报》专栏作家",
+            "focus": "古典自由主义/地缘政治警示",
+            "twitter": "bretstephensNYT",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "许纪霖",
+            "name_cn": "许纪霖",
+            "domain": "H",
+            "priority": 2,
+            "role": "华东师范大学",
+            "focus": "中国思想史/知识分子与都市文化心理",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Jerry Saltz",
+            "name_cn": "杰瑞·萨尔茨",
+            "domain": "X",
+            "priority": 2,
+            "role": "《纽约杂志》艺术评论家",
+            "focus": "当代艺术实评/普利策奖得主/艺术市场权力逻辑",
+            "twitter": "jerrysaltz",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Claire Bishop",
+            "name_cn": "克莱尔·毕晓普",
+            "domain": "X",
+            "priority": 2,
+            "role": "纽约市立大学",
+            "focus": "参与式艺术理论/后数字时代装置艺术",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "陈丹青",
+            "name_cn": "陈丹青",
+            "domain": "X",
+            "priority": 2,
+            "role": "画家/作家",
+            "focus": "绘画与视觉史/经典审美",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Dave Hickey",
+            "name_cn": "戴夫·希基",
+            "domain": "X",
+            "priority": 2,
+            "role": "艺术评论家（1938-2021）",
+            "focus": "美学与民主/\"美\"作为权力",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Boris Groys",
+            "name_cn": "鲍里斯·格罗伊斯",
+            "domain": "X",
+            "priority": 2,
+            "role": "纽约大学",
+            "focus": "艺术流变/策展/数字档案馆中的艺术",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Hal Foster",
+            "name_cn": "哈尔·福斯特",
+            "domain": "X",
+            "priority": 2,
+            "role": "普林斯顿大学",
+            "focus": "艺术批评与精神分析/艺术与资本主义共生",
+            "twitter": null,
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "Roberta Smith",
+            "name_cn": "罗伯塔·史密斯",
+            "domain": "X",
+            "priority": 2,
+            "role": "《纽约时报》艺术评论员",
+            "focus": "跨学科艺术评/边缘与主流艺术转化",
+            "twitter": "robertasmithnyt",
+            "rss_url": null,
+            "blog_url": null
+        },
+        {
+            "name": "费大为",
+            "name_cn": "费大为",
+            "domain": "X",
+            "priority": 2,
+            "role": "策展人",
+            "focus": "中国当代艺术策划/全球视野",
             "twitter": null,
             "rss_url": null,
             "blog_url": null
@@ -1230,6 +1626,16 @@
             "name": "Machine Learning Street Talk",
             "domain": "T",
             "focus": "AI 学术"
+        },
+        {
+            "name": "Conversations with Tyler",
+            "domain": "Φ",
+            "focus": "Tyler Cowen 深度访谈"
+        },
+        {
+            "name": "The Ezra Klein Show",
+            "domain": "P",
+            "focus": "政策与政治深度访谈"
         },
         {
             "name": "Foreign Affairs",

@@ -252,6 +252,13 @@ async function generateFallbackContent(date, options = {}) {
     for (const article of articlesToProcess.slice(0, targetCount + 2)) { // 多处理一些留余量
         if (results.inserted >= targetCount) break;
 
+        // 🔧 修复：在每次迭代时检查作者是否已被使用（v5.1.34 作者唯一规则）
+        if (usedAuthors.has(article.author)) {
+            console.log(`  ⏭️ 跳过重复作者: ${article.author}`);
+            results.skipped++;
+            continue;
+        }
+
         // 找到对应频段
         const prefix = domainToFreq[article.domain] || 'T';
         const freq = availableFreqs.find(f => f.startsWith(prefix)) || availableFreqs[0];
