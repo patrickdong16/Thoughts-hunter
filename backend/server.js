@@ -13,6 +13,7 @@ const collectionRoutes = require('./routes/collection');
 const pushRoutes = require('./routes/push');
 const automationRoutes = require('./routes/automation');
 const reportRoutes = require('./routes/report');
+const wechatRoutes = require('./routes/wechat');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,6 +43,7 @@ app.use('/api/collection', collectionRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/automation', automationRoutes);
 app.use('/api/report', reportRoutes);
+app.use('/api/wechat', wechatRoutes);
 
 // 健康检查 - 详细版本用于调试
 const pool = require('./config/database');
