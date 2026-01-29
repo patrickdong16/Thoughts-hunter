@@ -192,9 +192,10 @@ async function publishDraft(mediaId) {
 }
 
 /**
- * 同步今日内容到草稿箱
+ * 同步今日内容到草稿箱（带配额质检）
  */
-async function syncTodayToDraft() {
+async function syncTodayToDraft(options = {}) {
+    const { skipQuotaCheck = false } = options;
     const today = new Date().toISOString().split('T')[0];
 
     // 获取今日内容
@@ -210,8 +211,22 @@ async function syncTodayToDraft() {
         return { success: false, message: '今日无内容可同步' };
     }
 
+    // 配额质检
+    let itemsToSync = rows;
+    let quotaResult = null;
+
+    if (!skipQuotaCheck) {
+        const { validatePublishQuota } = require('./content-validator');
+        quotaResult = validatePublishQuota(rows, 'wechat', { total: 0, byFreq: {} });
+        itemsToSync = quotaResult.allowedItems;
+
+        if (quotaResult.rejectedItems.length > 0) {
+            console.log(`⚠️ 配额质检: ${quotaResult.rejectedItems.length} 条内容因配额限制被跳过`);
+        }
+    }
+
     const results = [];
-    for (const item of rows) {
+    for (const item of itemsToSync) {
         try {
             const article = formatArticle(item);
             const mediaId = await createDraft(article);
@@ -236,6 +251,8 @@ async function syncTodayToDraft() {
         date: today,
         total: rows.length,
         synced: results.filter(r => r.success).length,
+        skippedByQuota: quotaResult ? quotaResult.rejectedItems.length : 0,
+        quotaStatus: quotaResult?.quotaStatus || null,
         results
     };
 }
