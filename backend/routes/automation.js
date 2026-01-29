@@ -2214,6 +2214,37 @@ router.get('/reservoir-stats', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/automation/cleanup-reservoir
+ * 清理储备库中的违规数据（Google News 作者等）
+ */
+router.post('/cleanup-reservoir', async (req, res) => {
+    try {
+        console.log('🧹 清理储备库违规数据...');
+
+        // 删除 author_name 为 Google News 的内容
+        const { rowCount: deletedGoogleNews } = await pool.query(`
+            DELETE FROM content_reservoir 
+            WHERE content::text LIKE '%"author_name":"Google News"%'
+               OR content::text LIKE '%"author_name": "Google News"%'
+            RETURNING id
+        `);
+
+        console.log(`   ✅ 删除 Google News 数据: ${deletedGoogleNews} 条`);
+
+        res.json({
+            success: true,
+            message: `清理完成`,
+            deleted: {
+                googleNews: deletedGoogleNews
+            }
+        });
+    } catch (error) {
+        console.error('❌ 清理失败:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
 
 
