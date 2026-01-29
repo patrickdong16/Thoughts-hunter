@@ -40,6 +40,43 @@
 
 ---
 
+## 🔐 API 密钥安全规则（2026-01-29 新增 - 强制执行）
+
+> **全局规则**：所有项目必须遵守，违反即安全事故
+
+### 绝对禁止（零容忍）
+
+1. **禁止硬编码任何密钥/密码**
+   - 禁止在代码中直接写入 API Key、数据库密码、Token 等
+   - 禁止使用 `||` fallback 默认值包含真实密钥
+   - 错误示例：`process.env.DATABASE_URL || 'postgresql://user:password@host/db'`
+
+2. **禁止提交敏感文件**
+   - `.env` 文件必须在 `.gitignore` 中
+   - `api-keys.json` 等配置文件必须在 `.gitignore` 中
+
+### 正确做法
+
+```javascript
+// ✅ 正确：仅使用环境变量
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL
+});
+
+// ✅ 正确：缺少环境变量时报错退出
+if (!process.env.DATABASE_URL) {
+    console.error('❌ 请设置 DATABASE_URL 环境变量');
+    process.exit(1);
+}
+```
+
+### 泄漏应急响应
+1. 立即轮换泄漏的密钥/密码
+2. 修复代码并推送
+3. 检查 Git 历史是否需要清理（`git filter-branch` 或 BFG）
+
+---
+
 ## 📋 需求来源
 
 **唯一需求源**：`REQUIREMENTS.md`
