@@ -10,6 +10,8 @@ const pool = require('../config/database');
 const WECHAT_API_BASE = 'https://api.weixin.qq.com/cgi-bin';
 const APP_ID = process.env.WECHAT_APP_ID;
 const APP_SECRET = process.env.WECHAT_APP_SECRET;
+// 默认封面图 media_id（需要先上传一张图片获取）
+const DEFAULT_THUMB_MEDIA_ID = process.env.WECHAT_DEFAULT_THUMB_ID;
 
 // access_token 缓存
 let accessTokenCache = {
@@ -104,6 +106,12 @@ function formatArticle(item) {
 async function createDraft(article) {
     const token = await getAccessToken();
 
+    // 检查是否配置了默认封面
+    const thumbMediaId = article.thumb_media_id || DEFAULT_THUMB_MEDIA_ID;
+    if (!thumbMediaId) {
+        throw new Error('未配置默认封面图 media_id，请在 Railway 环境变量中设置 WECHAT_DEFAULT_THUMB_ID');
+    }
+
     try {
         const response = await axios.post(
             `${WECHAT_API_BASE}/draft/add?access_token=${token}`,
@@ -114,7 +122,7 @@ async function createDraft(article) {
                     content: article.content,
                     content_source_url: article.content_source_url,
                     digest: article.digest,
-                    thumb_media_id: article.thumb_media_id || '',
+                    thumb_media_id: thumbMediaId,
                     need_open_comment: 0,
                     only_fans_can_comment: 0
                 }]
@@ -232,11 +240,49 @@ async function syncTodayToDraft() {
     };
 }
 
+/**
+ * 获取永久素材列表（图片）
+ */
+async function getMaterialList(type = 'image', offset = 0, count = 20) {
+    const token = await getAccessToken();
+
+    try {
+        const response = await axios.post(
+            `${WECHAT_API_BASE}/material/batchget_material?access_token=${token}`,
+            { type, offset, count },
+            { timeout: 30000 }
+        );
+
+        if (response.data.errcode) {
+            throw new Error(`获取素材列表失败: ${response.data.errcode} - ${response.data.errmsg}`);
+        }
+
+        return response.data;
+    } catch (error) {
+        console.error('❌ 获取素材列表失败:', error.message);
+        throw error;
+    }
+}
+
+/**
+ * 获取配置状态
+ */
+function getConfig() {
+    return {
+        hasAppId: !!APP_ID,
+        hasAppSecret: !!APP_SECRET,
+        hasDefaultThumb: !!DEFAULT_THUMB_MEDIA_ID,
+        defaultThumbId: DEFAULT_THUMB_MEDIA_ID ? DEFAULT_THUMB_MEDIA_ID.substring(0, 10) + '...' : null
+    };
+}
+
 module.exports = {
     getAccessToken,
     formatArticle,
     createDraft,
     getDraftList,
     publishDraft,
-    syncTodayToDraft
+    syncTodayToDraft,
+    getMaterialList,
+    getConfig
 };

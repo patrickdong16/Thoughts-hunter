@@ -150,4 +150,50 @@ router.post('/draft', async (req, res) => {
     }
 });
 
+/**
+ * 获取素材列表（用于获取 thumb_media_id）
+ * GET /api/wechat/materials
+ */
+router.get('/materials', async (req, res) => {
+    try {
+        const type = req.query.type || 'image';
+        const offset = parseInt(req.query.offset) || 0;
+        const count = parseInt(req.query.count) || 20;
+
+        const result = await wechatPublisher.getMaterialList(type, offset, count);
+        res.json({
+            success: true,
+            ...result,
+            hint: '使用返回的 media_id 设置 WECHAT_DEFAULT_THUMB_ID 环境变量'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * 获取详细配置状态
+ * GET /api/wechat/config
+ */
+router.get('/config', async (req, res) => {
+    try {
+        const config = wechatPublisher.getConfig();
+        res.json({
+            success: true,
+            config,
+            message: config.hasDefaultThumb
+                ? '配置完整，可以同步内容'
+                : '缺少默认封面图，请先上传图片素材'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
