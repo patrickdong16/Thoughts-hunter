@@ -71,7 +71,8 @@ const VALIDATION_RULES = {
                 name: 'valid_stance',
                 description: '有效立场检查',
                 validate: (item) => {
-                    const passed = ['A', 'B'].includes(item.stance);
+                    // 支持新旧两种格式: yes/no 和 A/B
+                    const passed = ['A', 'B', 'yes', 'no'].includes(item.stance);
                     return {
                         passed,
                         message: passed ? `立场 ${item.stance} 有效` : `无效立场: ${item.stance}`

@@ -3,6 +3,7 @@
 // 处理草稿的生命周期管理
 
 const pool = require('../config/database');
+const { validateItem } = require('./content-validator');
 
 /**
  * 获取所有草稿（带过滤）
@@ -150,13 +151,16 @@ const updateDraft = async (id, updates) => {
 };
 
 /**
- * 批准草稿并发布到radar_items
+ * 批准草稿并发布到radar_items（带质检）
  * @param {number} draftId - 草稿ID
  * @param {Array} selectedIndices - 要发布的items索引数组（可选，默认全部）
  * @param {string} reviewedBy - 审核人
+ * @param {Object} options - 额外选项 { skipValidation: false }
  * @returns {Promise<Object>} 创建的radar_items IDs
  */
-const approveDraft = async (draftId, selectedIndices = null, reviewedBy = 'system') => {
+const approveDraft = async (draftId, selectedIndices = null, reviewedBy = 'system', options = {}) => {
+    const { skipValidation = false } = options;
+
     try {
         // 获取草稿
         const draft = await getDraftById(draftId);
@@ -184,10 +188,37 @@ const approveDraft = async (draftId, selectedIndices = null, reviewedBy = 'syste
             throw new Error('没有选择要发布的内容');
         }
 
-        // 发布items到radar_items表
-        const createdIds = [];
+        // 🔍 质检步骤：验证每个 item
+        const validatedItems = [];
+        const rejectedItems = [];
 
         for (const item of itemsToPublish) {
+            if (skipValidation) {
+                validatedItems.push({ item, validation: { passed: true, skipped: true } });
+            } else {
+                const validation = validateItem(item, { isGeneration: false });
+                if (validation.passed && !validation.blocked) {
+                    validatedItems.push({ item, validation });
+                } else {
+                    rejectedItems.push({
+                        item,
+                        validation,
+                        reason: validation.errors.map(e => e.message).join('; ')
+                    });
+                }
+            }
+        }
+
+        console.log(`📋 质检结果: ${validatedItems.length} 通过, ${rejectedItems.length} 未通过`);
+
+        if (validatedItems.length === 0) {
+            throw new Error(`所有内容未通过质检: ${rejectedItems.map(r => r.reason).join('; ')}`);
+        }
+
+        // 发布通过质检的items到radar_items表
+        const createdIds = [];
+
+        for (const { item } of validatedItems) {
             try {
                 const insertQuery = `
           INSERT INTO radar_items (
@@ -237,7 +268,16 @@ const approveDraft = async (draftId, selectedIndices = null, reviewedBy = 'syste
         return {
             draftId,
             publishedCount: createdIds.length,
-            radarItemIds: createdIds
+            radarItemIds: createdIds,
+            validationSummary: {
+                passed: validatedItems.length,
+                rejected: rejectedItems.length,
+                rejectedItems: rejectedItems.map(r => ({
+                    title: r.item.title,
+                    freq: r.item.freq,
+                    reason: r.reason
+                }))
+            }
         };
     } catch (error) {
         console.error('批准草稿失败:', error);
